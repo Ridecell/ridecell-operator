@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,5 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package db contains db API versions
-package db
+package components_test
+
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
+)
+
+var _ = Describe("RabbitmqVhost Defaults Component", func() {
+	It("does nothing on a filled out object", func() {
+		comp := rmqvcomponents.NewDefaults()
+		_, err := comp.Reconcile(ctx)
+		Expect(err).NotTo(HaveOccurred())
+	})
+})

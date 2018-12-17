@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apis
+package rabbitmq_vhost
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
 )
 
-func init() {
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, v1beta1.SchemeBuilder.AddToScheme)
+func Add(mgr manager.Manager) error {
+	_, err := components.NewReconciler("rabbitmq-vhost-controller", mgr, &dbv1beta1.RabbitmqVhost{}, nil, []components.Component{
+		rmqvcomponents.NewDefaults(),
+	})
+	return err
 }
