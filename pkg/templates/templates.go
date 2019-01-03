@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"net/http"
 	"path"
+	"strings"
 	"text/template"
 
 	// "github.com/golang/glog"
@@ -32,6 +33,9 @@ import (
 func parseTemplate(fs http.FileSystem, filename string) (*template.Template, error) {
 	// Create a template object.
 	tmpl := template.New(path.Base(filename))
+
+	// Add generally useful custom utility functions.
+	tmpl = tmpl.Funcs(template.FuncMap{"StringsJoin": strings.Join})
 
 	// Parse any helpers if present.
 	helpers, err := vfspath.Glob(fs, "helpers/*.tpl")
