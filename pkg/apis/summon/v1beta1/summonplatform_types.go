@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -83,6 +85,9 @@ type SummonPlatformSpec struct {
 	// Slack API Key Secret Definition
 	// +optional
 	NotificationSecretRef NotificationSecretRef `json:"secretRef,omitempty"`
+	// Fernet Key Rotation Time Setting
+	// +optional
+	FernetKeyRotation time.Duration `json:"fernetKeyRotation,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform

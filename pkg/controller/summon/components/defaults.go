@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -68,6 +69,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	}
 	if instance.Spec.PullSecret == "" {
 		instance.Spec.PullSecret = "pull-secret"
+	}
+
+	// Fernet key rotation default
+	zeroSeconds, _ := time.ParseDuration("0s")
+	if instance.Spec.FernetKeyRotation == zeroSeconds {
+		// This is set to rotate fernet keys every year.
+		parsedTimeDuration, _ := time.ParseDuration("8760h")
+		instance.Spec.FernetKeyRotation = parsedTimeDuration
 	}
 
 	// Fill in static default config values.
