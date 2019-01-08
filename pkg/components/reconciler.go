@@ -24,8 +24,10 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -72,6 +74,33 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 				IsController: true,
 				OwnerType:    cr.top,
 			})
+			if err != nil {
+				return nil, fmt.Errorf("unable to create watch: %v", err)
+			}
+			gatherer, ok := comp.(GathererComponent)
+			if !ok {
+				continue
+			}
+			toRequests := func(object handler.MapObject) []reconcile.Request {
+				// Pull the metav1.Object out of the runtime.Object
+				metaObj, err := meta.Accessor(top)
+				if err != nil {
+					fmt.Errorf("unable to create watch: %v", err)
+				}
+				return []reconcile.Request{
+					{NamespacedName: types.NamespacedName{
+						Namespace: metaObj.GetNamespace(),
+						Name:      metaObj.GetName(),
+					}},
+				}
+			}
+			err = c.Watch(
+				&source.Kind{Type: watchObj},
+				&handler.EnqueueRequestsFromMapFunc{
+					ToRequests: handler.ToRequestsFunc(toRequests),
+				},
+				gatherer.WatchPredicateFuncs(),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("unable to create watch: %v", err)
 			}
