@@ -22,6 +22,8 @@ import (
 
 // RabbitmqVhostSpec defines the desired state of RabbitmqVhost
 type RabbitmqVhostSpec struct {
+	VhostName  string             `json:"vhostName,omitempty"`
+	Connection RabbitmqConnection `json:"connection"`
 }
 
 // RabbitmqVhostStatus defines the observed state of RabbitmqVhost
