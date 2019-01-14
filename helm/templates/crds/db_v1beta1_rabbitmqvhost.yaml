@@ -24,6 +24,8 @@ spec:
           type: object
         spec:
           properties:
+            clusterhost:
+              type: string
             connection:
               properties:
                 passwordSecretRef:
@@ -44,6 +46,7 @@ spec:
             vhostName:
               type: string
           required:
+          - clusterhost
           - connection
           type: object
         status:

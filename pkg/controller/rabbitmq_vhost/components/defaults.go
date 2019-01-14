@@ -17,11 +17,9 @@ limitations under the License.
 package components
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	// dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type defaultsComponent struct{}
@@ -38,11 +36,26 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 	return true
 }
 
-func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	// instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
+func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
 
 	// Fill in defaults.
-	// TODO
+	if instance.Spec.VhostName == "" {
+		// Default extension name is just the name of the resource.
+		instance.Spec.VhostName = instance.Name
+	}
+	if instance.Spec.Connection.PasswordSecretRef.Key == "" {
+		// Use "guest" as the default key.
+		instance.Spec.Connection.PasswordSecretRef.Key = "guest"
+	}
+	if instance.Spec.Connection.Username == "" {
+		// Use "guest" as the default username.
+		instance.Spec.Connection.Username = "guest"
+	}
+	if instance.Spec.ClusterHost == "" {
+		//Use localhost as the default clusterhost
+		instance.Spec.ClusterHost = "http://127.0.0.1:15672"
+	}
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }
