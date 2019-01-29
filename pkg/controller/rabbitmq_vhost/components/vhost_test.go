@@ -69,10 +69,9 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 	})
 	It("Create new vhost if it does not exist", func() {
 		comp := rmqvcomponents.NewVhost()
+    mgr := &fakeRabbitClient{}
 		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
-			var mgr *fakeRabbitClient
-			fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
-			mgr = &fakeRabbitClient{}
+		  fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
 			mgr.FakeClient = fclient
 			mgr.FakeVhostList = []rabbithole.VhostInfo{}
 			return mgr, nil
@@ -82,16 +81,12 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 			InsecureSkipVerify: true, // test server certificate is not trusted in case of self hosted rabbitmq
 		},
 		}
-		var fakemgr rmqvcomponents.RabbitMQManager
-		fakemgr, err := comp.Client("test", "guest", "guest", transport)
-		Expect(err).NotTo(HaveOccurred())
-		resp, err1 := fakemgr.PutVhost("test", rabbithole.VhostSettings{Tracing: false})
-		Expect(err1).NotTo(HaveOccurred())
+		comp.Client("test", "guest", "guest", transport)
+		resp, _ := mgr.PutVhost("test", rabbithole.VhostSettings{Tracing: false})
 		Expect(resp.StatusCode).To(Equal(201))
-		vlist, _ := fakemgr.ListVhosts()
-		var elem rabbithole.VhostInfo
-		elem = rabbithole.VhostInfo{Name: "test", Tracing: false}
-		Expect(vlist).Should(ConsistOf(elem))
+		elem := rabbithole.VhostInfo{Name: "test", Tracing: false}
+		Expect(mgr.FakeVhostList).Should(ConsistOf(elem))
+    Expect(mgr.FakeVhostList).To(HaveLen(1))
 	})
 
 })
