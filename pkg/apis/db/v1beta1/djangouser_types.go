@@ -20,24 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type SecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key,omitempty"`
-}
-
-type DatabaseConnection struct {
-	Host              string    `json:"host"`
-	Port              uint16    `json:"port,omitempty"`
-	Username          string    `json:"username"`
-	PasswordSecretRef SecretRef `json:"passwordSecretRef"`
-	Database          string    `json:"database,omitempty"`
-}
-
 // DjangoUserSpec defines the desired state of DjangoUser
 type DjangoUserSpec struct {
 	Email          string             `json:"email"`
 	PasswordSecret string             `json:"passwordSecret,omitempty"`
-	Database       DatabaseConnection `json:"database"`
+	Database       PostgresConnection `json:"database"`
 	FirstName      string             `json:"firstName,omitempty"`
 	LastName       string             `json:"lastName,omitempty"`
 	Active         bool               `json:"active"`

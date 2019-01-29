@@ -18,7 +18,6 @@ package components
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 
@@ -29,9 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
+	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 )
 
 type databaseComponent struct{}
@@ -49,7 +48,7 @@ func (_ *databaseComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.DjangoUser)
+	instance := ctx.Top.(*dbv1beta1.DjangoUser)
 
 	// Try to find the password to use.
 	secret := &corev1.Secret{}
@@ -67,7 +66,7 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	// Connect to the database.
-	db, err := comp.openDatabase(ctx)
+	db, err := postgres.Open(ctx, &instance.Spec.Database)
 	if err != nil {
 		return components.Result{Requeue: true}, err
 	}
@@ -128,8 +127,8 @@ INSERT INTO common_staff (user_profile_id, is_active, manager, dispatcher)
 
 	// Success!
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*summonv1beta1.DjangoUser)
-		instance.Status.Status = summonv1beta1.StatusReady
+		instance := obj.(*dbv1beta1.DjangoUser)
+		instance.Status.Status = dbv1beta1.StatusReady
 		instance.Status.Message = fmt.Sprintf("User %v created", id)
 		return nil
 	}}, nil
@@ -151,24 +150,4 @@ func (comp *databaseComponent) hashPassword(password []byte) (string, error) {
 
 	// Format like Django uses.
 	return fmt.Sprintf("bcrypt_sha256$%s", hashed), nil
-}
-
-func (comp *databaseComponent) openDatabase(ctx *components.ComponentContext) (*sql.DB, error) {
-	instance := ctx.Top.(*summonv1beta1.DjangoUser)
-	dbInfo := instance.Spec.Database
-	passwordSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: dbInfo.PasswordSecretRef.Name, Namespace: instance.Namespace}, passwordSecret)
-	if err != nil {
-		return nil, errors.Wrapf(err, "database: Unable to load database secret %s/%s", instance.Namespace, dbInfo.PasswordSecretRef.Name)
-	}
-	dbPassword, ok := passwordSecret.Data[dbInfo.PasswordSecretRef.Key]
-	if !ok {
-		return nil, errors.Errorf("database: Password key %v not found in database secret %s/%s", dbInfo.PasswordSecretRef.Key, instance.Namespace, dbInfo.PasswordSecretRef.Name)
-	}
-	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=require", dbInfo.Host, dbInfo.Port, dbInfo.Database, dbInfo.Username, dbPassword)
-	db, err := dbpool.Open("postgres", connStr)
-	if err != nil {
-		return nil, errors.Wrap(err, "database: Unable to open database connection")
-	}
-	return db, nil
 }

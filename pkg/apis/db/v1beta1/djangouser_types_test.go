@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -44,13 +44,13 @@ var _ = Describe("DjangoUser types", func() {
 			Name:      "foo",
 			Namespace: helpers.Namespace,
 		}
-		created := &summonv1beta1.DjangoUser{
+		created := &dbv1beta1.DjangoUser{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: helpers.Namespace,
 			},
 		}
-		fetched := &summonv1beta1.DjangoUser{}
+		fetched := &dbv1beta1.DjangoUser{}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -66,13 +66,13 @@ var _ = Describe("DjangoUser types", func() {
 			Name:      "foo",
 			Namespace: helpers.Namespace,
 		}
-		created := &summonv1beta1.DjangoUser{
+		created := &dbv1beta1.DjangoUser{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: helpers.Namespace,
 			},
 		}
-		fetched := &summonv1beta1.DjangoUser{}
+		fetched := &dbv1beta1.DjangoUser{}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
 

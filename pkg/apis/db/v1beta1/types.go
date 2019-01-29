@@ -25,6 +25,9 @@ const (
 	StatusError = "Error"
 )
 
+// Alias for simplicity.
+type SecretRef = helpers.SecretRef
+
 // Connection details for a Postgres database.
 type PostgresConnection struct {
 	Host              string            `json:"host"`

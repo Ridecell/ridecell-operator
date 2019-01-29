@@ -17,9 +17,9 @@ limitations under the License.
 package djangouser
 
 import (
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
 )
@@ -27,7 +27,7 @@ import (
 // Add creates a new DjangoUser Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("django-user-controller", mgr, &summonv1beta1.DjangoUser{}, nil, []components.Component{
+	_, err := components.NewReconciler("django-user-controller", mgr, &dbv1beta1.DjangoUser{}, nil, []components.Component{
 		djangousercomponents.NewDefaults(),
 		djangousercomponents.NewSecret(),
 		djangousercomponents.NewDatabase(),

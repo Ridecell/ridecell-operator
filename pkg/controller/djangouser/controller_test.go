@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -63,17 +64,17 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	It("runs a basic reconcile", func() {
-		instance := &summonv1beta1.DjangoUser{
+		instance := &dbv1beta1.DjangoUser{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: helpers.Namespace},
-			Spec: summonv1beta1.DjangoUserSpec{
+			Spec: dbv1beta1.DjangoUserSpec{
 				Active:    true,
 				Staff:     true,
 				Superuser: true,
-				Database: summonv1beta1.DatabaseConnection{
+				Database: dbv1beta1.PostgresConnection{
 					Host:     "foo-database",
 					Username: "summon",
 					Database: "summon",
-					PasswordSecretRef: summonv1beta1.SecretRef{
+					PasswordSecretRef: dbv1beta1.SecretRef{
 						Name: "summon.foo-database.credentials",
 					},
 				},
@@ -97,7 +98,7 @@ var _ = Describe("Summon controller", func() {
 		err = helpers.Client.Create(context.TODO(), instance)
 		Expect(err).NotTo(HaveOccurred())
 
-		fetched := &summonv1beta1.DjangoUser{}
+		fetched := &dbv1beta1.DjangoUser{}
 		Eventually(func() (string, error) {
 			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo.example.com", Namespace: helpers.Namespace}, fetched)
 			if err != nil {

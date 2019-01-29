@@ -25,11 +25,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-var instance *summonv1beta1.DjangoUser
+var instance *dbv1beta1.DjangoUser
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
@@ -40,7 +40,7 @@ func TestComponents(t *testing.T) {
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
-	instance = &summonv1beta1.DjangoUser{
+	instance = &dbv1beta1.DjangoUser{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: "default"},
 	}
 	ctx = components.NewTestContext(instance, nil)

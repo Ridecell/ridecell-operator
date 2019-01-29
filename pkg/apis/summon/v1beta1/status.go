@@ -32,16 +32,3 @@ func (s *SummonPlatform) SetErrorStatus(errorMsg string) {
 	s.Status.Status = StatusError
 	s.Status.Message = errorMsg
 }
-
-func (s *DjangoUser) GetStatus() components.Status {
-	return s.Status
-}
-
-func (s *DjangoUser) SetStatus(status components.Status) {
-	s.Status = status.(DjangoUserStatus)
-}
-
-func (s *DjangoUser) SetErrorStatus(errorMsg string) {
-	s.Status.Status = StatusError
-	s.Status.Message = errorMsg
-}

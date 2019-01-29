@@ -1,4 +1,4 @@
-apiVersion: summon.ridecell.io/v1beta1
+apiVersion: db.ridecell.io/v1beta1
 kind: DjangoUser
 metadata:
   name: {{ .Instance.Name }}-dispatcher

@@ -25,6 +25,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
@@ -37,7 +38,7 @@ func NewSuperuser() *superuserComponent {
 
 func (comp *superuserComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&summonv1beta1.DjangoUser{},
+		&dbv1beta1.DjangoUser{},
 	}
 }
 
@@ -72,8 +73,8 @@ func (comp *superuserComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	res, _, err := ctx.CreateOrUpdate("superuser.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*summonv1beta1.DjangoUser)
-		existing := existingObj.(*summonv1beta1.DjangoUser)
+		goal := goalObj.(*dbv1beta1.DjangoUser)
+		existing := existingObj.(*dbv1beta1.DjangoUser)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil

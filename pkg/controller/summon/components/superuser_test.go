@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
@@ -41,7 +41,7 @@ var _ = Describe("SummonPlatform Superuser Component", func() {
 		comp := summoncomponents.NewSuperuser()
 		Expect(comp).To(ReconcileContext(ctx))
 
-		user := &summonv1beta1.DjangoUser{}
+		user := &dbv1beta1.DjangoUser{}
 		err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dispatcher", Namespace: "default"}, user)
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -53,14 +53,14 @@ var _ = Describe("SummonPlatform Superuser Component", func() {
 			comp := summoncomponents.NewSuperuser()
 			Expect(comp).To(ReconcileContext(ctx))
 
-			user := &summonv1beta1.DjangoUser{}
+			user := &dbv1beta1.DjangoUser{}
 			err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dispatcher", Namespace: "default"}, user)
 			Expect(err).To(HaveOccurred())
 			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 		})
 
 		It("deletes an existing user", func() {
-			user := &summonv1beta1.DjangoUser{ObjectMeta: metav1.ObjectMeta{Name: "foo-dispatcher", Namespace: "default"}}
+			user := &dbv1beta1.DjangoUser{ObjectMeta: metav1.ObjectMeta{Name: "foo-dispatcher", Namespace: "default"}}
 			ctx.Client = fake.NewFakeClient(user)
 
 			comp := summoncomponents.NewSuperuser()

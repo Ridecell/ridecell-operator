@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
@@ -40,7 +40,7 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.DjangoUser)
+	instance := ctx.Top.(*dbv1beta1.DjangoUser)
 
 	// Fill in defaults.
 	if instance.Spec.Email == "" {

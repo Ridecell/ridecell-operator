@@ -32,7 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -87,15 +87,15 @@ var _ = Describe("DjangoUser Database Component", func() {
 		dbpool.Dbs.Store("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=require", db)
 
 		// Baseline test instance.
-		instance.Spec = summonv1beta1.DjangoUserSpec{
+		instance.Spec = dbv1beta1.DjangoUserSpec{
 			Email:          "foo@example.com",
 			PasswordSecret: "foo-credentials",
-			Database: summonv1beta1.DatabaseConnection{
+			Database: dbv1beta1.PostgresConnection{
 				Host:     "foo-database",
 				Port:     5432,
 				Username: "summon",
 				Database: "summon",
-				PasswordSecretRef: summonv1beta1.SecretRef{
+				PasswordSecretRef: dbv1beta1.SecretRef{
 					Name: "summon.foo-database.credentials",
 					Key:  "password",
 				},
@@ -136,7 +136,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 		comp := djangousercomponents.NewDatabase()
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
 
@@ -164,7 +164,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 		comp := djangousercomponents.NewDatabase()
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
 
@@ -192,7 +192,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 		comp := djangousercomponents.NewDatabase()
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
 

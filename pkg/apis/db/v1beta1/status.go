@@ -45,3 +45,16 @@ func (po *PostgresOperatorDatabase) SetErrorStatus(errorMsg string) {
 	po.Status.Status = StatusError
 	po.Status.Message = errorMsg
 }
+
+func (s *DjangoUser) GetStatus() components.Status {
+	return s.Status
+}
+
+func (s *DjangoUser) SetStatus(status components.Status) {
+	s.Status = status.(DjangoUserStatus)
+}
+
+func (s *DjangoUser) SetErrorStatus(errorMsg string) {
+	s.Status.Status = StatusError
+	s.Status.Message = errorMsg
+}
