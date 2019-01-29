@@ -52,9 +52,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		// Use "guest" as the default username.
 		instance.Spec.Connection.Username = "guest"
 	}
-	if instance.Spec.ClusterHost == "" {
-		//Use localhost as the default clusterhost
-		instance.Spec.ClusterHost = "http://127.0.0.1:15672"
+	if instance.Spec.Connection.Host == "" {
+		// Use "guest" as the default username.
+		instance.Spec.Connection.Host = "http://127.0.0.1:15672"
 	}
 
 	return components.Result{}, nil

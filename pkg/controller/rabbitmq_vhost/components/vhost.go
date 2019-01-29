@@ -65,7 +65,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	},
 	}
 	// Connect to the rabbitmq cluster
-	rmqc, err := comp.Client(instance.Spec.ClusterHost, instance.Spec.Connection.Username, instance.Spec.Connection.Password, transport)
+	rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, instance.Spec.Connection.Password, transport)
 
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "Create New TLS Client")

@@ -57,7 +57,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		instance.Spec.VhostName = ""
 		instance.Spec.Connection.Password = ""
 		instance.Spec.Connection.Username = ""
-		instance.Spec.ClusterHost = ""
+		instance.Spec.Connection.Host = ""
 		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
 			var mgr rmqvcomponents.RabbitMQManager
 			mgr = &fakeRabbitClient{}
