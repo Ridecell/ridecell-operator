@@ -88,5 +88,9 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		Expect(mgr.FakeVhostList).Should(ConsistOf(elem))
     Expect(mgr.FakeVhostList).To(HaveLen(1))
 	})
-
+  It("Fails to connect to unavailable rabbitmq host", func() {
+    comp := rmqvcomponents.NewVhost()
+    _, err := comp.Reconcile(ctx)
+    Expect(err).Should(HaveOccurred())
+  })
 })
