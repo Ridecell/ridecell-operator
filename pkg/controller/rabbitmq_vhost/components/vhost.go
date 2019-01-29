@@ -27,26 +27,26 @@ import (
 )
 
 type vhostComponent struct {
-  Client NewTLSClientFactory
+	Client NewTLSClientFactory
 }
 
 type RabbitMQManager interface {
-  ListVhosts() ([]rabbithole.VhostInfo, error)
-  PutVhost(string, rabbithole.VhostSettings) (*http.Response, error)
+	ListVhosts() ([]rabbithole.VhostInfo, error)
+	PutVhost(string, rabbithole.VhostSettings) (*http.Response, error)
 }
 
 type NewTLSClientFactory func(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error)
 
 func RabbitholeTLSClientFactory(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error) {
-  return rabbithole.NewTLSClient(uri,user,pass,t)
+	return rabbithole.NewTLSClient(uri, user, pass, t)
 }
 
 func (comp *vhostComponent) InjectFakeNewTLSClient(fakeFunc NewTLSClientFactory) {
-  comp.Client = fakeFunc
+	comp.Client = fakeFunc
 }
 
 func NewVhost() *vhostComponent {
-  return &vhostComponent{Client: RabbitholeTLSClientFactory}
+	return &vhostComponent{Client: RabbitholeTLSClientFactory}
 }
 
 func (_ *vhostComponent) WatchTypes() []runtime.Object {
@@ -67,23 +67,23 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	// Connect to the rabbitmq cluster
 	rmqc, err := comp.Client(instance.Spec.ClusterHost, instance.Spec.Connection.Username, instance.Spec.Connection.Password, transport)
 
-  if err != nil {
+	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "Create New TLS Client")
 	}
 	// Create the required vhost if it does not exist
 	xs, err := rmqc.ListVhosts()
-  if err != nil {
+	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "Get all rabbitmq Vhosts")
 	}
 
 	var vhost_exists bool
-  for _, element := range xs {
+	for _, element := range xs {
 		if element.Name == instance.Spec.VhostName {
 			vhost_exists = true
 		}
 	}
 	if !vhost_exists {
-    resp, _ := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
+		resp, _ := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
 		if resp.StatusCode != 201 {
 			return components.Result{}, errors.Wrapf(err, "vhost: unable to create vhost %s", instance.Spec.VhostName)
 		}
