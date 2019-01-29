@@ -93,4 +93,10 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
     _, err := comp.Reconcile(ctx)
     Expect(err).Should(HaveOccurred())
   })
+  It("Fails to create a rabbithole Client", func() {
+    comp := rmqvcomponents.NewVhost()
+    instance.Spec.Connection.Host = "htt://127.0.0.1:80"
+    _, err := comp.Reconcile(ctx)
+    Expect(err).Should(HaveOccurred())
+  })
 })
