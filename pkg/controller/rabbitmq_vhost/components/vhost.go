@@ -17,76 +17,78 @@ limitations under the License.
 package components
 
 import (
-	"crypto/tls"
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/michaelklishin/rabbit-hole"
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"net/http"
+  "crypto/tls"
+  dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+  "github.com/Ridecell/ridecell-operator/pkg/components"
+  "github.com/michaelklishin/rabbit-hole"
+  "github.com/pkg/errors"
+  "k8s.io/apimachinery/pkg/runtime"
+  "net/http"
 )
 
 type vhostComponent struct {
-	Client NewTLSClientFactory
+  Client NewTLSClientFactory
 }
 
 type RabbitMQManager interface {
-	ListVhosts() ([]rabbithole.VhostInfo, error)
-	PutVhost(string, rabbithole.VhostSettings) (*http.Response, error)
+  ListVhosts() ([]rabbithole.VhostInfo, error)
+  PutVhost(string, rabbithole.VhostSettings) (*http.Response, error)
 }
 
 type NewTLSClientFactory func(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error)
 
 func RabbitholeTLSClientFactory(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error) {
-	return rabbithole.NewTLSClient(uri, user, pass, t)
+  return rabbithole.NewTLSClient(uri, user, pass, t)
 }
 
 func (comp *vhostComponent) InjectFakeNewTLSClient(fakeFunc NewTLSClientFactory) {
-	comp.Client = fakeFunc
+  comp.Client = fakeFunc
 }
 
 func NewVhost() *vhostComponent {
-	return &vhostComponent{Client: RabbitholeTLSClientFactory}
+  return &vhostComponent{Client: RabbitholeTLSClientFactory}
 }
 
 func (_ *vhostComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+  return []runtime.Object{}
 }
 
 func (_ *vhostComponent) IsReconcilable(_ *components.ComponentContext) bool {
-	return true
+  return true
 }
 
 func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
+  instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
 
-	transport := &http.Transport{TLSClientConfig: &tls.Config{
-		InsecureSkipVerify: true, // test server certificate is not trusted in case of self hosted rabbitmq
-	},
-	}
-	// Connect to the rabbitmq cluster
-	rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, instance.Spec.Connection.Password, transport)
+  transport := &http.Transport{TLSClientConfig: &tls.Config {
+      InsecureSkipVerify: true, // test server certificate is not trusted in case of self hosted rabbitmq
+    },
+  }
 
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "Create New TLS Client")
-	}
-	// Create the required vhost if it does not exist
-	xs, err := rmqc.ListVhosts()
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "Get all rabbitmq Vhosts")
-	}
+  // Connect to the rabbitmq cluster
+  rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, instance.Spec.Connection.Password.Key, transport)
 
-	var vhost_exists bool
-	for _, element := range xs {
-		if element.Name == instance.Spec.VhostName {
-			vhost_exists = true
-		}
-	}
-	if !vhost_exists {
-		resp, _ := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
-		if resp.StatusCode != 201 {
-			return components.Result{}, errors.Wrapf(err, "vhost: unable to create vhost %s", instance.Spec.VhostName)
-		}
-	}
-	return components.Result{}, nil
+  if err != nil {
+    return components.Result{}, errors.Wrapf(err, "Create New TLS Client")
+  }
+
+  // Create the required vhost if it does not exist
+  xs, err := rmqc.ListVhosts()
+  if err != nil {
+    return components.Result{}, errors.Wrapf(err, "Get all rabbitmq Vhosts")
+  }
+
+  var vhost_exists bool
+  for _, element := range xs {
+    if element.Name == instance.Spec.VhostName {
+      vhost_exists = true
+    }
+  }
+  if !vhost_exists {
+    resp, _ := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
+    if resp.StatusCode != 201 {
+      return components.Result{}, errors.Wrapf(err, "vhost: unable to create vhost %s", instance.Spec.VhostName)
+    }
+  }
+  return components.Result{}, nil
 }

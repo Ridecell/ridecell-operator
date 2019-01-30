@@ -44,16 +44,20 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		// Default extension name is just the name of the resource.
 		instance.Spec.VhostName = instance.Name
 	}
-	if instance.Spec.Connection.Password == "" {
+	if instance.Spec.Connection.Password.Name == "" {
 		// Use "guest" as the default key.
-		instance.Spec.Connection.Password = "guest"
+		instance.Spec.Connection.Password.Name = "admin.rabbitmq-host.password"
+	}
+	if instance.Spec.Connection.Password.Key == "" {
+		// Use "guest" as the default key.
+		instance.Spec.Connection.Password.Key = "guest"
 	}
 	if instance.Spec.Connection.Username == "" {
 		// Use "guest" as the default username.
 		instance.Spec.Connection.Username = "guest"
 	}
 	if instance.Spec.Connection.Host == "" {
-		// Use "guest" as the default username.
+		// Use "http://127.0.0.1:15672" as the default Connection Host.
 		instance.Spec.Connection.Host = "http://127.0.0.1:15672"
 	}
 

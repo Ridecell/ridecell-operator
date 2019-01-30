@@ -30,7 +30,7 @@ var _ = Describe("RabbitmqVhost Defaults Component", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.VhostName).To(Equal(instance.Name))
 		Expect(instance.Spec.Connection.Username).To(Equal("guest"))
-		Expect(instance.Spec.Connection.Password).To(Equal("guest"))
+		Expect(instance.Spec.Connection.Password.Key).To(Equal("guest"))
 		Expect(instance.Spec.Connection.Host).To(Equal("http://127.0.0.1:15672"))
 	})
 })

@@ -34,13 +34,20 @@ spec:
               properties:
                 host:
                   type: string
-                password:
-                  type: string
+                passwordSecretRef:
+                  properties:
+                    key:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - name
+                  type: object
                 username:
                   type: string
               required:
               - username
-              - password
+              - passwordSecretRef
               - host
               type: object
             vhostName:
