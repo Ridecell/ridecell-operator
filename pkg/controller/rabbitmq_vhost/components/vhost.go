@@ -61,21 +61,23 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
 
 	transport := &http.Transport{TLSClientConfig: &tls.Config{
-		InsecureSkipVerify: true, // test server certificate is not trusted in case of self hosted rabbitmq
+		InsecureSkipVerify: instance.Spec.Connection.InsecureSkip,
 	},
 	}
 
+	hostPassword, _ := instance.Spec.Connection.Password.Resolve(ctx, instance.Spec.Connection.Password.Key)
+
 	// Connect to the rabbitmq cluster
-	rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, instance.Spec.Connection.Password.Key, transport)
+	rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, hostPassword, transport)
 
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "Create New TLS Client")
+		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}
 
 	// Create the required vhost if it does not exist
 	xs, err := rmqc.ListVhosts()
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "Get all rabbitmq Vhosts")
+		return components.Result{}, errors.Wrapf(err, "error connecting or fetching rabbitmq vhosts")
 	}
 
 	var vhost_exists bool
@@ -87,7 +89,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	if !vhost_exists {
 		resp, _ := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
 		if resp.StatusCode != 201 {
-			return components.Result{}, errors.Wrapf(err, "vhost: unable to create vhost %s", instance.Spec.VhostName)
+			return components.Result{}, errors.Wrapf(err, "unable to create vhost %s", instance.Spec.VhostName)
 		}
 	}
 	return components.Result{}, nil

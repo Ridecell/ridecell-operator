@@ -35,7 +35,8 @@ type PostgresConnection struct {
 }
 
 type RabbitmqConnection struct {
-	Username string            `json:"username"`
-	Password helpers.SecretRef `json:"passwordSecretRef"`
-	Host     string            `json:"host"`
+	Username     string            `json:"username"`
+	Password     helpers.SecretRef `json:"passwordSecretRef"`
+	Host         string            `json:"host"`
+	InsecureSkip bool              `json:"InsecureSkip"` // skip server certificate trust, by default false
 }

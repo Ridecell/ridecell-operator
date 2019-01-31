@@ -32,6 +32,8 @@ spec:
           properties:
             connection:
               properties:
+                InsecureSkip:
+                  type: boolean
                 host:
                   type: string
                 passwordSecretRef:
@@ -49,6 +51,7 @@ spec:
               - username
               - passwordSecretRef
               - host
+              - InsecureSkip
               type: object
             vhostName:
               type: string

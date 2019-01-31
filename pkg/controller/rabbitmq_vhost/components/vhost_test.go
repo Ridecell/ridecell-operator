@@ -78,7 +78,8 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		}
 		comp.InjectFakeNewTLSClient(fakeFunc)
 		transport := &http.Transport{TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // test server certificate is not trusted in case of self hosted rabbitmq
+			// test server certificate is not trusted in case of self hosted rabbitmq
+			InsecureSkipVerify: instance.Spec.Connection.InsecureSkip,
 		},
 		}
 		comp.Client("test", "guest", "guest", transport)
