@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"crypto/tls"
 	"github.com/michaelklishin/rabbit-hole"
 	"net/http"
 
@@ -56,12 +55,7 @@ func (frc *fakeRabbitClient) PutVhost(vhostname string, settings rabbithole.Vhos
 }
 
 var _ = Describe("RabbitmqVhost Vhost Component", func() {
-	It("Reconcile with empty parameters", func() {
-		comp := rmqvcomponents.NewVhost()
-		instance.Spec.VhostName = ""
-		instance.Spec.Connection.Password.Key = ""
-		instance.Spec.Connection.Username = ""
-		instance.Spec.Connection.Host = ""
+	BeforeEach(func() {
 		// Set password in secrets
 		dbSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "admin.foo-rabbitmq.credentials", Namespace: "default"},
@@ -70,9 +64,16 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 			},
 		}
 		ctx.Client = fake.NewFakeClient(dbSecret)
+	})
+
+	It("Reconcile with empty parameters", func() {
+		comp := rmqvcomponents.NewVhost()
+		instance.Spec.VhostName = ""
+		instance.Spec.Connection.Password.Key = ""
+		instance.Spec.Connection.Username = ""
+		instance.Spec.Connection.Host = ""
 		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
-			var mgr rmqvcomponents.RabbitMQManager
-			mgr = &fakeRabbitClient{}
+			var mgr rmqvcomponents.RabbitMQManager = &fakeRabbitClient{}
 			return mgr, nil
 		}
 		comp.InjectFakeNewTLSClient(fakeFunc)
@@ -88,16 +89,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 			return mgr, nil
 		}
 		comp.InjectFakeNewTLSClient(fakeFunc)
-		transport := &http.Transport{TLSClientConfig: &tls.Config{
-			// test server certificate is not trusted in case of self hosted rabbitmq
-			InsecureSkipVerify: instance.Spec.Connection.InsecureSkip,
-		},
-		}
-		comp.Client("test", "guest", "guest", transport)
-		resp, _ := mgr.PutVhost("test", rabbithole.VhostSettings{Tracing: false})
-		Expect(resp.StatusCode).To(Equal(201))
-		elem := rabbithole.VhostInfo{Name: "test", Tracing: false}
-		Expect(mgr.FakeVhostList).Should(ConsistOf(elem))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mgr.FakeVhostList).To(HaveLen(1))
 	})
 	It("Fails to connect to unavailable rabbitmq host", func() {
