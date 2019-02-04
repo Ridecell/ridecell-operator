@@ -26,6 +26,9 @@ import (
 
 	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type fakeRabbitClient struct {
@@ -59,13 +62,21 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		instance.Spec.Connection.Password.Key = ""
 		instance.Spec.Connection.Username = ""
 		instance.Spec.Connection.Host = ""
+		// Set password in secrets
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "admin.foo-rabbitmq.credentials", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("secretrabbitmqpass"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(dbSecret)
 		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
 			var mgr rmqvcomponents.RabbitMQManager
 			mgr = &fakeRabbitClient{}
 			return mgr, nil
 		}
 		comp.InjectFakeNewTLSClient(fakeFunc)
-		Expect(comp).ToNot(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 	})
 	It("Create new vhost if it does not exist", func() {
 		comp := rmqvcomponents.NewVhost()
