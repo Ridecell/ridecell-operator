@@ -65,7 +65,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	},
 	}
 
-	hostPassword, _ := instance.Spec.Connection.Password.Resolve(ctx, instance.Spec.Connection.Password.Key)
+	hostPassword, _ := instance.Spec.Connection.Password.Resolve(ctx, "password")
 
 	// Connect to the rabbitmq cluster
 	rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, hostPassword, transport)
