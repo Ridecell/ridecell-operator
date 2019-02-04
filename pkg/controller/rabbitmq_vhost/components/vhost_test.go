@@ -65,7 +65,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 			return mgr, nil
 		}
 		comp.InjectFakeNewTLSClient(fakeFunc)
-		Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 	It("Create new vhost if it does not exist", func() {
 		comp := rmqvcomponents.NewVhost()
