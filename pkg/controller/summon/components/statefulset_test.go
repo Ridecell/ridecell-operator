@@ -33,38 +33,40 @@ import (
 )
 
 var _ = Describe("SummonPlatform statefulset Component", func() {
+	comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
+
+	BeforeEach(func() {
+		comp = summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
+	})
 
 	Context("IsReconcilable", func() {
+
 		It("fails first check", func() {
-			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})
 
 		It("doesnt wait for database", func() {
-			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", false)
+			comp = summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", false)
 			instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
 
 		It("fails first database check", func() {
-			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
 			instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})
 
 		It("passes all checks", func() {
-			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
 			instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
 			instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 			instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
 			instance.Status.MigrateVersion = instance.Spec.Version
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
 
 	})
 
 	It("creates an statefulset object using redis template", func() {
-		comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &appsv1.StatefulSet{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celerybeat", Namespace: instance.Namespace}, target)

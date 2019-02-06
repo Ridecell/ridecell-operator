@@ -31,8 +31,13 @@ import (
 
 var _ = Describe("SummonPlatform ingress Component", func() {
 
+	comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
+
+	BeforeEach(func() {
+		comp = summoncomponents.NewIngress("web/ingress.yml.tpl")
+	})
+
 	It("creates an ingress object using web template", func() {
-		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
@@ -40,7 +45,6 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 	})
 
 	It("creates an ingress object using static template", func() {
-		comp := summoncomponents.NewIngress("static/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, target)

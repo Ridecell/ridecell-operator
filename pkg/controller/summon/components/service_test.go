@@ -31,8 +31,13 @@ import (
 
 var _ = Describe("SummonPlatform service Component", func() {
 
+	comp := summoncomponents.NewService("redis/service.yml.tpl")
+
+	BeforeEach(func() {
+		comp = summoncomponents.NewService("redis/service.yml.tpl")
+	})
+
 	It("creates an service object using redis template", func() {
-		comp := summoncomponents.NewService("redis/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-redis", Namespace: instance.Namespace}, target)
@@ -40,7 +45,6 @@ var _ = Describe("SummonPlatform service Component", func() {
 	})
 
 	It("creates an service object using static template", func() {
-		comp := summoncomponents.NewService("static/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, target)
