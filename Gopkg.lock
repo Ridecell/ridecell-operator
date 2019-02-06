@@ -322,6 +322,14 @@
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:97c723e024ece189fc00833875e93fe8ab91ef502a8bbe40b32f4ddb08ed62cd"
+  name = "github.com/michaelklishin/rabbit-hole"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "751d8f6874248f7243698c6f8377983879d744e9"
+  version = "v1.4.0"
+
+[[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
@@ -1059,6 +1067,7 @@
     "github.com/emicklei/go-restful",
     "github.com/golang/glog",
     "github.com/lib/pq",
+    "github.com/michaelklishin/rabbit-hole",
     "github.com/nlopes/slack",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
