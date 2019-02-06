@@ -1,0 +1,73 @@
+/*
+Copyright 2019 Ridecell, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package components_test
+
+import (
+	"context"
+
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"k8s.io/apimachinery/pkg/types"
+
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	appsv1 "k8s.io/api/apps/v1"
+)
+
+var _ = Describe("SummonPlatform statefulset Component", func() {
+
+	Context("IsReconcilable", func() {
+		It("fails first check", func() {
+			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
+			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		})
+
+		It("doesnt wait for database", func() {
+			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", false)
+			instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
+			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		})
+
+		It("fails first database check", func() {
+			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
+			instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
+			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		})
+
+		It("passes all checks", func() {
+			comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
+			instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
+			instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+			instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
+			instance.Status.MigrateVersion = instance.Spec.Version
+			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		})
+
+	})
+
+	It("creates an statefulset object using redis template", func() {
+		comp := summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true)
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &appsv1.StatefulSet{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celerybeat", Namespace: instance.Namespace}, target)
+		Expect(err).ToNot(HaveOccurred())
+	})
+})
