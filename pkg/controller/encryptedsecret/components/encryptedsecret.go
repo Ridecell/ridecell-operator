@@ -17,6 +17,7 @@ limitations under the License.
 package components
 
 import (
+	"bytes"
 	"encoding/base64"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -86,7 +87,12 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "encryptedsecret: failed to decrypt secret")
 		}
-		newSecret.Data[k] = decryptedValue.Plaintext
+		if bytes.Equal(decryptedValue.Plaintext, []byte(secretsv1beta1.EncryptedSecretEmptyKey)) {
+			// Decode the magic value to an empty string.
+			newSecret.Data[k] = []byte{}
+		} else {
+			newSecret.Data[k] = decryptedValue.Plaintext
+		}
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret.DeepCopy(), func(existingObj runtime.Object) error {

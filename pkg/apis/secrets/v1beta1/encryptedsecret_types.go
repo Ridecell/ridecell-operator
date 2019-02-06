@@ -20,6 +20,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// KMS doesn't allow encrypting an empty string so use a magic constant to represent it.
+const EncryptedSecretEmptyKey = "___empty_string___"
+
 // EncryptedSecretStatus defines the observed state of EncryptedSecret
 type EncryptedSecretStatus struct {
 	Status  string `json:"status"`

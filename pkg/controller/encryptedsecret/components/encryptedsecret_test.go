@@ -18,7 +18,7 @@ package components_test
 
 import (
 	"context"
-	"fmt"
+	"strings"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -40,23 +40,25 @@ type mockKMSClient struct {
 }
 
 var _ = Describe("encryptedsecret Component", func() {
+	comp := encryptedsecretcomponents.NewEncryptedSecret()
+
+	BeforeEach(func() {
+		mockKMS := &mockKMSClient{}
+		comp.InjectKMSAPI(mockKMS)
+	})
 
 	It("is reconcilable", func() {
 		// Adding so coveralls may complain less
-		comp := encryptedsecretcomponents.NewEncryptedSecret()
+
 		Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 	})
 
 	It("runs basic reconcile", func() {
-		comp := encryptedsecretcomponents.NewEncryptedSecret()
-		mockKMS := &mockKMSClient{}
-		comp.InjectKMSAPI(mockKMS)
-
 		instance.Data = map[string]string{
-			"TEST_VALUE0": "dGVzdDA=",
-			"TEST_VALUE1": "dGVzdDE=",
-			"TEST_VALUE2": "dGVzdDI=",
-			"test_value3": "VEVTVDM=",
+			"TEST_VALUE0": "a21zdGVzdDA=",
+			"TEST_VALUE1": "a21zdGVzdDE=",
+			"TEST_VALUE2": "a21zdGVzdDI=",
+			"test_value3": "a21zVEVTVDM=",
 		}
 
 		Expect(comp).To(ReconcileContext(ctx))
@@ -65,17 +67,13 @@ var _ = Describe("encryptedsecret Component", func() {
 		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(string(fetchSecret.Data["TEST_VALUE0"])).To(Equal("kmstest0"))
-		Expect(string(fetchSecret.Data["TEST_VALUE1"])).To(Equal("kmstest1"))
-		Expect(string(fetchSecret.Data["TEST_VALUE2"])).To(Equal("kmstest2"))
-		Expect(string(fetchSecret.Data["test_value3"])).To(Equal("kmsTEST3"))
+		Expect(string(fetchSecret.Data["TEST_VALUE0"])).To(Equal("test0"))
+		Expect(string(fetchSecret.Data["TEST_VALUE1"])).To(Equal("test1"))
+		Expect(string(fetchSecret.Data["TEST_VALUE2"])).To(Equal("test2"))
+		Expect(string(fetchSecret.Data["test_value3"])).To(Equal("TEST3"))
 	})
 
 	It("updates an existing secret", func() {
-		comp := encryptedsecretcomponents.NewEncryptedSecret()
-		mockKMS := &mockKMSClient{}
-		comp.InjectKMSAPI(mockKMS)
-
 		newSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      instance.Name,
@@ -88,7 +86,7 @@ var _ = Describe("encryptedsecret Component", func() {
 		err := ctx.Create(context.TODO(), newSecret)
 		Expect(err).ToNot(HaveOccurred())
 		// Overwrite that secret with new one
-		instance.Data = map[string]string{"new_value": "dGVzdDE="}
+		instance.Data = map[string]string{"new_value": "a21zdGVzdDE="}
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -100,7 +98,22 @@ var _ = Describe("encryptedsecret Component", func() {
 
 		val, ok := fetchSecret.Data["new_value"]
 		Expect(ok).To(BeTrue())
-		Expect(string(val)).To(Equal("kmstest1"))
+		Expect(string(val)).To(Equal("test1"))
+	})
+
+	It("handles the magic value for an empty key", func() {
+		instance.Data = map[string]string{
+			// echo -n kms___empty_string___ | base64
+			"TEST_EMPTY_VALUE": "a21zX19fZW1wdHlfc3RyaW5nX19f",
+		}
+
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(string(fetchSecret.Data["TEST_EMPTY_VALUE"])).To(Equal(""))
 	})
 
 })
@@ -109,5 +122,9 @@ func (m *mockKMSClient) Decrypt(input *kms.DecryptInput) (*kms.DecryptOutput, er
 	if len(input.CiphertextBlob) < 0 {
 		return &kms.DecryptOutput{}, awserr.New(kms.ErrCodeInvalidCiphertextException, "awsmock_decrypt: Invalid cipher text", errors.New(""))
 	}
-	return &kms.DecryptOutput{Plaintext: []byte(fmt.Sprintf("kms%s", string(input.CiphertextBlob)))}, nil
+	v := string(input.CiphertextBlob)
+	if !strings.HasPrefix(v, "kms") {
+		return &kms.DecryptOutput{}, awserr.New(kms.ErrCodeInvalidCiphertextException, "awsmock_decrypt: Invalid cipher text", errors.New(""))
+	}
+	return &kms.DecryptOutput{Plaintext: input.CiphertextBlob[3:]}, nil
 }
