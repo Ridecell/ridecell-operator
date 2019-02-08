@@ -99,6 +99,12 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Database.SharedDatabaseName == "" {
 		instance.Spec.Database.SharedDatabaseName = instance.Namespace
 	}
+	if instance.Spec.FlavorBucket == "" {
+		instance.Spec.FlavorBucket = "invaliddefaultname"
+	}
+	if instance.Spec.SummonFlavor == "" {
+		instance.Spec.SummonFlavor = "default"
+	}
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}

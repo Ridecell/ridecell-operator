@@ -31,7 +31,7 @@ spec:
         command:
         - sh
         - "-c"
-        - python manage.py migrate
+        - python manage.py migrate && python manage.py loadflavor etc/summonflavor/{{ .Instance.Spec.SummonFlavor }}.json
         resources:
           requests:
             memory: 1G
@@ -44,6 +44,18 @@ spec:
           mountPath: /etc/config
         - name: app-secrets
           mountPath: /etc/secrets
+        - name: summonflavor
+          mountPath: /etc/summonflavor
+      initContainers:
+      - name: getflavor
+        image: alpine
+        command:
+        - "sh"
+        - "-c"
+        - wget -O /etc/summonflavor/{{ .Instance.Spec.SummonFlavor }}.json {{ .Extra.presignedUrl }}
+        volumeMounts:
+        - name: summonflavor
+          mountPath: /etc/summonflavor
 
       volumes:
         - name: config-volume
@@ -52,3 +64,5 @@ spec:
         - name: app-secrets
           secret:
             secretName: summon.{{ .Instance.Name }}.app-secrets
+        - name: summonflavor
+          emtpyDir: {}
