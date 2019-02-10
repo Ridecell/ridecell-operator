@@ -17,6 +17,8 @@ limitations under the License.
 package summon_test
 
 import (
+	"context"
+	"fmt"
 	"os"
 
 	"github.com/nlopes/slack"
@@ -92,6 +94,22 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	AfterEach(func() {
+		// Display some debugging info if the test failed.
+		if CurrentGinkgoTestDescription().Failed {
+			summons := &summonv1beta1.SummonPlatformList{}
+			err := helpers.Client.List(context.Background(), nil, summons)
+			if err != nil {
+				fmt.Printf("!!!!!! %s\n", err)
+			} else {
+				fmt.Print("Failed instances:\n")
+				for _, item := range summons.Items {
+					if item.Namespace == helpers.Namespace {
+						fmt.Printf("\t%s %#v\n", item.Name, item.Status)
+					}
+				}
+			}
+		}
+
 		helpers.TeardownTest()
 	})
 
