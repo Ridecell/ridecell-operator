@@ -127,6 +127,16 @@ var _ = Describe("Summon controller", func() {
 		pullsecret.Status.Status = secretsv1beta1.StatusReady
 		c.Status().Update(pullsecret)
 
+		// Create the AWS credentials for app secrets because the IAMUser controller isn't running.
+		awsSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: name + ".aws-credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"AWS_ACCESS_KEY_ID":     "AKIAtest",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			},
+		}
+		c.Create(awsSecret)
+
 		// Wait for the Postgresql to be created.
 		postgres := &postgresv1.Postgresql{}
 		c.EventuallyGet(helpers.Name(name+"-database"), postgres)
