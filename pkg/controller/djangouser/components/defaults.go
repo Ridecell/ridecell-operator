@@ -47,10 +47,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		// Use the object name by default, replacing the first `.` with and `@` because `@` isn't allowed in object names.
 		instance.Spec.Email = strings.Replace(instance.Name, ".", "@", 1)
 	}
-	if instance.Spec.PasswordSecret == "" {
-		// Reverse the transform used for the default Email and add `-credentials`.
-		instance.Spec.PasswordSecret = strings.Replace(instance.Spec.Email, "@", ".", 1) + "-credentials"
-	}
 	if instance.Spec.Database.Port == 0 {
 		// Default Postgres port.
 		instance.Spec.Database.Port = 5432

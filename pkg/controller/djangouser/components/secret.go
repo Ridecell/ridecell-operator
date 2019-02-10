@@ -19,6 +19,7 @@ package components
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -50,11 +51,12 @@ func (_ *secretComponent) IsReconcilable(_ *components.ComponentContext) bool {
 
 func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.DjangoUser)
+	secretName := fmt.Sprintf("%s.django-password", instance.Name)
 
 	existing := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PasswordSecret, Namespace: instance.Namespace}, existing)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, existing)
 	if err != nil && !kerrors.IsNotFound(err) {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to load secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to load secret %s/%s", instance.Namespace, secretName)
 	} else if err == nil {
 		// Loaded correctly, if the password exists then we're done.
 		val, ok := existing.Data["password"]
@@ -71,7 +73,7 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (compon
 	base64.RawStdEncoding.Encode(password, rawPassword)
 
 	target := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PasswordSecret, Namespace: instance.Namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: instance.Namespace},
 		Data: map[string][]byte{
 			"password": password,
 		},
@@ -87,7 +89,7 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (compon
 		err = ctx.Create(ctx.Context, target)
 	}
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to save secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to save secret %s/%s", instance.Namespace, secretName)
 	}
 
 	return components.Result{}, nil

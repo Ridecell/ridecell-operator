@@ -31,15 +31,11 @@ import (
 )
 
 var _ = Describe("DjangoUser Secret Component", func() {
-	BeforeEach(func() {
-		instance.Spec.PasswordSecret = "foo-credentials"
-	})
-
 	It("creates a password if no secret exists", func() {
 		comp := djangousercomponents.NewSecret()
 		Expect(comp).To(ReconcileContext(ctx))
 		secret := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, secret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo.example.com.django-password", Namespace: "default"}, secret)
 		Expect(err).NotTo(HaveOccurred())
 		password, ok := secret.Data["password"]
 		Expect(ok).To(BeTrue())
@@ -48,14 +44,14 @@ var _ = Describe("DjangoUser Secret Component", func() {
 
 	It("creates a password if the secret exists but has no password key", func() {
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com.django-password", Namespace: "default"},
 		}
 		ctx.Client = fake.NewFakeClient(secret)
 
 		comp := djangousercomponents.NewSecret()
 		Expect(comp).To(ReconcileContext(ctx))
 		newSecret := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo.example.com.django-password", Namespace: "default"}, newSecret)
 		Expect(err).NotTo(HaveOccurred())
 		password, ok := newSecret.Data["password"]
 		Expect(ok).To(BeTrue())
@@ -64,7 +60,7 @@ var _ = Describe("DjangoUser Secret Component", func() {
 
 	It("does not change an existing password", func() {
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com.django-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("foo"),
 			},
@@ -74,7 +70,7 @@ var _ = Describe("DjangoUser Secret Component", func() {
 		comp := djangousercomponents.NewSecret()
 		Expect(comp).To(ReconcileContext(ctx))
 		newSecret := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo.example.com.django-password", Namespace: "default"}, newSecret)
 		Expect(err).NotTo(HaveOccurred())
 		password, ok := newSecret.Data["password"]
 		Expect(ok).To(BeTrue())
