@@ -297,7 +297,7 @@ var _ = Describe("app_secrets Component", func() {
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
 		res, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(err).To(MatchError(`app_secrets: Unable to get SECRET_KEY: secrets "foo.secret-key" not found`))
 		Expect(res.Requeue).To(BeTrue())
 	})
 
