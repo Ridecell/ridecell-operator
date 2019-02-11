@@ -4,7 +4,7 @@ metadata:
  name: {{ .Instance.Name }}
  namespace: {{ .Instance.Namespace }}
 spec:
- bucketName: {{ .Instance.Name }}-static
+ bucketName: ridecell-{{ .Instance.Name }}-static
  region: {{ .Instance.Spec.AwsRegion }}
  bucketPolicy: |
                {
@@ -16,6 +16,6 @@ spec:
                       "AWS": "*"
                     },
                     "Action": "s3:GetObject",
-                    "Resource": "arn:aws:s3:::{{ .Extra.bucketName }}/*"
-                  },],
+                    "Resource": "arn:aws:s3:::ridecell-{{ .Instance.Name }}-static/*"
+                  }]
                }

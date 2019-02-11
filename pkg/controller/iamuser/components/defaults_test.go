@@ -37,7 +37,7 @@ var _ = Describe("iamuser Defaults Component", func() {
 		comp := iamusercomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 
-		Expect(instance.Spec.UserName).To(Equal("foo.example.com"))
+		Expect(instance.Spec.UserName).To(Equal("test-user"))
 	})
 
 })

@@ -130,6 +130,8 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("TENANT_ID", "%s", instance.Name)
 	defVal("WEB_URL", "https://%s", instance.Spec.Hostname)
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
+	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
+	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 
 	return components.Result{}, nil
 }
@@ -156,9 +158,7 @@ func defConfig(key string, value interface{}) {
 func init() {
 	configDefaults = map[string]summonv1beta1.ConfigValue{}
 	// Default config, mostly based on local dev.
-	defConfig("AMAZON_S3_USED", false)
-	defConfig("AWS_REGION", "us-west-2")
-	defConfig("AWS_STORAGE_BUCKET_NAME", "")
+	defConfig("AMAZON_S3_USED", true)
 	defConfig("AUTH_SDK_AUTH_SERVICE_PUBLIC_KEY", `-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAsPk83VrFTv1yp8yY3j38
 DlK93nZzu6QH3VoKe8VcbuEP7eixlKIt91ID67KCRQGYV/sWquTxP1bmBUrku7tx

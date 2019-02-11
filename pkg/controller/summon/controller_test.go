@@ -123,6 +123,16 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Create(dbSecret)
 
+		// Create fake aws creds from iam_user controller
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+		c.Create(accessKey)
+
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
 		c.Status().Update(postgres)
@@ -195,6 +205,17 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create fake aws creds from iam_user controller
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of PullSecret to ready.
@@ -295,6 +316,16 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
+		// Create fake aws creds from iam_user controller
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.aws-credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
 		inSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},

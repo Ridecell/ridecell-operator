@@ -19,6 +19,8 @@ package components
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
@@ -100,13 +102,18 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			UserName:   user.UserName,
 		})
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get user policy")
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get user policy %s", aws.StringValue(userPolicyName))
 		}
-		userPolicies[aws.StringValue(getUserPolicy.PolicyName)] = aws.StringValue(getUserPolicy.PolicyDocument)
+		// No really, PolicyDocument is URL-encoded. I have no idea why. https://docs.aws.amazon.com/IAM/latest/APIReference/API_GetUserPolicy.html
+		decoded, err := url.PathUnescape(aws.StringValue(getUserPolicy.PolicyDocument))
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iam_user: error URL-decoding existing user policy %s", aws.StringValue(userPolicyName))
+		}
+		userPolicies[aws.StringValue(getUserPolicy.PolicyName)] = decoded
 	}
 
 	// If there is an inline policy that is not in the spec delete it
-	for _, userPolicyName := range userPolicies {
+	for userPolicyName, _ := range userPolicies {
 		_, ok := instance.Spec.InlinePolicies[userPolicyName]
 		if !ok {
 			_, err = comp.iamAPI.DeleteUserPolicy(&iam.DeleteUserPolicyInput{
@@ -114,40 +121,56 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 				UserName:   user.UserName,
 			})
 			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "iam_user: failed to delete user policy")
+				return components.Result{}, errors.Wrapf(err, "iam_user: failed to delete user policy %s", userPolicyName)
 			}
 		}
 	}
 
 	// Update our user policies
-	for policyName, rawPolicy := range instance.Spec.InlinePolicies {
-		policyBytes, err := json.Marshal(rawPolicy)
+	for policyName, policyJSON := range instance.Spec.InlinePolicies {
+		// Check for malformed JSON before we even try sending it.
+		var specPolicyObj interface{}
+		err := json.Unmarshal([]byte(policyJSON), &specPolicyObj)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "iam_user: failed to marshal policy into json")
+			return components.Result{}, errors.Wrapf(err, "iam_user: user policy from spec %s has invalid JSON", policyName)
 		}
-		inputUserPolicyDocument := string(policyBytes)
+
+		// If a policy with the same name was returned compare it to our spec
+		existingPolicy, ok := userPolicies[policyName]
+		if ok {
+			var existingPolicyObj interface{}
+			// Compare current policy to policy in spec
+			err = json.Unmarshal([]byte(existingPolicy), &existingPolicyObj)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "iam_user: existing user policy %s has invalid JSON (%v)", policyName, existingPolicy)
+			}
+			if reflect.DeepEqual(existingPolicyObj, specPolicyObj) {
+				continue
+			}
+		}
+
 		_, err = comp.iamAPI.PutUserPolicy(&iam.PutUserPolicyInput{
-			PolicyDocument: aws.String(inputUserPolicyDocument),
+			PolicyDocument: aws.String(policyJSON),
 			PolicyName:     aws.String(policyName),
 			UserName:       user.UserName,
 		})
 		if err != nil {
-			glog.Errorf("[%s/%s] iamuser: error putting user policy: %#v %#v %#v", instance.Namespace, instance.Name, *user.UserName, policyName, inputUserPolicyDocument)
-			return components.Result{}, errors.Wrapf(err, "iam_user: failed to put user policy")
+			glog.Errorf("[%s/%s] iamuser: error putting user policy: %#v %#v %#v", instance.Namespace, instance.Name, *user.UserName, policyName, policyJSON)
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to put user policy %s", policyName)
 		}
 	}
 
 	fetchAccessKey := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get access-key secret")
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get aws-credentials secret")
 		}
-		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}}
+		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}}
 	}
 
-	_, ok0 := fetchAccessKey.Data["access_key_id"]
-	_, ok1 := fetchAccessKey.Data["secret_access_key"]
+	_, ok0 := fetchAccessKey.Data["AWS_ACCESS_KEY_ID"]
+	_, ok1 := fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"]
 
 	if !ok0 || !ok1 {
 		// Find any access keys related attached to this user
@@ -172,10 +195,10 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to create new access key")
 		}
 		fetchAccessKey.Data = make(map[string][]byte)
-		fetchAccessKey.Data["access_key_id"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
-		fetchAccessKey.Data["secret_access_key"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
+		fetchAccessKey.Data["AWS_ACCESS_KEY_ID"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
+		fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
 
-		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchAccessKey, func(existingObj runtime.Object) error {
+		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchAccessKey.DeepCopyObject(), func(existingObj runtime.Object) error {
 			existing := existingObj.(*corev1.Secret)
 			// Sync important fields.
 			err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)

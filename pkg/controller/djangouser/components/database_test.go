@@ -32,6 +32,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
@@ -88,14 +90,13 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 		// Baseline test instance.
 		instance.Spec = summonv1beta1.DjangoUserSpec{
-			Email:          "foo@example.com",
-			PasswordSecret: "foo-credentials",
-			Database: summonv1beta1.DatabaseConnection{
+			Email: "foo@example.com",
+			Database: dbv1beta1.PostgresConnection{
 				Host:     "foo-database",
 				Port:     5432,
 				Username: "summon",
 				Database: "summon",
-				PasswordSecretRef: summonv1beta1.SecretRef{
+				PasswordSecretRef: helpers.SecretRef{
 					Name: "summon.foo-database.credentials",
 					Key:  "password",
 				},
@@ -122,7 +123,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 			},
 		}
 		userSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com.django-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("djangopass"),
 			},
@@ -150,7 +151,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 			},
 		}
 		userSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com.django-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("djangopass"),
 			},
@@ -178,7 +179,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 			},
 		}
 		userSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com.django-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("djangopass"),
 			},
@@ -204,7 +205,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 			},
 		}
 		userSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com.django-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("djangopass"),
 			},

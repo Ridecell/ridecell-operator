@@ -36,12 +36,14 @@ import (
 
 // This is just a subset of the secrets contained in the used object for testing.
 type testAppSecretData struct {
-	FERNET_KEYS       []string `yaml:"FERNET_KEYS,omitempty"`
-	DATABASE_URL      string   `yaml:"DATABASE_URL,omitempty"`
-	OUTBOUNDSMS_URL   string   `yaml:"OUTBOUNDSMS_URL,omitempty"`
-	SMS_WEBHOOK_URL   string   `yaml:"SMS_WEBHOOK_URL,omitempty"`
-	CELERY_BROKER_URL string   `yaml:"CELERY_BROKER_URL,omitempty"`
-	ZIP_TAX_API_KEY   string   `yaml:"ZIP_TAX_API_KEY,omitempty"`
+	FERNET_KEYS           []string `yaml:"FERNET_KEYS,omitempty"`
+	DATABASE_URL          string   `yaml:"DATABASE_URL,omitempty"`
+	OUTBOUNDSMS_URL       string   `yaml:"OUTBOUNDSMS_URL,omitempty"`
+	SMS_WEBHOOK_URL       string   `yaml:"SMS_WEBHOOK_URL,omitempty"`
+	CELERY_BROKER_URL     string   `yaml:"CELERY_BROKER_URL,omitempty"`
+	ZIP_TAX_API_KEY       string   `yaml:"ZIP_TAX_API_KEY,omitempty"`
+	AWS_ACCESS_KEY_ID     string   `yaml:"AWS_ACCESS_KEY_ID,omitempty"`
+	AWS_SECRET_ACCESS_KEY string   `yaml:"AWS_SECRET_ACCESS_KEY,omitempty"`
 }
 
 var _ = Describe("app_secrets Component", func() {
@@ -81,18 +83,7 @@ var _ = Describe("app_secrets Component", func() {
 			Data:       map[string][]byte{},
 		}
 
-		fernetKeys := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
-			Data:       map[string][]byte{},
-		}
-
-		secretKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace},
-			Data: map[string][]byte{
-				"SECRET_KEY": []byte("testkey"),
-			},
-		}
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret)
 		_, err := comp.Reconcile(ctx)
 		Expect(err.Error()).To(Equal("app_secrets: Postgres password not found in secret"))
 	})
@@ -126,7 +117,15 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, accessKey)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -143,6 +142,8 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(string(parsedYaml.SMS_WEBHOOK_URL)).To(Equal("https://foo.ridecell.us/sms/receive/"))
 		Expect(string(parsedYaml.CELERY_BROKER_URL)).To(Equal("redis://foo-redis/2"))
 		Expect(string(parsedYaml.ZIP_TAX_API_KEY)).To(Equal(""))
+		Expect(string(parsedYaml.AWS_ACCESS_KEY_ID)).To(Equal("test"))
+		Expect(string(parsedYaml.AWS_SECRET_ACCESS_KEY)).To(Equal("test"))
 	})
 
 	It("copies data from the input secret", func() {
@@ -172,7 +173,15 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, accessKey)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -237,7 +246,15 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, accessKey)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -279,9 +296,9 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal(`app_secrets: Unable to get SECRET_KEY: secrets "foo.secret-key" not found`))
+		res, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
 	})
 
 	It("runs reconcile with all values set", func() {
@@ -309,7 +326,16 @@ var _ = Describe("app_secrets Component", func() {
 				"SECRET_KEY": []byte("testkey"),
 			},
 		}
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, accessKey)
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 
@@ -349,7 +375,16 @@ var _ = Describe("app_secrets Component", func() {
 				"SECRET_KEY": []byte("testkey"),
 			},
 		}
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, newAppSecrets, thirdAppSecrets)
+
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, newAppSecrets, thirdAppSecrets, accessKey)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -395,7 +430,15 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, accessKey)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -407,7 +450,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://summon:postgresPassword@shareddb-database/summon"))
+		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://foo:postgresPassword@shareddb-database/foo"))
 		Expect(string(parsedYaml.OUTBOUNDSMS_URL)).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(string(parsedYaml.SMS_WEBHOOK_URL)).To(Equal("https://foo.ridecell.us/sms/receive/"))
 		Expect(string(parsedYaml.CELERY_BROKER_URL)).To(Equal("redis://foo-redis/2"))

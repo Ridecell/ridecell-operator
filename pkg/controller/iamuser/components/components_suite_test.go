@@ -41,7 +41,7 @@ func TestComponents(t *testing.T) {
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &awsv1beta1.IAMUser{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-user", Namespace: "default"},
 	}
 	ctx = components.NewTestContext(instance, nil)
 })

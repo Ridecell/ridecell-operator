@@ -24,6 +24,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -82,7 +83,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		rawAppSecret := &corev1.Secret{}
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, rawAppSecret)
 		if err != nil {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get existing app secrets")
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get input app secrets %s", secretName)
 		}
 		rawAppSecrets = append(rawAppSecrets, rawAppSecret)
 	}
@@ -97,7 +98,12 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	postgresSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", databaseUser, databaseName), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
+		}
 	}
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
@@ -107,7 +113,12 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	fernetKeys := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetKeys)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
+		}
 	}
 	if len(fernetKeys.Data) == 0 {
 		return components.Result{}, errors.New("app_secrets: Fernet keys map is empty")
@@ -121,21 +132,39 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	secretKey := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace}, secretKey)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
+		}
 	}
 	val, ok := secretKey.Data["SECRET_KEY"]
 	if !ok || len(val) == 0 {
 		return components.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
 	}
 
+	accessKey := &corev1.Secret{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}, accessKey)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials secret")
+		}
+	}
+
 	appSecretsData := map[string]interface{}{}
 
-	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, databaseName)
+	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s-database/%s", databaseUser, postgresPassword, databaseName, databaseUser)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
+	appSecretsData["AWS_ACCESS_KEY_ID"] = string(accessKey.Data["AWS_SECRET_ACCESS_KEY"])
+	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(accessKey.Data["AWS_SECRET_ACCESS_KEY"])
 
 	for _, rawAppSecretObj := range rawAppSecrets {
 		for k, v := range rawAppSecretObj.Data {
