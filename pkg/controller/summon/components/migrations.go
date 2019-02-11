@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -31,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
@@ -76,15 +79,20 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 		// Already migrated, update status and move on.
 		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil
 	}
-	svc := s3.New(session.Must(session.NewSession()))
-	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(instance.Spec.FlavorBucket),
-		Key:    aws.String(fmt.Sprintf("%s.json", instance.Spec.SummonFlavor)),
-	})
 
-	urlStr, err := req.Presign(15 * time.Minute)
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "migrations: failed to presign s3 url")
+	urlStr := ""
+	if instance.Spec.SummonFlavor != "" {
+		svc := s3.New(session.Must(session.NewSession()))
+		req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(instance.Spec.FlavorBucket),
+			Key:    aws.String(fmt.Sprintf("%s.json", instance.Spec.SummonFlavor)),
+		})
+
+		var err error
+		urlStr, err = req.Presign(15 * time.Minute)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "migrations: failed to presign s3 url")
+		}
 	}
 
 	extra := map[string]interface{}{}
