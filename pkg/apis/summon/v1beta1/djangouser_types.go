@@ -18,33 +18,21 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 )
-
-type SecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key,omitempty"`
-}
-
-type DatabaseConnection struct {
-	Host              string    `json:"host"`
-	Port              uint16    `json:"port,omitempty"`
-	Username          string    `json:"username"`
-	PasswordSecretRef SecretRef `json:"passwordSecretRef"`
-	Database          string    `json:"database,omitempty"`
-}
 
 // DjangoUserSpec defines the desired state of DjangoUser
 type DjangoUserSpec struct {
-	Email          string             `json:"email"`
-	PasswordSecret string             `json:"passwordSecret,omitempty"`
-	Database       DatabaseConnection `json:"database"`
-	FirstName      string             `json:"firstName,omitempty"`
-	LastName       string             `json:"lastName,omitempty"`
-	Active         bool               `json:"active"`
-	Manager        bool               `json:"manager"`
-	Dispatcher     bool               `json:"dispatcher"`
-	Staff          bool               `json:"staff"`
-	Superuser      bool               `json:"superuser"`
+	Email      string                       `json:"email"`
+	Database   dbv1beta1.PostgresConnection `json:"database"`
+	FirstName  string                       `json:"firstName,omitempty"`
+	LastName   string                       `json:"lastName,omitempty"`
+	Active     bool                         `json:"active"`
+	Manager    bool                         `json:"manager"`
+	Dispatcher bool                         `json:"dispatcher"`
+	Staff      bool                         `json:"staff"`
+	Superuser  bool                         `json:"superuser"`
 }
 
 // DjangoUserStatus defines the observed state of DjangoUser

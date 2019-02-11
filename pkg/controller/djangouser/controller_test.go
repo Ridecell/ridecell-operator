@@ -29,6 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -69,11 +71,11 @@ var _ = Describe("Summon controller", func() {
 				Active:    true,
 				Staff:     true,
 				Superuser: true,
-				Database: summonv1beta1.DatabaseConnection{
+				Database: dbv1beta1.PostgresConnection{
 					Host:     "foo-database",
 					Username: "summon",
 					Database: "summon",
-					PasswordSecretRef: summonv1beta1.SecretRef{
+					PasswordSecretRef: apihelpers.SecretRef{
 						Name: "summon.foo-database.credentials",
 					},
 				},
