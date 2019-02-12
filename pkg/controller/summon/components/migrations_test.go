@@ -19,6 +19,7 @@ package components_test
 import (
 	"context"
 	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,8 +43,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 		comp = summoncomponents.NewMigrations("migrations.yml.tpl")
 		os.Setenv("AWS_ACCESS_KEY_ID", "garbage")
 		os.Setenv("AWS_SECRET_ACCESS_KEY", "garbage")
-		os.Setenv("AWS_REGION", "us-east-1")
-		instance.Spec.Flavor = "test"
+		os.Setenv("AWS_REGION", "us-west-1")
 	})
 
 	Describe(".IsReconcilable()", func() {
@@ -112,6 +112,23 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
+			})
+
+			It("checks template info for a presigned url", func() {
+				instance.Spec.Flavor = "test-flavor"
+				Expect(comp).To(ReconcileContext(ctx))
+				job := &batchv1.Job{}
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(strings.Contains(job.Spec.Template.Spec.Containers[0].Command[2], "https://ridecell-flavors.s3.us-west-1.amazonaws.com/test-flavor.json.bz2")).To(BeTrue())
+			})
+
+			It("makes sure loadflavor command is not loaded into template", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				job := &batchv1.Job{}
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate"))
 			})
 		})
 
