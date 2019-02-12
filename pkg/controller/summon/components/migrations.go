@@ -39,6 +39,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const flavorBucket = "ridecell-flavors"
+
 type migrationComponent struct {
 	templatePath string
 }
@@ -78,11 +80,11 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	var urlStr string
-	if instance.Spec.SummonFlavor != "" {
+	if instance.Spec.Flavor != "" {
 		svc := s3.New(session.Must(session.NewSession()))
 		req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
-			Bucket: aws.String(instance.Spec.FlavorBucket),
-			Key:    aws.String(fmt.Sprintf("%s.json", instance.Spec.SummonFlavor)),
+			Bucket: aws.String(flavorBucket),
+			Key:    aws.String(fmt.Sprintf("%s.json", instance.Spec.Flavor)),
 		})
 
 		var err error

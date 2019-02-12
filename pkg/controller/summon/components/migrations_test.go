@@ -43,8 +43,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 		os.Setenv("AWS_ACCESS_KEY_ID", "garbage")
 		os.Setenv("AWS_SECRET_ACCESS_KEY", "garbage")
 		os.Setenv("AWS_REGION", "us-east-1")
-		instance.Spec.SummonFlavor = "test"
-		instance.Spec.FlavorBucket = "notarealbucket"
+		instance.Spec.Flavor = "test"
 	})
 
 	Describe(".IsReconcilable()", func() {
