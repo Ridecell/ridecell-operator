@@ -97,7 +97,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	postgresSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", databaseUser, databaseName), Namespace: instance.Namespace}, postgresSecret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", strings.Replace(databaseUser, "_", "-", -1), databaseName), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			// Don't trigger an error on notfound so it doesn't notify. Just try again.

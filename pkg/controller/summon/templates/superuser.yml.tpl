@@ -18,5 +18,5 @@ spec:
     database: {{ .Instance.Name | replace "-" "_" }}
     username: {{ .Instance.Name | replace "-" "_" }}
     passwordSecretRef:
-      name: {{ .Instance.Name }}.{{ .Instance.Spec.Database.SharedDatabaseName }}-database.credentials
+      name: {{ .Instance.Name | replace "_" "-" }}.{{ .Instance.Spec.Database.SharedDatabaseName }}-database.credentials
     {{- end }}
