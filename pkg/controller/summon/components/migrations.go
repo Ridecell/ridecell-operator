@@ -81,7 +81,9 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	var urlStr string
 	if instance.Spec.Flavor != "" {
-		svc := s3.New(session.Must(session.NewSession()))
+		svc := s3.New(session.Must(session.NewSession(&aws.Config{
+			Region: aws.String("us-west-2"),
+		})))
 		req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
 			Bucket: aws.String(flavorBucket),
 			Key:    aws.String(fmt.Sprintf("%s.json.bz2", instance.Spec.Flavor)),
