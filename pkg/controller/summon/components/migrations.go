@@ -84,7 +84,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 		svc := s3.New(session.Must(session.NewSession()))
 		req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
 			Bucket: aws.String(flavorBucket),
-			Key:    aws.String(fmt.Sprintf("%s.json", instance.Spec.Flavor)),
+			Key:    aws.String(fmt.Sprintf("%s.json.bz2", instance.Spec.Flavor)),
 		})
 
 		var err error
