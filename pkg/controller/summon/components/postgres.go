@@ -42,6 +42,7 @@ func NewPostgres(postgresTemplatePath string, operatorTemplatePath string) *post
 func (comp *postgresComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&postgresv1.Postgresql{},
+		&dbv1beta1.PostgresOperatorDatabase{},
 	}
 }
 
