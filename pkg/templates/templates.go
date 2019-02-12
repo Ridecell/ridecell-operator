@@ -23,6 +23,7 @@ import (
 	"text/template"
 
 	// "github.com/golang/glog"
+	"github.com/Masterminds/sprig"
 	"github.com/shurcooL/httpfs/path/vfspath"
 	"github.com/shurcooL/httpfs/vfsutil"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +32,7 @@ import (
 
 func parseTemplate(fs http.FileSystem, filename string) (*template.Template, error) {
 	// Create a template object.
-	tmpl := template.New(path.Base(filename))
+	tmpl := template.New(path.Base(filename)).Funcs(sprig.TxtFuncMap())
 
 	// Parse any helpers if present.
 	helpers, err := vfspath.Glob(fs, "helpers/*.tpl")

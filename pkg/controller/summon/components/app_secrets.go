@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -89,7 +90,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	databaseName := instance.Spec.Database.SharedDatabaseName
-	databaseUser := instance.Name
+	databaseUser := strings.Replace(instance.Name, "-", "_", -1)
 	if instance.Spec.Database.ExclusiveDatabase {
 		databaseName = instance.Name
 		databaseUser = "summon"
