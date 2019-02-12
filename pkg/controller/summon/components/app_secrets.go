@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -89,14 +90,14 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	databaseName := instance.Spec.Database.SharedDatabaseName
-	databaseUser := instance.Name
+	databaseUser := strings.Replace(instance.Name, "-", "_", -1)
 	if instance.Spec.Database.ExclusiveDatabase {
 		databaseName = instance.Name
 		databaseUser = "summon"
 	}
 
 	postgresSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", databaseUser, databaseName), Namespace: instance.Namespace}, postgresSecret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", strings.Replace(databaseUser, "_", "-", -1), databaseName), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			// Don't trigger an error on notfound so it doesn't notify. Just try again.

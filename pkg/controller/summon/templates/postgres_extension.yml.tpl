@@ -14,7 +14,7 @@ spec:
       name: ridecell-admin.{{ .Instance.Name }}-database.credentials
     {{- else }}
     host: {{ .Instance.Spec.Database.SharedDatabaseName }}-database.{{ .Instance.Namespace }}
-    database: {{ .Instance.Name }}
+    database: {{ .Instance.Name | replace "-" "_" }}
     passwordSecretRef:
       name: ridecell-admin.{{ .Instance.Spec.Database.SharedDatabaseName }}-database.credentials
     {{- end }}

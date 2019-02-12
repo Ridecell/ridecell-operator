@@ -6,4 +6,4 @@ metadata:
 spec:
   databaseRef:
     name: {{ .Instance.Spec.Database.SharedDatabaseName }}-database
-  database: {{ .Instance.Name }}
+  database: {{ .Instance.Name | replace "-" "_" }}
