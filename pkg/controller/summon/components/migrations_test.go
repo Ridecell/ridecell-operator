@@ -19,7 +19,6 @@ package components_test
 import (
 	"context"
 	"os"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -114,17 +113,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
-			})
-
-			It("checks job initcontainer values", func() {
-				Expect(comp).To(ReconcileContext(ctx))
-				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
-				Expect(err).NotTo(HaveOccurred())
-
-				wgetCommand := job.Spec.Template.Spec.InitContainers[0].Command[2]
-				Expect(strings.Contains(wgetCommand, "notarealbucket")).To(BeTrue())
-				Expect(strings.Contains(wgetCommand, "test.json")).To(BeTrue())
 			})
 		})
 

@@ -20,9 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -33,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
@@ -80,7 +77,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil
 	}
 
-	urlStr := ""
+	var urlStr string
 	if instance.Spec.SummonFlavor != "" {
 		svc := s3.New(session.Must(session.NewSession()))
 		req, _ := svc.GetObjectRequest(&s3.GetObjectInput{

@@ -31,7 +31,7 @@ spec:
         command:
         - sh
         - "-c"
-        {{- if .Extra.presignedUrl != "" }}
+        {{- if ne .Extra.presignedUrl "" }}
         - python manage.py migrate && python manage.py loadflavor {{ .Extra.presignedUrl }}
         {{- else }}
         - python manage.py migrate
