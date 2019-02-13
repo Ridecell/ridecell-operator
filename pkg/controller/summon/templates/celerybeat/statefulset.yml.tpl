@@ -67,7 +67,7 @@ spec:
             name: {{ .Instance.Name }}-config
         - name: app-secrets
           secret:
-            secretName: summon.{{ .Instance.Name }}.app-secrets
+            secretName: {{ .Instance.Name }}.app-secrets
   volumeClaimTemplates:
   - metadata:
       name: beat-state

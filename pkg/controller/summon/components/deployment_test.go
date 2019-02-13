@@ -48,7 +48,7 @@ var _ = Describe("deployment Component", func() {
 		}
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"filler": []byte("test"),
 				"test":   []byte("another_test"),
@@ -81,7 +81,7 @@ var _ = Describe("deployment Component", func() {
 		}
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"test":   []byte("another_test"),
 				"filler": []byte("test"),
@@ -113,7 +113,7 @@ var _ = Describe("deployment Component", func() {
 		}
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data:       map[string][]byte{"filler": []byte("test")},
 		}
 
@@ -127,7 +127,7 @@ var _ = Describe("deployment Component", func() {
 		}
 
 		appSecrets = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data:       map[string][]byte{"filler": []byte("test2")},
 		}
 
