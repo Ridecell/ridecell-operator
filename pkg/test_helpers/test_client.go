@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
+	gtypes "github.com/onsi/gomega/types"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -77,7 +78,7 @@ func (c *testStatusClient) Update(obj runtime.Object) {
 type eventuallyGetOptions struct {
 	timeout     time.Duration
 	valueGetter EventuallyGetValueGetter
-	value       interface{}
+	matcher     gtypes.GomegaMatcher
 }
 
 type eventuallyGetOptionsSetter func(*eventuallyGetOptions)
@@ -91,16 +92,16 @@ func (_ *testClient) EventuallyTimeout(timeout time.Duration) eventuallyGetOptio
 }
 
 // Set a value getter, to poll until the requested value matches.
-func (_ *testClient) EventuallyValue(value interface{}, getter EventuallyGetValueGetter) eventuallyGetOptionsSetter {
+func (_ *testClient) EventuallyValue(matcher gtypes.GomegaMatcher, getter EventuallyGetValueGetter) eventuallyGetOptionsSetter {
 	return func(o *eventuallyGetOptions) {
-		o.value = value
+		o.matcher = matcher
 		o.valueGetter = getter
 	}
 }
 
 // A common case of a value getter for obj.Status.Status.
 func (c *testClient) EventuallyStatus(status string) eventuallyGetOptionsSetter {
-	return c.EventuallyValue(status, func(obj runtime.Object) (interface{}, error) {
+	return c.EventuallyValue(gomega.Equal(status), func(obj runtime.Object) (interface{}, error) {
 		// Yes using reflect is kind of gross but it's test-only code so meh.
 		return reflect.ValueOf(obj).Elem().FieldByName("Status").FieldByName("Status").String(), nil
 	})
@@ -121,7 +122,7 @@ func (c *testClient) EventuallyGet(key client.ObjectKey, obj runtime.Object, opt
 				value, err = opts.valueGetter(obj)
 			}
 			return value, err
-		}, opts.timeout).Should(gomega.Equal(opts.value))
+		}, opts.timeout).Should(opts.matcher)
 	} else {
 		gomega.Eventually(func() error {
 			return c.client.Get(context.Background(), key, obj)

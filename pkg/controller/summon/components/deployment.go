@@ -71,7 +71,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	rawAppSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "deployment: Failed to get appsecrets")
 	}
