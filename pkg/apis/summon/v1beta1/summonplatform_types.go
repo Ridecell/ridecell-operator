@@ -94,6 +94,9 @@ type SummonPlatformSpec struct {
 	// Database-related settings.
 	// +optional
 	Database DatabaseSpec `json:"database,omitempty"`
+	// The flavor of data to be imported upon creation
+	// +optional
+	Flavor string `json:"flavor,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

@@ -38,6 +38,9 @@ func TestTemplates(t *testing.T) {
 var _ = ginkgo.BeforeSuite(func() {
 	testHelpers = test_helpers.Start(summon.Add, true)
 	os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn:::test")
+	os.Setenv("AWS_ACCESS_KEY_ID", "garbage")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "garbage")
+	os.Setenv("AWS_REGION", "us-east-1")
 })
 
 var _ = ginkgo.AfterSuite(func() {

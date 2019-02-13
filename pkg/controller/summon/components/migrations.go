@@ -17,12 +17,15 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+	"time"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
-	batchv1 "k8s.io/api/batch/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,8 +33,13 @@ import (
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const flavorBucket = "ridecell-flavors"
 
 type migrationComponent struct {
 	templatePath string
@@ -71,7 +79,27 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil
 	}
 
-	obj, err := ctx.GetTemplate(comp.templatePath, nil)
+	var urlStr string
+	if instance.Spec.Flavor != "" {
+		svc := s3.New(session.Must(session.NewSession(&aws.Config{
+			Region: aws.String("us-west-2"),
+		})))
+		req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(flavorBucket),
+			Key:    aws.String(fmt.Sprintf("%s.json.bz2", instance.Spec.Flavor)),
+		})
+
+		var err error
+		urlStr, err = req.Presign(15 * time.Minute)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "migrations: failed to presign s3 url")
+		}
+	}
+
+	extra := map[string]interface{}{}
+	extra["presignedUrl"] = urlStr
+
+	obj, err := ctx.GetTemplate(comp.templatePath, extra)
 	if err != nil {
 		return components.Result{}, err
 	}
@@ -85,6 +113,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 		if err != nil {
 			return components.Result{}, err
 		}
+
 		err = ctx.Create(ctx.Context, job)
 		if err != nil {
 			// If this fails, someone else might have started a migraton job between the Get and here, so just try again.
