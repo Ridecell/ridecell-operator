@@ -37,6 +37,62 @@ var _ = Describe("Summon controller appsecrets", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.SummonPlatform
 
+	// Test helper functions.
+	getData := func(obj runtime.Object) (interface{}, error) {
+		secret := obj.(*corev1.Secret)
+		data := map[string]interface{}{}
+		err := yaml.Unmarshal(secret.Data["summon-platform.yml"], &data)
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
+	}
+
+	createInputSecret := func() *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"TOKEN": "secrettoken",
+			},
+		}
+		helpers.TestClient.Create(secret)
+		return secret
+	}
+
+	createAwsSecret := func() *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.aws-credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"AWS_ACCESS_KEY_ID":     "AKIAtest",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			},
+		}
+		helpers.TestClient.Create(secret)
+		return secret
+	}
+
+	createDbSecret := func() *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.appsecretstest-database.credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretdbpass",
+			},
+		}
+		helpers.TestClient.Create(secret)
+		return secret
+	}
+
+	createInstance := func() {
+		instance.Spec.Secrets = []string{"testsecret"}
+		helpers.TestClient.Create(instance)
+
+		// Advance postgres to running.
+		postgres := &postgresv1.Postgresql{}
+		helpers.TestClient.EventuallyGet(helpers.Name("appsecretstest-database"), postgres)
+		postgres.Status = postgresv1.ClusterStatusRunning
+		helpers.TestClient.Status().Update(postgres)
+	}
+
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
 
@@ -77,36 +133,12 @@ var _ = Describe("Summon controller appsecrets", func() {
 		c := helpers.TestClient
 
 		// Create all the input secrets.
-		inputSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
-			Data: map[string][]byte{
-				"filler": []byte{}}}
-		c.Create(inputSecret)
-		awsSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.aws-credentials", Namespace: helpers.Namespace},
-			StringData: map[string]string{
-				"AWS_ACCESS_KEY_ID":     "AKIAtest",
-				"AWS_SECRET_ACCESS_KEY": "test",
-			},
-		}
-		c.Create(awsSecret)
-		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.appsecretstest-database.credentials", Namespace: helpers.Namespace},
-			StringData: map[string]string{
-				"password": "secretdbpass",
-			},
-		}
-		c.Create(dbSecret)
+		createInputSecret()
+		createAwsSecret()
+		createDbSecret()
 
 		// Create the instance.
-		instance.Spec.Secrets = []string{"testsecret"}
-		c.Create(instance)
-
-		// Advance postgres to running.
-		postgres := &postgresv1.Postgresql{}
-		c.EventuallyGet(helpers.Name("appsecretstest-database"), postgres)
-		postgres.Status = postgresv1.ClusterStatusRunning
-		c.Status().Update(postgres)
+		createInstance()
 
 		// Get the output app secrets.
 		appSecret := &corev1.Secret{}
@@ -117,45 +149,22 @@ var _ = Describe("Summon controller appsecrets", func() {
 		err := yaml.Unmarshal(appSecret.Data["summon-platform.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data["DATABASE_URL"]).To(Equal("postgis://summon:secretdbpass@appsecretstest-database/summon"))
+		Expect(data["TOKEN"]).To(Equal("secrettoken"))
 	})
 
-	It("creates the app secret the database secret is created afterwards", func() {
+	It("creates the app secret if the database secret is created afterwards", func() {
 		c := helpers.TestClient
 
 		// Create some of the input secrets.
-		inputSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
-			Data: map[string][]byte{
-				"filler": []byte{}}}
-		c.Create(inputSecret)
-		awsSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.aws-credentials", Namespace: helpers.Namespace},
-			StringData: map[string]string{
-				"AWS_ACCESS_KEY_ID":     "AKIAtest",
-				"AWS_SECRET_ACCESS_KEY": "test",
-			},
-		}
-		c.Create(awsSecret)
+		createInputSecret()
+		createAwsSecret()
 
 		// Create the instance.
-		instance.Spec.Secrets = []string{"testsecret"}
-		c.Create(instance)
-
-		// Advance postgres to running.
-		postgres := &postgresv1.Postgresql{}
-		c.EventuallyGet(helpers.Name("appsecretstest-database"), postgres)
-		postgres.Status = postgresv1.ClusterStatusRunning
-		c.Status().Update(postgres)
+		createInstance()
 
 		// Create the DB secret later than where it would normally be created.
 		time.Sleep(2 * time.Second)
-		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.appsecretstest-database.credentials", Namespace: helpers.Namespace},
-			StringData: map[string]string{
-				"password": "secretdbpass",
-			},
-		}
-		c.Create(dbSecret)
+		createDbSecret()
 
 		// Get the output app secrets.
 		appSecret := &corev1.Secret{}
@@ -168,40 +177,16 @@ var _ = Describe("Summon controller appsecrets", func() {
 		Expect(data["DATABASE_URL"]).To(Equal("postgis://summon:secretdbpass@appsecretstest-database/summon"))
 	})
 
-	It("creates the app secret the database secret is changed afterwards", func() {
+	It("updates the app secret if the database secret is changed afterwards", func() {
 		c := helpers.TestClient
 
-		// Create some of the input secrets.
-		inputSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
-			Data: map[string][]byte{
-				"filler": []byte{}}}
-		c.Create(inputSecret)
-		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.appsecretstest-database.credentials", Namespace: helpers.Namespace},
-			StringData: map[string]string{
-				"password": "secretdbpass",
-			},
-		}
-		c.Create(dbSecret)
-		awsSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.aws-credentials", Namespace: helpers.Namespace},
-			StringData: map[string]string{
-				"AWS_ACCESS_KEY_ID":     "AKIAtest",
-				"AWS_SECRET_ACCESS_KEY": "test",
-			},
-		}
-		c.Create(awsSecret)
+		// Create the input secrets.
+		createInputSecret()
+		dbSecret := createDbSecret()
+		createAwsSecret()
 
 		// Create the instance.
-		instance.Spec.Secrets = []string{"testsecret"}
-		c.Create(instance)
-
-		// Advance postgres to running.
-		postgres := &postgresv1.Postgresql{}
-		c.EventuallyGet(helpers.Name("appsecretstest-database"), postgres)
-		postgres.Status = postgresv1.ClusterStatusRunning
-		c.Status().Update(postgres)
+		createInstance()
 
 		// Change the DB secret
 		time.Sleep(10 * time.Second)
@@ -210,13 +195,41 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Get the output app secrets.
 		appSecret := &corev1.Secret{}
-		data := map[string]interface{}{}
-		c.EventuallyGet(helpers.Name("appsecretstest.app-secrets"), appSecret, c.EventuallyValue("postgis://summon:other@appsecretstest-database/summon", func(obj runtime.Object) (interface{}, error) {
-			err := yaml.Unmarshal(appSecret.Data["summon-platform.yml"], &data)
-			if err != nil {
-				return nil, err
-			}
-			return data["DATABASE_URL"], nil
-		}))
+		c.EventuallyGet(helpers.Name("appsecretstest.app-secrets"), appSecret, c.EventuallyValue(HaveKeyWithValue("DATABASE_URL", "postgis://summon:other@appsecretstest-database/summon"), getData))
+	})
+
+	It("errors if the input secret does not exist", func() {
+		c := helpers.TestClient
+
+		// Create some of the input secrets.
+		createDbSecret()
+		createAwsSecret()
+
+		// Create the instance.
+		createInstance()
+
+		// Check the status.
+		c.EventuallyGet(helpers.Name("appsecretstest"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
+	})
+
+	It("updates the app secrets if an input secret is changed afterwards", func() {
+		c := helpers.TestClient
+
+		// Create the input secrets.
+		inputSecret := createInputSecret()
+		createDbSecret()
+		createAwsSecret()
+
+		// Create the instance.
+		createInstance()
+
+		// Change the DB secret
+		time.Sleep(10 * time.Second)
+		inputSecret.StringData["TOKEN"] = "other"
+		c.Update(inputSecret)
+
+		// Get the output app secrets.
+		appSecret := &corev1.Secret{}
+		c.EventuallyGet(helpers.Name("appsecretstest.app-secrets"), appSecret, c.EventuallyValue(HaveKeyWithValue("TOKEN", "other"), getData))
 	})
 })
