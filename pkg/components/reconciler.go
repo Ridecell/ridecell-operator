@@ -67,7 +67,15 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 			if isAMapFuncWatch {
 				// Watch an arbitrary object via a MapFunc.
 				watchHandler = &handler.EnqueueRequestsFromMapFunc{
-					ToRequests: handler.ToRequestsFunc(mfComp.WatchMap),
+					ToRequests: handler.ToRequestsFunc(func(obj handler.MapObject) []reconcile.Request {
+						requests, err := mfComp.WatchMap(obj, cr.client)
+						if err != nil {
+							// For lack anything better to do for now ...
+							fmt.Printf("ERROR FROM MAP FUNC: %s", err)
+							panic(err)
+						}
+						return requests
+					}),
 				}
 			} else {
 				// Watch an owned object, but first check if we're already watching this type.

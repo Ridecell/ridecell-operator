@@ -75,7 +75,7 @@ type ErrorHandler interface {
 
 // An optional interface for Components which want to use EnqueueRequestsFromMapFunc instead of watching owned objects.
 type MapFuncWatcher interface {
-	WatchMap(handler.MapObject) []reconcile.Request
+	WatchMap(handler.MapObject, client.Client) ([]reconcile.Request, error)
 }
 
 // Opaque type for some kind of status substruct.

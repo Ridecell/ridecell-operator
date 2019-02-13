@@ -17,23 +17,27 @@ limitations under the License.
 package components
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/pkg/errors"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/errors"
 )
 
 type appSecretComponent struct{}
@@ -67,60 +71,75 @@ func (comp *appSecretComponent) WatchTypes() []runtime.Object {
 	}
 }
 
+func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client) ([]reconcile.Request, error) {
+	// First check if this is an owned object, if so, short circuit.
+	owner := metav1.GetControllerOf(obj.Meta)
+	if owner != nil && owner.Kind == "SummonPlatform" {
+		return []reconcile.Request{
+			reconcile.Request{NamespacedName: types.NamespacedName{Name: owner.Name, Namespace: obj.Meta.GetNamespace()}},
+		}, nil
+	}
+
+	// Search all SummonPlatforms to see if any mention this as an input secret.
+	summons := &summonv1beta1.SummonPlatformList{}
+	err := c.List(context.Background(), nil, summons)
+	if err != nil {
+		return nil, errors.Wrap(err, "error listing summonplatforms")
+	}
+
+	requests := []reconcile.Request{}
+	for _, summon := range summons.Items {
+		// TODO Can do this with a list option once that API stabilizes
+		if summon.Namespace != obj.Meta.GetNamespace() {
+			continue
+		}
+
+		// Check the input secrets.
+		for _, secret := range append(summon.Spec.Secrets, comp.inputSecrets(&summon)...) {
+			if obj.Meta.GetName() == secret {
+				requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: summon.Name, Namespace: summon.Namespace}})
+				break
+			}
+		}
+	}
+
+	return requests, nil
+}
+
 func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
 		return false
 	}
+
 	return true
 }
 
 func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	var rawAppSecrets []*corev1.Secret
-	for _, secretName := range instance.Spec.Secrets {
-		rawAppSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, rawAppSecret)
-		if err != nil {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get input app secrets %s", secretName)
-		}
-		rawAppSecrets = append(rawAppSecrets, rawAppSecret)
-	}
-
-	databaseName := instance.Spec.Database.SharedDatabaseName
-	databaseUser := strings.Replace(instance.Name, "-", "_", -1)
-	if instance.Spec.Database.ExclusiveDatabase {
-		databaseName = instance.Name
-		databaseUser = "summon"
-	}
-
-	postgresSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", strings.Replace(databaseUser, "_", "-", -1), databaseName), Namespace: instance.Namespace}, postgresSecret)
+	specInputSecrets, err := comp.fetchSecrets(ctx, instance, instance.Spec.Secrets, false)
 	if err != nil {
-		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
-		}
+		return components.Result{}, err
 	}
+	dynamicInputSecrets, err := comp.fetchSecrets(ctx, instance, comp.inputSecrets(instance), true)
+	if err != nil {
+		return components.Result{Requeue: true}, err
+	}
+
+	// This order must match the one in inputSecrets().
+	postgresSecret := dynamicInputSecrets[0]
+	fernetKeys := dynamicInputSecrets[1]
+	secretKey := dynamicInputSecrets[2]
+	awsSecret := dynamicInputSecrets[3]
+
+	postgresDatabase, postgresUser := comp.postgresNames(instance)
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
 		return components.Result{}, errors.New("app_secrets: Postgres password not found in secret")
 	}
 
-	fernetKeys := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetKeys)
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
-		}
-	}
 	if len(fernetKeys.Data) == 0 {
 		return components.Result{}, errors.New("app_secrets: Fernet keys map is empty")
 	}
@@ -130,57 +149,36 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		return components.Result{}, err
 	}
 
-	secretKey := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace}, secretKey)
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
-		}
-	}
 	val, ok := secretKey.Data["SECRET_KEY"]
 	if !ok || len(val) == 0 {
 		return components.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
 	}
 
-	accessKey := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}, accessKey)
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials secret")
-		}
-	}
-
 	appSecretsData := map[string]interface{}{}
 
-	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s-database/%s", databaseUser, postgresPassword, databaseName, databaseUser)
+	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s-database/%s", postgresUser, postgresPassword, postgresDatabase, postgresUser)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
-	appSecretsData["AWS_ACCESS_KEY_ID"] = string(accessKey.Data["AWS_SECRET_ACCESS_KEY"])
-	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(accessKey.Data["AWS_SECRET_ACCESS_KEY"])
+	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
+	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
 
-	for _, rawAppSecretObj := range rawAppSecrets {
-		for k, v := range rawAppSecretObj.Data {
+	for _, secret := range specInputSecrets {
+		for k, v := range secret.Data {
 			appSecretsData[k] = string(v)
 		}
 	}
 
-	parsedYaml, err := yaml.Marshal(appSecretsData)
+	yamlData, err := yaml.Marshal(appSecretsData)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")
 	}
 
 	newSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
-		Data:       map[string][]byte{"summon-platform.yml": parsedYaml},
+		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+		Data:       map[string][]byte{"summon-platform.yml": yamlData},
 	}
 
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret.DeepCopy(), func(existingObj runtime.Object) error {
@@ -227,4 +225,44 @@ func (_ *appSecretComponent) formatFernetKeys(fernetData map[string][]byte) ([]s
 	}
 
 	return outputSlice, nil
+}
+
+func (_ *appSecretComponent) postgresNames(instance *summonv1beta1.SummonPlatform) (string, string) {
+	if instance.Spec.Database.ExclusiveDatabase {
+		return instance.Name, "summon"
+	} else {
+		return instance.Spec.Database.SharedDatabaseName, strings.Replace(instance.Name, "-", "_", -1)
+	}
+}
+
+func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform) []string {
+	postgresDatabase, postgresUser := c.postgresNames(instance)
+
+	// The order of these must match the code using it. Do not change. I mean it.
+	return []string{
+		fmt.Sprintf("%s.%s-database.credentials", strings.Replace(postgresUser, "_", "-", -1), postgresDatabase),
+		fmt.Sprintf("%s.fernet-keys", instance.Name),
+		fmt.Sprintf("%s.secret-key", instance.Name),
+		fmt.Sprintf("%s.aws-credentials", instance.Name),
+	}
+}
+
+func (_ *appSecretComponent) fetchSecrets(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, secretNames []string, allowMissing bool) ([]*corev1.Secret, error) {
+	secrets := []*corev1.Secret{}
+	for _, secretName := range secretNames {
+		secret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
+		if err != nil {
+			if kerrors.IsNotFound(err) && allowMissing {
+				err = errors.NoNotify(err)
+			}
+			label := "input"
+			if allowMissing {
+				label = "derived"
+			}
+			return nil, errors.Wrapf(err, "app_secrets: error fetching %s app secret %s", label, secretName)
+		}
+		secrets = append(secrets, secret)
+	}
+	return secrets, nil
 }
