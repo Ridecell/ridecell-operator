@@ -80,30 +80,6 @@ func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client)
 		}, nil
 	}
 
-	// // Also check second order owners to catch the DB and AWS secrets.
-	// if owner != nil {
-	// 	gv, err := schema.ParseGroupVersion(owner.APIVersion)
-	// 	r.Breakpoint()
-	// 	if err != nil {
-	// 		return nil, errors.Wrapf(err, "error parsing owner reference on %s/%s", obj.Meta.GetNamespace(), obj.Meta.GetName())
-	// 	}
-	// 	gvk := gv.WithKind(owner.Kind)
-	// 	u := &unstructured.Unstructured{}
-	// 	u.SetGroupVersionKind(gvk)
-	// 	err = c.Get(context.Background(), types.NamespacedName{Name: owner.Name, Namespace: obj.Meta.GetNamespace()}, u)
-	// 	if err != nil {
-	// 		return nil, errors.Wrapf(err, "error fetching second-order owner reference for %s/%s", obj.Meta.GetNamespace(), owner.Name)
-	// 	}
-
-	// 	secondOrderOwner := metav1.GetControllerOf(u)
-	// 	fmt.Printf("%%%% %#v\n", secondOrderOwner)
-	// 	if secondOrderOwner != nil && secondOrderOwner.Kind == "SummonPlatform" {
-	// 		return []reconcile.Request{
-	// 			reconcile.Request{NamespacedName: types.NamespacedName{Name: secondOrderOwner.Name, Namespace: obj.Meta.GetNamespace()}},
-	// 		}, nil
-	// 	}
-	// }
-
 	// Search all SummonPlatforms to see if any mention this as an input secret.
 	summons := &summonv1beta1.SummonPlatformList{}
 	err := c.List(context.Background(), nil, summons)
@@ -118,34 +94,12 @@ func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client)
 			continue
 		}
 
-		shouldRequest := false
-
-		// Check the explicit input secrets.
+		// Check the input secrets.
 		for _, secret := range append(summon.Spec.Secrets, comp.inputSecrets(&summon)...) {
 			if obj.Meta.GetName() == secret {
-				shouldRequest = true
+				requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: summon.Name, Namespace: summon.Namespace}})
 				break
 			}
-		}
-
-		// // Check if this matches the DB secret.
-		// databaseName := summon.Spec.Database.SharedDatabaseName
-		// databaseUser := strings.Replace(summon.Name, "-", "_", -1)
-		// if summon.Spec.Database.ExclusiveDatabase {
-		// 	databaseName = summon.Name
-		// 	databaseUser = "summon"
-		// }
-		// if obj.Meta.GetName() == fmt.Sprintf("%s.%s-database.credentials", strings.Replace(databaseUser, "_", "-", -1), databaseName) {
-		// 	shouldRequest = true
-		// }
-
-		// // Check if this matchs the AWS secret.
-		// if obj.Meta.GetName() == fmt.Sprintf("%s.aws-credentials", summon.Name) {
-		// 	shouldRequest = true
-		// }
-
-		if shouldRequest {
-			requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: summon.Name, Namespace: summon.Namespace}})
 		}
 	}
 
