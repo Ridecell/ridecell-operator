@@ -205,7 +205,7 @@ var _ = Describe("Summon controller", func() {
 		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 		// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyValue("80813-eb6b515-master", func(obj runtime.Object) (interface{}, error) {
+		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
 			return obj.(*summonv1beta1.SummonPlatform).Status.Notification.NotifyVersion, nil
 		}))
 
