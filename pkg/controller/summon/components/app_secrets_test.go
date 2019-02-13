@@ -170,7 +170,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("runs reconcile with no secret_key", func() {
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys)
 		res, err := comp.Reconcile(ctx)
-		Expect(err).To(MatchError(`app_secrets: error fetching input app secret foo.secret-key: secrets "foo.secret-key" not found`))
+		Expect(err).To(MatchError(`app_secrets: error fetching derived app secret foo.secret-key: secrets "foo.secret-key" not found`))
 		Expect(res.Requeue).To(BeTrue())
 	})
 

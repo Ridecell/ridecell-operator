@@ -256,7 +256,11 @@ func (_ *appSecretComponent) fetchSecrets(ctx *components.ComponentContext, inst
 			if kerrors.IsNotFound(err) && allowMissing {
 				err = errors.NoNotify(err)
 			}
-			return nil, errors.Wrapf(err, "app_secrets: error fetching input app secret %s", secretName)
+			label := "input"
+			if allowMissing {
+				label = "derived"
+			}
+			return nil, errors.Wrapf(err, "app_secrets: error fetching %s app secret %s", label, secretName)
 		}
 		secrets = append(secrets, secret)
 	}
