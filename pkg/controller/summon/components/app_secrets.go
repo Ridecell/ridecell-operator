@@ -22,18 +22,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/pkg/errors"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/errors"
 )
 
 type appSecretComponent struct{}
@@ -100,11 +100,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", strings.Replace(databaseUser, "_", "-", -1), databaseName), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
+			// Not found here can be a normal thing during setup.
+			err = errors.NoNotify(err)
 		}
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
 	}
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
@@ -115,11 +114,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetKeys)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
+			// Not found here can be a normal thing during setup.
+			err = errors.NoNotify(err)
 		}
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
 	}
 	if len(fernetKeys.Data) == 0 {
 		return components.Result{}, errors.New("app_secrets: Fernet keys map is empty")
@@ -134,11 +132,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace}, secretKey)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
+			// Not found here can be a normal thing during setup.
+			err = errors.NoNotify(err)
 		}
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
 	}
 	val, ok := secretKey.Data["SECRET_KEY"]
 	if !ok || len(val) == 0 {
@@ -149,11 +146,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}, accessKey)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			// Don't trigger an error on notfound so it doesn't notify. Just try again.
-			return components.Result{Requeue: true}, nil
-		} else {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials secret")
+			// Not found here can be a normal thing during setup.
+			err = errors.NoNotify(err)
 		}
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials secret")
 	}
 
 	appSecretsData := map[string]interface{}{}
