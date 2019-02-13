@@ -74,8 +74,8 @@ var _ = Describe("app_secrets Component", func() {
 		accessKey = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: "default"},
 			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("test"),
-				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+				"AWS_ACCESS_KEY_ID":     []byte("testid"),
+				"AWS_SECRET_ACCESS_KEY": []byte("testkey"),
 			},
 		}
 
@@ -120,8 +120,8 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo.ridecell.us/sms/receive/"))
 		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("redis://foo-redis/2"))
 		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
-		Expect(parsedYaml["AWS_ACCESS_KEY_ID"]).To(Equal("test"))
-		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(Equal("test"))
+		Expect(parsedYaml["AWS_ACCESS_KEY_ID"]).To(Equal("testid"))
+		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(Equal("testkey"))
 	})
 
 	It("copies data from the input secret", func() {

@@ -162,7 +162,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
-	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
+	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
 	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
 
 	for _, secret := range specInputSecrets {
