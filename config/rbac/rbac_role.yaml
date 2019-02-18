@@ -17,17 +17,9 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - apps
+  - summon.ridecell.io
   resources:
-  - deployments/status
-  verbs:
-  - get
-  - update
-  - patch
-- apiGroups:
-  - db.ridecell.io
-  resources:
-  - rabbitmqusers
+  - djangousers
   verbs:
   - get
   - list
@@ -36,11 +28,3 @@ rules:
   - update
   - patch
   - delete
-- apiGroups:
-  - db.ridecell.io
-  resources:
-  - rabbitmqusers/status
-  verbs:
-  - get
-  - update
-  - patch
