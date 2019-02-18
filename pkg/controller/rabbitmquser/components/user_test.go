@@ -110,8 +110,8 @@ var _ = Describe("RabbitmqUser Component", func() {
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 	It("Fails to create a rabbithole Client", func() {
-		comp := rmqucomponents.NewUser()
 		instance.Spec.Connection.Host = "htt://127.0.0.1:80"
+		comp := rmqucomponents.NewUser()
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 })

@@ -72,28 +72,17 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}
 
-	// Create the required vhost if it does not exist
-	xs, err := rmqc.ListUsers()
+	var userPassword string
+	userPassword, err = instance.Spec.PasswordSecretref.Resolve(ctx, "rabbitmqUserPassword")
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "error connecting or fetching rabbitmq users")
+		return components.Result{}, errors.Wrapf(err, "error resolving rabbitmq user password")
 	}
-
-	var user_exists bool
-	for _, user := range xs {
-		if user.Name == instance.Spec.Username {
-			user_exists = true
-		}
+	resp, err := rmqc.PutUser(instance.Spec.Username, rabbithole.UserSettings{Password: userPassword, Tags: instance.Spec.Tags})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "error connection to rabbitmq host")
 	}
-	if !user_exists {
-		var userPassword string
-		userPassword, err = instance.Spec.PasswordSecretref.Resolve(ctx, "rabbitmqUserPassword")
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "error resolving rabbitmq user password")
-		}
-		resp, _ := rmqc.PutUser(instance.Spec.Username, rabbithole.UserSettings{Password: userPassword, Tags: instance.Spec.Tags})
-		if resp.StatusCode != 201 {
-			return components.Result{}, errors.Wrapf(err, "unable to create rabbitmq user %s", instance.Spec.Username)
-		}
+	if resp.StatusCode != 201 && resp.StatusCode != 200 {
+		return components.Result{}, errors.Wrapf(err, "unable to create rabbitmq user %s", instance.Spec.Username)
 	}
 	return components.Result{}, nil
 }
