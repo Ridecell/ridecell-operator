@@ -47,7 +47,7 @@ var _ = Describe("SummonPlatform service Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("creates an service object using redis template", func() {
+	It("creates an service object using celerybeat template", func() {
 		comp := summoncomponents.NewService("celerybeat/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}

@@ -66,7 +66,7 @@ var _ = Describe("SummonPlatform statefulset Component", func() {
 
 	})
 
-	It("creates an statefulset object using redis template", func() {
+	It("creates an statefulset object using celerybeat template", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &appsv1.StatefulSet{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celerybeat", Namespace: instance.Namespace}, target)
