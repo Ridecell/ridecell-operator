@@ -18,6 +18,7 @@ package components
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -103,6 +104,37 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 		})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to create bucket %s", instance.Spec.BucketName)
+		}
+	}
+
+	// Look for ridecell-operator tag, if it doesn't exist create it
+	getBucketTags, err := s3Service.GetBucketTagging(&s3.GetBucketTaggingInput{Bucket: aws.String(instance.Spec.BucketName)})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to get bucket tags")
+	}
+	var foundTag bool
+	for _, tagSet := range getBucketTags.TagSet {
+		if aws.StringValue(tagSet.Key) == "ridecell-operator" {
+			fmt.Printf("Found tag\n")
+			foundTag = true
+		}
+	}
+	fmt.Printf("wat\n")
+	if !foundTag {
+		fmt.Printf("PutBucketTagging about to run\n")
+		_, err := s3Service.PutBucketTagging(&s3.PutBucketTaggingInput{
+			Bucket: aws.String(instance.Spec.BucketName),
+			Tagging: &s3.Tagging{
+				TagSet: []*s3.Tag{
+					&s3.Tag{
+						Key:   aws.String("ridecell-operator"),
+						Value: aws.String("True"),
+					},
+				},
+			},
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to put bucket tags")
 		}
 	}
 

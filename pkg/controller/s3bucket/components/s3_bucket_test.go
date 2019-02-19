@@ -37,9 +37,11 @@ type mockS3Client struct {
 	mockBucketExists    bool
 	mockBucketPolicy    *string
 	mockBucketNameTaken bool
+	mockBucketTagged    bool
 
 	putPolicy        bool
 	putPolicyContent string
+	putBucketTagging bool
 	deletePolicy     bool
 }
 
@@ -66,6 +68,7 @@ var _ = Describe("s3bucket aws Component", func() {
 				"Statement": []
 			}
 		`)
+		mockS3.mockBucketTagged = true
 
 		instance.Spec.BucketName = "foo-default-static"
 		instance.Spec.BucketPolicy = `{
@@ -85,6 +88,7 @@ var _ = Describe("s3bucket aws Component", func() {
 
 		Expect(mockS3.putPolicy).To(BeTrue())
 		Expect(mockS3.putPolicyContent).To(MatchJSON(instance.Spec.BucketPolicy))
+		Expect(mockS3.putBucketTagging).To(BeFalse())
 	})
 
 	It("adds a new bucket policy if not present", func() {
@@ -108,6 +112,7 @@ var _ = Describe("s3bucket aws Component", func() {
 
 		Expect(mockS3.putPolicy).To(BeTrue())
 		Expect(mockS3.putPolicyContent).To(MatchJSON(instance.Spec.BucketPolicy))
+		Expect(mockS3.putBucketTagging).To(BeTrue())
 	})
 
 	It("fails because bucket name is taken", func() {
@@ -190,4 +195,29 @@ func (m *mockS3Client) DeleteBucketPolicy(input *s3.DeleteBucketPolicyInput) (*s
 	}
 	m.deletePolicy = true
 	return &s3.DeleteBucketPolicyOutput{}, nil
+}
+
+func (m *mockS3Client) GetBucketTagging(input *s3.GetBucketTaggingInput) (*s3.GetBucketTaggingOutput, error) {
+	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
+		return nil, awserr.New("NoSuchBucket", "", nil)
+	}
+	if m.mockBucketTagged {
+		return &s3.GetBucketTaggingOutput{
+			TagSet: []*s3.Tag{
+				&s3.Tag{
+					Key:   aws.String("ridecell-operator"),
+					Value: aws.String("True"),
+				},
+			},
+		}, nil
+	}
+	return &s3.GetBucketTaggingOutput{}, nil
+}
+
+func (m *mockS3Client) PutBucketTagging(input *s3.PutBucketTaggingInput) (*s3.PutBucketTaggingOutput, error) {
+	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
+		return nil, awserr.New("NoSuchBucket", "", nil)
+	}
+	m.putBucketTagging = true
+	return &s3.PutBucketTaggingOutput{}, nil
 }
