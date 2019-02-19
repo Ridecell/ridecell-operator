@@ -18,7 +18,6 @@ package components
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -115,13 +114,10 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 	var foundTag bool
 	for _, tagSet := range getBucketTags.TagSet {
 		if aws.StringValue(tagSet.Key) == "ridecell-operator" {
-			fmt.Printf("Found tag\n")
 			foundTag = true
 		}
 	}
-	fmt.Printf("wat\n")
 	if !foundTag {
-		fmt.Printf("PutBucketTagging about to run\n")
 		_, err := s3Service.PutBucketTagging(&s3.PutBucketTaggingInput{
 			Bucket: aws.String(instance.Spec.BucketName),
 			Tagging: &s3.Tagging{
