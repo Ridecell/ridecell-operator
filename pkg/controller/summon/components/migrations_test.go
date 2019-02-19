@@ -18,6 +18,8 @@ package components_test
 
 import (
 	"context"
+	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,10 +37,17 @@ import (
 )
 
 var _ = Describe("SummonPlatform Migrations Component", func() {
+	comp := summoncomponents.NewMigrations("migrations.yml.tpl")
+
+	BeforeEach(func() {
+		comp = summoncomponents.NewMigrations("migrations.yml.tpl")
+		os.Setenv("AWS_ACCESS_KEY_ID", "garbage")
+		os.Setenv("AWS_SECRET_ACCESS_KEY", "garbage")
+	})
+
 	Describe(".IsReconcilable()", func() {
 		Context("with a zero status", func() {
 			It("returns false", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				ok := comp.IsReconcilable(ctx)
 				Expect(ok).To(BeFalse())
 			})
@@ -50,7 +59,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("returns false", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				ok := comp.IsReconcilable(ctx)
 				Expect(ok).To(BeFalse())
 			})
@@ -62,7 +70,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("returns false", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				ok := comp.IsReconcilable(ctx)
 				Expect(ok).To(BeFalse())
 			})
@@ -76,7 +83,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("returns true", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				ok := comp.IsReconcilable(ctx)
 				Expect(ok).To(BeTrue())
 			})
@@ -91,7 +97,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("returns true", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				ok := comp.IsReconcilable(ctx)
 				Expect(ok).To(BeTrue())
 			})
@@ -101,13 +106,28 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 	Describe(".Reconcile()", func() {
 		Context("with no migration job existing", func() {
 			It("creates a migration job", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				Expect(comp).To(ReconcileContext(ctx))
-
 				job := &batchv1.Job{}
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
+			})
+
+			It("checks template info for a presigned url", func() {
+				instance.Spec.Flavor = "test-flavor"
+				Expect(comp).To(ReconcileContext(ctx))
+				job := &batchv1.Job{}
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(strings.Contains(job.Spec.Template.Spec.Containers[0].Command[2], "https://ridecell-flavors.s3.us-west-2.amazonaws.com/test-flavor.json.bz2")).To(BeTrue())
+			})
+
+			It("makes sure loadflavor command is not loaded into template", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				job := &batchv1.Job{}
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate"))
 			})
 		})
 
@@ -124,9 +144,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("still has a migration job", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				Expect(comp).To(ReconcileContext(ctx))
-
 				job := &batchv1.Job{}
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
@@ -150,9 +168,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("deletes the migration", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				Expect(comp).To(ReconcileContext(ctx))
-
 				// Pending controller-runtime #213
 				jobs := &metav1.List{}
 				err := ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
@@ -178,9 +194,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("leaves the migration", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				Expect(comp).NotTo(ReconcileContext(ctx))
-
 				job := &batchv1.Job{}
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
@@ -204,7 +218,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("deletes the migration and reques", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				resp, err := comp.Reconcile(ctx)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -234,7 +247,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			})
 
 			It("deletes the migration and reques", func() {
-				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				resp, err := comp.Reconcile(ctx)
 				Expect(err).NotTo(HaveOccurred())
 

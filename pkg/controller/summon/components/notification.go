@@ -27,6 +27,7 @@ import (
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/errors"
 )
 
 var versionRegex *regexp.Regexp
@@ -96,6 +97,9 @@ func (c *notificationComponent) Reconcile(ctx *components.ComponentContext) (com
 
 // ReconcileError implements components.ErrorHandler.
 func (c *notificationComponent) ReconcileError(ctx *components.ComponentContext, err error) (components.Result, error) {
+	if !errors.ShouldNotify(err) {
+		return components.Result{}, nil
+	}
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	return c.handleError(instance, fmt.Sprintf("%s", err))
 }

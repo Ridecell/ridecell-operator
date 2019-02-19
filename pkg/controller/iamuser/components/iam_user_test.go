@@ -18,8 +18,6 @@ package components_test
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -48,98 +46,91 @@ type mockIAMClient struct {
 }
 
 var _ = Describe("iam_user aws Component", func() {
+	comp := iamusercomponents.NewIAMUser()
+	var mockIAM *mockIAMClient
+
+	BeforeEach(func() {
+		comp = iamusercomponents.NewIAMUser()
+		mockIAM = &mockIAMClient{}
+		comp.InjectIAMAPI(mockIAM)
+	})
 
 	It("runs basic reconcile with no existing user", func() {
-		comp := iamusercomponents.NewIAMUser()
-		mockIAM := &mockIAMClient{}
-		comp.InjectIAMAPI(mockIAM)
-
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(fetchAccessKey.Data["access_key_id"])).To(Equal("1234567890123456"))
-		Expect(string(fetchAccessKey.Data["secret_access_key"])).To(Equal("FakeSecretKey00123"))
+		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("1234567890123456"))
+		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("FakeSecretKey00123"))
 	})
 
 	It("reconciles with existing user and credentials", func() {
-		comp := iamusercomponents.NewIAMUser()
-		instance.Spec.UserName = fmt.Sprintf("test-user")
-		mockIAM := &mockIAMClient{
-			mockUserExists:      true,
-			mockhasUserPolicies: true,
+		mockIAM.mockUserExists = true
+		mockIAM.mockhasUserPolicies = true
+
+		instance.Spec.InlinePolicies = map[string]string{
+			"test_all": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
 		}
-		comp.InjectIAMAPI(mockIAM)
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "test-user.aws-credentials", Namespace: "default"},
 			Data: map[string][]byte{
-				"access_key_id":     []byte("test_access_key"),
-				"secret_access_key": []byte("test_secret_key"),
+				"AWS_ACCESS_KEY_ID":     []byte("test_access_key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test_secret_key"),
 			},
 		}
 		ctx.Client = fake.NewFakeClient(accessKey)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(fetchAccessKey.Data["access_key_id"])).To(Equal("test_access_key"))
-		Expect(string(fetchAccessKey.Data["secret_access_key"])).To(Equal("test_secret_key"))
+		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("test_access_key"))
+		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("test_secret_key"))
 	})
 
 	It("has extra items attached to user", func() {
-		comp := iamusercomponents.NewIAMUser()
-		instance.Spec.UserName = "test-user"
-		mockIAM := &mockIAMClient{
-			mockUserExists:      true,
-			mockExtraUserPolicy: true,
-		}
-		comp.InjectIAMAPI(mockIAM)
+		mockIAM.mockUserExists = true
+		mockIAM.mockExtraUserPolicy = true
+
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("has an existing access key but no secret", func() {
-		comp := iamusercomponents.NewIAMUser()
-		instance.Spec.UserName = "test-user"
-		mockIAM := &mockIAMClient{
-			mockUserExists:   true,
-			mockHasAccessKey: true,
-		}
-		comp.InjectIAMAPI(mockIAM)
+		mockIAM.mockUserExists = true
+		mockIAM.mockHasAccessKey = true
+
 		Expect(comp).To(ReconcileContext(ctx))
+
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("creates new user with policies", func() {
-		comp := iamusercomponents.NewIAMUser()
-		instance.Spec.UserName = "test-user"
 		instance.Spec.InlinePolicies = map[string]string{
-			"test": `{
-								"Version": "2012-10-17",
-								"Statement": {
-									"Sid": "",
-									"Effect": "Allow",
-									"Action": [
-										"s3:*"
-									],
-									"Resource": "*"
-								}
-								}`,
+			"test777": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
 		}
-		mockIAM := &mockIAMClient{}
-		comp.InjectIAMAPI(mockIAM)
+
 		Expect(comp).To(ReconcileContext(ctx))
+
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("errors on an invalid policy", func() {
+		instance.Spec.InlinePolicies = map[string]string{
+			"test": `{nope`,
+		}
+
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(MatchError("iam_user: user policy from spec test has invalid JSON: invalid character 'n' looking for beginning of object key string"))
 	})
 })
 
@@ -190,22 +181,14 @@ func (m *mockIAMClient) GetUserPolicy(input *iam.GetUserPolicyInput) (*iam.GetUs
 	}
 	if m.mockhasUserPolicies {
 		inputPolicy := instance.Spec.InlinePolicies[aws.StringValue(input.PolicyName)]
-		inputPolicyBytes, err := json.Marshal(inputPolicy)
-		if err != nil {
-			return &iam.GetUserPolicyOutput{}, errors.New("awsmock_getuserpolicy: unable to unmarshal json")
-		}
-		return &iam.GetUserPolicyOutput{PolicyDocument: aws.String(string(inputPolicyBytes))}, nil
+		return &iam.GetUserPolicyOutput{PolicyName: input.PolicyName, PolicyDocument: aws.String(inputPolicy)}, nil
 	}
 	if m.mockExtraUserPolicy {
 		inputPolicy, ok := instance.Spec.InlinePolicies[aws.StringValue(input.PolicyName)]
 		if !ok {
 			inputPolicy = `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": ["s3:*"] "Resource": "*"}}`
 		}
-		inputPolicyBytes, err := json.Marshal(inputPolicy)
-		if err != nil {
-			return &iam.GetUserPolicyOutput{}, errors.New("awsmock_getuserpolicy: unable to unmarshal json")
-		}
-		return &iam.GetUserPolicyOutput{PolicyDocument: aws.String(string(inputPolicyBytes))}, nil
+		return &iam.GetUserPolicyOutput{PolicyName: input.PolicyName, PolicyDocument: aws.String(inputPolicy)}, nil
 	}
 	return &iam.GetUserPolicyOutput{}, nil
 }

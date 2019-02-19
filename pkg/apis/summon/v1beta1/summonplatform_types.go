@@ -38,6 +38,14 @@ type NotificationsSpec struct {
 	SlackChannel string `json:"slackChannel,omitempty"`
 }
 
+// DatabaseSpec is used to specify whether we are using a shared database or not.
+type DatabaseSpec struct {
+	// +optional
+	ExclusiveDatabase bool `json:"exclusiveDatabase,omitempty"`
+	// +optional
+	SharedDatabaseName string `json:"sharedDatabaseName,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -83,6 +91,12 @@ type SummonPlatformSpec struct {
 	// SQS queue setting
 	// +optional
 	SQSQueue string `json:"sqsQueue,omitempty"`
+	// Database-related settings.
+	// +optional
+	Database DatabaseSpec `json:"database,omitempty"`
+	// The flavor of data to be imported upon creation
+	// +optional
+	Flavor string `json:"flavor,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

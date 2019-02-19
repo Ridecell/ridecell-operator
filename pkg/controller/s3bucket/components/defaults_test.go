@@ -39,7 +39,7 @@ var _ = Describe("s3bucket Defaults Component", func() {
 		comp := s3bucketcomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 
-		Expect(instance.Spec.BucketName).To(Equal("foo.example.com-static"))
+		Expect(instance.Spec.BucketName).To(Equal("test-bucket"))
 		Expect(instance.Spec.Region).To(Equal("us-west-2"))
 	})
 

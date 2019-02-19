@@ -52,8 +52,13 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 	var existingPostgis *dbv1beta1.PostgresExtension
 	var existingPostgisToplogy *dbv1beta1.PostgresExtension
 
+	// Make the template extras.
+	extras := map[string]interface{}{}
+
 	// Create the postgis extension.
-	res, _, err := ctx.CreateOrUpdate("postgres_extensions/postgis.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+	extras["ExtensionName"] = "postgis"
+	extras["ObjectName"] = "postgis"
+	res, _, err := ctx.CreateOrUpdate("postgres_extension.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.PostgresExtension)
 		existingPostgis = existingObj.(*dbv1beta1.PostgresExtension)
 		// Copy the Spec over.
@@ -65,7 +70,9 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 	}
 
 	// Create the postgis_topology extension.
-	res, _, err = ctx.CreateOrUpdate("postgres_extensions/postgis_topology.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+	extras["ExtensionName"] = "postgis_topology"
+	extras["ObjectName"] = "postgis-topology"
+	res, _, err = ctx.CreateOrUpdate("postgres_extension.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.PostgresExtension)
 		existingPostgisToplogy = existingObj.(*dbv1beta1.PostgresExtension)
 		// Copy the Spec over.

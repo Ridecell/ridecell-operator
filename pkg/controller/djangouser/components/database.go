@@ -18,7 +18,6 @@ package components
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 
@@ -31,7 +30,7 @@ import (
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
+	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 )
 
 type databaseComponent struct{}
@@ -50,16 +49,17 @@ func (_ *databaseComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.DjangoUser)
+	secretName := fmt.Sprintf("%s.django-password", instance.Name)
 
 	// Try to find the password to use.
 	secret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PasswordSecret, Namespace: instance.Namespace}, secret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "database: Unable to load password secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "database: Unable to load password secret %s/%s", instance.Namespace, secretName)
 	}
 	password, ok := secret.Data["password"]
 	if !ok {
-		return components.Result{Requeue: true}, errors.Errorf("database: Password secret %s/%s has no key \"password\"", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Errorf("database: Password secret %s/%s has no key \"password\"", instance.Namespace, secretName)
 	}
 	hashedPassword, err := comp.hashPassword(password)
 	if err != nil {
@@ -67,7 +67,7 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	// Connect to the database.
-	db, err := comp.openDatabase(ctx)
+	db, err := postgres.Open(ctx, &instance.Spec.Database)
 	if err != nil {
 		return components.Result{Requeue: true}, err
 	}
@@ -151,24 +151,4 @@ func (comp *databaseComponent) hashPassword(password []byte) (string, error) {
 
 	// Format like Django uses.
 	return fmt.Sprintf("bcrypt_sha256$%s", hashed), nil
-}
-
-func (comp *databaseComponent) openDatabase(ctx *components.ComponentContext) (*sql.DB, error) {
-	instance := ctx.Top.(*summonv1beta1.DjangoUser)
-	dbInfo := instance.Spec.Database
-	passwordSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: dbInfo.PasswordSecretRef.Name, Namespace: instance.Namespace}, passwordSecret)
-	if err != nil {
-		return nil, errors.Wrapf(err, "database: Unable to load database secret %s/%s", instance.Namespace, dbInfo.PasswordSecretRef.Name)
-	}
-	dbPassword, ok := passwordSecret.Data[dbInfo.PasswordSecretRef.Key]
-	if !ok {
-		return nil, errors.Errorf("database: Password key %v not found in database secret %s/%s", dbInfo.PasswordSecretRef.Key, instance.Namespace, dbInfo.PasswordSecretRef.Name)
-	}
-	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=require", dbInfo.Host, dbInfo.Port, dbInfo.Database, dbInfo.Username, dbPassword)
-	db, err := dbpool.Open("postgres", connStr)
-	if err != nil {
-		return nil, errors.Wrap(err, "database: Unable to open database connection")
-	}
-	return db, nil
 }

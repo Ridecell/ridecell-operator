@@ -1,22 +1,20 @@
-apiVersion: summon.ridecell.io/v1beta1
-kind: DjangoUser
+apiVersion: db.ridecell.io/v1beta1
+kind: PostgresExtension
 metadata:
-  name: {{ .Instance.Name }}-dispatcher
+  name: {{ .Instance.Name }}-{{ .Extra.ObjectName }}
   namespace: {{ .Instance.Namespace }}
 spec:
-  email: dispatcher@ridecell.com
-  superuser: true
+  extensionName: {{ .Extra.ExtensionName }}
   database:
+    username: ridecell-admin
     {{- if .Instance.Spec.Database.ExclusiveDatabase }}
     host: {{ .Instance.Name }}-database.{{ .Instance.Namespace }}
     database: summon
-    username: summon
     passwordSecretRef:
-      name: summon.{{ .Instance.Name }}-database.credentials
+      name: ridecell-admin.{{ .Instance.Name }}-database.credentials
     {{- else }}
     host: {{ .Instance.Spec.Database.SharedDatabaseName }}-database.{{ .Instance.Namespace }}
     database: {{ .Instance.Name | replace "-" "_" }}
-    username: {{ .Instance.Name | replace "-" "_" }}
     passwordSecretRef:
-      name: {{ .Instance.Name | replace "_" "-" }}.{{ .Instance.Spec.Database.SharedDatabaseName }}-database.credentials
+      name: ridecell-admin.{{ .Instance.Spec.Database.SharedDatabaseName }}-database.credentials
     {{- end }}

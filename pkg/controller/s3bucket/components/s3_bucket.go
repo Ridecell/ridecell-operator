@@ -18,9 +18,11 @@ package components
 
 import (
 	"encoding/json"
+	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
@@ -30,18 +32,33 @@ import (
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
 )
 
+type S3Factory func(region string) (s3iface.S3API, error)
+
 type s3BucketComponent struct {
-	s3API s3iface.S3API
+	// Keep an S3API per region.
+	s3Services map[string]s3iface.S3API
+	s3Factory  S3Factory
+}
+
+func realS3Factory(region string) (s3iface.S3API, error) {
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(region),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s3.New(sess), nil
 }
 
 func NewS3Bucket() *s3BucketComponent {
-	sess := session.Must(session.NewSession())
-	s3Service := s3.New(sess)
-	return &s3BucketComponent{s3API: s3Service}
+	return &s3BucketComponent{
+		s3Services: map[string]s3iface.S3API{},
+		s3Factory:  realS3Factory,
+	}
 }
 
-func (comp *s3BucketComponent) InjectS3API(s3api s3iface.S3API) {
-	comp.s3API = s3api
+func (comp *s3BucketComponent) InjectS3Factory(factory S3Factory) {
+	comp.s3Factory = factory
 }
 
 func (_ *s3BucketComponent) WatchTypes() []runtime.Object {
@@ -55,56 +72,91 @@ func (_ *s3BucketComponent) IsReconcilable(_ *components.ComponentContext) bool 
 func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*awsv1beta1.S3Bucket)
 
-	// Try to find our specified buckeet
-	listBucketsOutput, err := comp.s3API.ListBuckets(&s3.ListBucketsInput{})
+	// Get an S3 API to work with. This has to match the bucket region.
+	s3Service, err := comp.getS3(instance)
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to list s3 buckets")
+		return components.Result{}, err
 	}
-	var foundBucket bool
-	for _, bucket := range listBucketsOutput.Buckets {
-		if aws.StringValue(bucket.Name) == instance.Spec.BucketName {
-			foundBucket = true
+
+	// Run a ListBucket call to check if this bucket exists.
+	bucketExists := true
+	_, err = s3Service.ListObjects(&s3.ListObjectsInput{
+		Bucket:  aws.String(instance.Spec.BucketName),
+		MaxKeys: aws.Int64(1), // We don't actually care about the keys, so set this down for perf.
+	})
+	if err != nil {
+		aerr, ok := err.(awserr.Error)
+		if ok && aerr.Code() == s3.ErrCodeNoSuchBucket {
+			bucketExists = false
+		} else {
+			return components.Result{}, errors.Wrapf(err, "s3_bucket: error listing objects in %s", instance.Spec.BucketName)
 		}
 	}
 
 	// If the bucket does not exist create it
-	if !foundBucket {
-		_, err = comp.s3API.CreateBucket(&s3.CreateBucketInput{
+	if !bucketExists {
+		_, err = s3Service.CreateBucket(&s3.CreateBucketInput{
 			Bucket: aws.String(instance.Spec.BucketName),
 			CreateBucketConfiguration: &s3.CreateBucketConfiguration{
 				LocationConstraint: aws.String(instance.Spec.Region),
 			},
 		})
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to create s3 bucket")
+			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to create bucket %s", instance.Spec.BucketName)
 		}
 	}
 
-	getBucketPolicyObj, err := comp.s3API.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(instance.Spec.BucketName)})
+	// Try to grab the existing bucket policy.
+	bucketHasPolicy := true
+	getBucketPolicyObj, err := s3Service.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(instance.Spec.BucketName)})
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to get bucket policy")
+		aerr, ok := err.(awserr.Error)
+		if ok && aerr.Code() == "NoSuchBucketPolicy" { // There is no ErrCode const for this error. What?
+			bucketHasPolicy = false
+		} else {
+			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to get bucket policy for bucket %s", instance.Spec.BucketName)
+		}
 	}
 
-	// Make sure our bucket policy is sorted by marhsaling it
-	getBucketPolicyBytes, err := json.Marshal(aws.StringValue(getBucketPolicyObj.Policy))
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to marshal bucket policy")
-	}
+	// If the policy is "", we need to delete if set. Otherwise we need to check for == and then put.
+	if instance.Spec.BucketPolicy == "" {
+		if bucketHasPolicy {
+			_, err := s3Service.DeleteBucketPolicy(&s3.DeleteBucketPolicyInput{
+				Bucket: aws.String(instance.Spec.BucketName),
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to delete bucket policy for bucket %s", instance.Spec.BucketName)
+			}
+		}
+	} else {
+		// Work out if we need to update the policy.
+		bucketPolicyNeedsUpdate := false
+		if bucketHasPolicy {
+			var existingPolicy interface{}
+			var goalPolicy interface{}
+			err = json.Unmarshal([]byte(*getBucketPolicyObj.Policy), &existingPolicy)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "s3_bucket: error decoding existing bucket policy for bucket %s", instance.Spec.BucketName)
+			}
+			err = json.Unmarshal([]byte(instance.Spec.BucketPolicy), &goalPolicy)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "s3_bucket: error decoding goal bucket policy for bucket %s", instance.Spec.BucketName)
+			}
+			bucketPolicyNeedsUpdate = !reflect.DeepEqual(existingPolicy, goalPolicy)
+		} else {
+			// No existing policy, definitely update things.
+			bucketPolicyNeedsUpdate = true
+		}
 
-	// Make sure our input bucket policy is sorted by marshaling it
-	inputBucketPolicyBytes, err := json.Marshal(instance.Spec.BucketPolicy)
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to marshal input bucket policy")
-	}
-
-	// if the bucket policies do not match create or update it
-	if string(getBucketPolicyBytes) != string(inputBucketPolicyBytes) {
-		_, err := comp.s3API.PutBucketPolicy(&s3.PutBucketPolicyInput{
-			Bucket: aws.String(instance.Spec.BucketName),
-			Policy: aws.String(instance.Spec.BucketPolicy),
-		})
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to create or update bucket policy")
+		// Update or create the bucket policy.
+		if bucketPolicyNeedsUpdate {
+			_, err := s3Service.PutBucketPolicy(&s3.PutBucketPolicyInput{
+				Bucket: aws.String(instance.Spec.BucketName),
+				Policy: aws.String(instance.Spec.BucketPolicy),
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to put bucket policy for bucket %s", instance.Spec.BucketName)
+			}
 		}
 	}
 
@@ -114,4 +166,19 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Status.Message = "Bucket exists and has correct policy"
 		return nil
 	}}, nil
+}
+
+func (comp *s3BucketComponent) getS3(instance *awsv1beta1.S3Bucket) (s3iface.S3API, error) {
+	s3Service, ok := comp.s3Services[instance.Spec.Region]
+	if ok {
+		// Already open.
+		return s3Service, nil
+	}
+	// Open a new session for this region.
+	s3Service, err := comp.s3Factory(instance.Spec.Region)
+	if err != nil {
+		return nil, errors.Wrapf(err, "s3_bucket: error getting an S3 session for region %s", instance.Spec.Region)
+	}
+	comp.s3Services[instance.Spec.Region] = s3Service
+	return s3Service, nil
 }

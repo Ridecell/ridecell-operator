@@ -73,7 +73,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	if len(instance.Spec.Secrets) == 0 {
 		if instance.Namespace == "dev" || instance.Namespace == "qa" {
-			instance.Spec.Secrets = []string{instance.Namespace}
+			instance.Spec.Secrets = []string{instance.Namespace, instance.Name}
 		} else {
 			instance.Spec.Secrets = []string{instance.Name}
 		}
@@ -96,7 +96,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
 	}
-
+	if instance.Spec.Database.SharedDatabaseName == "" {
+		instance.Spec.Database.SharedDatabaseName = instance.Namespace
+	}
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
@@ -122,6 +124,8 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("TENANT_ID", "%s", instance.Name)
 	defVal("WEB_URL", "https://%s", instance.Spec.Hostname)
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
+	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
+	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 
 	return components.Result{}, nil
 }
@@ -148,9 +152,8 @@ func defConfig(key string, value interface{}) {
 func init() {
 	configDefaults = map[string]summonv1beta1.ConfigValue{}
 	// Default config, mostly based on local dev.
-	defConfig("AMAZON_S3_USED", false)
-	defConfig("AWS_REGION", "us-west-2")
-	defConfig("AWS_STORAGE_BUCKET_NAME", "")
+	defConfig("AMAZON_S3_USED", true)
+	defConfig("AMAZON_S3_MEDIA_ONLY", true)
 	defConfig("AUTH_SDK_AUTH_SERVICE_PUBLIC_KEY", `-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAsPk83VrFTv1yp8yY3j38
 DlK93nZzu6QH3VoKe8VcbuEP7eixlKIt91ID67KCRQGYV/sWquTxP1bmBUrku7tx

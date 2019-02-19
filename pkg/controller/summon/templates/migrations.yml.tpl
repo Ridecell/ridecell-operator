@@ -31,7 +31,11 @@ spec:
         command:
         - sh
         - "-c"
+        {{- if ne .Extra.presignedUrl "" }}
+        - python manage.py migrate && python manage.py loadflavor {{ .Extra.presignedUrl | squote }} --silent
+        {{- else }}
         - python manage.py migrate
+        {{- end }}
         resources:
           requests:
             memory: 1G
@@ -44,11 +48,10 @@ spec:
           mountPath: /etc/config
         - name: app-secrets
           mountPath: /etc/secrets
-
       volumes:
         - name: config-volume
           configMap:
             name: {{ .Instance.Name }}-config
         - name: app-secrets
           secret:
-            secretName: summon.{{ .Instance.Name }}.app-secrets
+            secretName: {{ .Instance.Name }}.app-secrets

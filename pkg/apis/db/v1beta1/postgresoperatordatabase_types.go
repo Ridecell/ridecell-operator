@@ -27,7 +27,7 @@ type PostgresDBRef struct {
 // PostgresOperatorDatabaseSpec defines the desired state of PostgresOperatorDatabase
 type PostgresOperatorDatabaseSpec struct {
 	Database    string        `json:"database"`
-	DatabaseRef PostgresDBRef `json:"dataseRef"`
+	DatabaseRef PostgresDBRef `json:"databaseRef"`
 }
 
 // PostgresOperatorDatabaseStatus defines the observed state of PostgresOperatorDatabase

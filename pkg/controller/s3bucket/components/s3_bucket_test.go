@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/pkg/errors"
@@ -33,30 +34,38 @@ import (
 
 type mockS3Client struct {
 	s3iface.S3API
-	mockBucketExists     bool
-	mockBucketHasPolicy  bool
-	mockEditBucketPolicy bool
-	mockBucketNameTaken  bool
+	mockBucketExists    bool
+	mockBucketPolicy    *string
+	mockBucketNameTaken bool
+
+	putPolicy        bool
+	putPolicyContent string
+	deletePolicy     bool
 }
 
 var _ = Describe("s3bucket aws Component", func() {
+	comp := s3bucketcomponents.NewS3Bucket()
+	var mockS3 *mockS3Client
+
+	BeforeEach(func() {
+		comp = s3bucketcomponents.NewS3Bucket()
+		mockS3 = &mockS3Client{}
+		comp.InjectS3Factory(func(_ string) (s3iface.S3API, error) { return mockS3, nil })
+	})
 
 	It("runs basic reconcile with no existing bucket", func() {
-		comp := s3bucketcomponents.NewS3Bucket()
-		mockS3 := &mockS3Client{}
-		comp.InjectS3API(mockS3)
-
 		instance.Spec.BucketName = "foo-default-static"
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 
 	It("reconciles with existing bucket policy", func() {
-		comp := s3bucketcomponents.NewS3Bucket()
-		mockS3 := &mockS3Client{
-			mockBucketExists:    true,
-			mockBucketHasPolicy: true,
-		}
-		comp.InjectS3API(mockS3)
+		mockS3.mockBucketExists = true
+		mockS3.mockBucketPolicy = aws.String(`
+			{
+				"Version": "2008-10-17",
+				"Statement": []
+			}
+		`)
 
 		instance.Spec.BucketName = "foo-default-static"
 		instance.Spec.BucketPolicy = `{
@@ -71,16 +80,15 @@ var _ = Describe("s3bucket aws Component", func() {
 				 "Resource": "arn:aws:s3:::foo-default-static/*"
 			 }]
 		}`
+
 		Expect(comp).To(ReconcileContext(ctx))
+
+		Expect(mockS3.putPolicy).To(BeTrue())
+		Expect(mockS3.putPolicyContent).To(MatchJSON(instance.Spec.BucketPolicy))
 	})
 
-	It("edit existing bucket policy", func() {
-		comp := s3bucketcomponents.NewS3Bucket()
-		mockS3 := &mockS3Client{
-			mockBucketExists:     true,
-			mockEditBucketPolicy: true,
-		}
-		comp.InjectS3API(mockS3)
+	It("adds a new bucket policy if not present", func() {
+		mockS3.mockBucketExists = true
 
 		instance.Spec.BucketName = "foo-default-static"
 		instance.Spec.BucketPolicy = `{
@@ -95,32 +103,44 @@ var _ = Describe("s3bucket aws Component", func() {
 				 "Resource": "arn:aws:s3:::foo-default-static/*"
 			 }]
 		}`
+
 		Expect(comp).To(ReconcileContext(ctx))
+
+		Expect(mockS3.putPolicy).To(BeTrue())
+		Expect(mockS3.putPolicyContent).To(MatchJSON(instance.Spec.BucketPolicy))
 	})
 
 	It("fails because bucket name is taken", func() {
-		comp := s3bucketcomponents.NewS3Bucket()
-		mockS3 := &mockS3Client{
-			mockBucketNameTaken: true,
-		}
-		comp.InjectS3API(mockS3)
+		mockS3.mockBucketNameTaken = true
 
 		instance.Spec.BucketName = "foo-default-static"
 
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
+
+	It("deletes a bucket policy if needed", func() {
+		mockS3.mockBucketExists = true
+		mockS3.mockBucketPolicy = aws.String(`
+			{
+				"Version": "2008-10-17",
+				"Statement": []
+			}
+		`)
+
+		Expect(comp).To(ReconcileContext(ctx))
+
+		Expect(mockS3.putPolicy).To(BeFalse())
+		Expect(mockS3.deletePolicy).To(BeTrue())
+	})
 })
 
 // Mock aws functions below
 
-func (m *mockS3Client) ListBuckets(input *s3.ListBucketsInput) (*s3.ListBucketsOutput, error) {
+func (m *mockS3Client) ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
 	if m.mockBucketExists {
-		return &s3.ListBucketsOutput{
-			Buckets: []*s3.Bucket{
-				&s3.Bucket{Name: aws.String(instance.Spec.BucketName)},
-			}}, nil
+		return &s3.ListObjectsOutput{}, nil
 	} else {
-		return &s3.ListBucketsOutput{}, nil
+		return nil, awserr.New("NoSuchBucket", "", nil)
 	}
 }
 
@@ -141,32 +161,33 @@ func (m *mockS3Client) GetBucketPolicy(input *s3.GetBucketPolicyInput) (*s3.GetB
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
 		return &s3.GetBucketPolicyOutput{}, errors.New("awsmock_getbucketpolicy: bucketname was incorrect")
 	}
-	if m.mockBucketHasPolicy {
-		inputBucketPolicyBytes, err := json.Marshal(instance.Spec.BucketPolicy)
-		if err != nil {
-			return &s3.GetBucketPolicyOutput{}, errors.New("awsmock_getbucketpolicy: unable to marshal input policy")
-		}
-		return &s3.GetBucketPolicyOutput{Policy: aws.String(string(inputBucketPolicyBytes))}, nil
+	if m.mockBucketPolicy == nil {
+		return nil, awserr.New("NoSuchBucketPolicy", "", nil)
 	}
-	return &s3.GetBucketPolicyOutput{}, nil
+	return &s3.GetBucketPolicyOutput{Policy: m.mockBucketPolicy}, nil
 }
 
 func (m *mockS3Client) PutBucketPolicy(input *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
-	// Get our policies into a comparable data type
-	givenBucketPolicyBytes, err := json.Marshal(aws.StringValue(input.Policy))
-	if err != nil {
-		return &s3.PutBucketPolicyOutput{}, errors.New("awsmock_putbucketpolicy: unable to marshal given policy")
-	}
-	inputBucketPolicyBytes, err := json.Marshal(instance.Spec.BucketPolicy)
-	if err != nil {
-		return &s3.PutBucketPolicyOutput{}, errors.New("awsmock_putbucketpolicy: unable to marshal input policy")
-	}
-	// start mock bits
+	// Check bucket name.
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
-		return &s3.PutBucketPolicyOutput{}, errors.New("awsmock_putbucketpolicy: bucket name was incorrect")
+		return nil, awserr.New("NoSuchBucket", "", nil)
 	}
-	if string(givenBucketPolicyBytes) != string(inputBucketPolicyBytes) && !m.mockEditBucketPolicy {
-		return &s3.PutBucketPolicyOutput{}, errors.New("awsmock_putbucketpolicy: given bucket policy did not match input")
+	// Check that we have valid JSON.
+	var ignored interface{}
+	err := json.Unmarshal([]byte(*input.Policy), &ignored)
+	if err != nil {
+		return nil, awserr.New("InvalidPolicyDocument", "", nil)
 	}
+	m.putPolicy = true
+	m.putPolicyContent = *input.Policy
 	return &s3.PutBucketPolicyOutput{}, nil
+}
+
+func (m *mockS3Client) DeleteBucketPolicy(input *s3.DeleteBucketPolicyInput) (*s3.DeleteBucketPolicyOutput, error) {
+	// Check bucket name.
+	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
+		return nil, awserr.New("NoSuchBucket", "", nil)
+	}
+	m.deletePolicy = true
+	return &s3.DeleteBucketPolicyOutput{}, nil
 }

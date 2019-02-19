@@ -18,7 +18,6 @@ package summon_test
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -56,7 +55,6 @@ var _ = Describe("Summon controller", func() {
 				"filler": []byte{}}}
 		err = helpers.Client.Create(context.TODO(), appSecrets)
 		Expect(err).NotTo(HaveOccurred())
-		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn:::test")
 	})
 
 	AfterEach(func() {
@@ -66,7 +64,14 @@ var _ = Describe("Summon controller", func() {
 	// Minimal test, service component has no deps so it should always immediately get created.
 	It("creates a service", func() {
 		c := helpers.Client
-		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				Database: summonv1beta1.DatabaseSpec{
+					ExclusiveDatabase: true,
+				},
+			},
+		}
 		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 
 		// Create the Summon object and expect the Reconcile and Service to be created
@@ -89,6 +94,9 @@ var _ = Describe("Summon controller", func() {
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
 			Secrets: []string{"testsecret"},
+			Database: summonv1beta1.DatabaseSpec{
+				ExclusiveDatabase: true,
+			},
 		}}
 
 		// Create the SummonPlatform object and expect the Reconcile to be created.
@@ -114,6 +122,16 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		c.Create(dbSecret)
+
+		// Create fake aws creds from iam_user controller
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+		c.Create(accessKey)
 
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
@@ -160,12 +178,18 @@ var _ = Describe("Summon controller", func() {
 
 	It("reconciles labels", func() {
 		c := helpers.Client
-		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
-			Version: "1.2.3",
-			Secrets: []string{"testsecret"},
-		}, Status: summonv1beta1.SummonPlatformStatus{
-			MigrateVersion: "1.2.3",
-		}}
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				Version: "1.2.3",
+				Secrets: []string{"testsecret"},
+				Database: summonv1beta1.DatabaseSpec{
+					ExclusiveDatabase: true,
+				},
+			},
+			Status: summonv1beta1.SummonPlatformStatus{
+				MigrateVersion: "1.2.3",
+			}}
 
 		// Create the SummonPlatform object.
 		err := c.Create(context.TODO(), instance)
@@ -181,6 +205,17 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create fake aws creds from iam_user controller
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of PullSecret to ready.
@@ -267,6 +302,9 @@ var _ = Describe("Summon controller", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1-abcdef1-master",
 				Secrets: []string{"statustester"},
+				Database: summonv1beta1.DatabaseSpec{
+					ExclusiveDatabase: true,
+				},
 			},
 		}
 		err := c.Create(context.TODO(), instance)
@@ -278,6 +316,16 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
+		// Create fake aws creds from iam_user controller
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.aws-credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
 		inSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
