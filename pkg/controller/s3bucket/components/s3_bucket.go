@@ -106,6 +106,34 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	}
 
+	// Look for ridecell-operator tag, if it doesn't exist create it
+	getBucketTags, err := s3Service.GetBucketTagging(&s3.GetBucketTaggingInput{Bucket: aws.String(instance.Spec.BucketName)})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to get bucket tags")
+	}
+	var foundTag bool
+	for _, tagSet := range getBucketTags.TagSet {
+		if aws.StringValue(tagSet.Key) == "ridecell-operator" {
+			foundTag = true
+		}
+	}
+	if !foundTag {
+		_, err := s3Service.PutBucketTagging(&s3.PutBucketTaggingInput{
+			Bucket: aws.String(instance.Spec.BucketName),
+			Tagging: &s3.Tagging{
+				TagSet: []*s3.Tag{
+					&s3.Tag{
+						Key:   aws.String("ridecell-operator"),
+						Value: aws.String("True"),
+					},
+				},
+			},
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to put bucket tags")
+		}
+	}
+
 	// Try to grab the existing bucket policy.
 	bucketHasPolicy := true
 	getBucketPolicyObj, err := s3Service.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(instance.Spec.BucketName)})

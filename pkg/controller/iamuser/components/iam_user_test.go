@@ -40,9 +40,11 @@ import (
 type mockIAMClient struct {
 	iamiface.IAMAPI
 	mockUserExists      bool
+	mockUserHasTags     bool
 	mockhasUserPolicies bool
 	mockExtraUserPolicy bool
 	mockHasAccessKey    bool
+	mockUserTagged      bool
 }
 
 var _ = Describe("iam_user aws Component", func() {
@@ -63,11 +65,13 @@ var _ = Describe("iam_user aws Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("1234567890123456"))
 		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("FakeSecretKey00123"))
+		Expect(mockIAM.mockUserTagged).To(BeTrue())
 	})
 
 	It("reconciles with existing user and credentials", func() {
 		mockIAM.mockUserExists = true
 		mockIAM.mockhasUserPolicies = true
+		mockIAM.mockUserHasTags = true
 
 		instance.Spec.InlinePolicies = map[string]string{
 			"test_all": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
@@ -88,6 +92,7 @@ var _ = Describe("iam_user aws Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("test_access_key"))
 		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("test_secret_key"))
+		Expect(mockIAM.mockUserTagged).To(BeFalse())
 	})
 
 	It("has extra items attached to user", func() {
@@ -245,4 +250,31 @@ func (m *mockIAMClient) ListAccessKeys(input *iam.ListAccessKeysInput) (*iam.Lis
 		return &iam.ListAccessKeysOutput{AccessKeyMetadata: []*iam.AccessKeyMetadata{&iam.AccessKeyMetadata{AccessKeyId: aws.String("123456789")}}}, nil
 	}
 	return &iam.ListAccessKeysOutput{}, nil
+}
+
+func (m *mockIAMClient) ListUserTags(input *iam.ListUserTagsInput) (*iam.ListUserTagsOutput, error) {
+	if aws.StringValue(input.UserName) != instance.Spec.UserName {
+		return &iam.ListUserTagsOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_listusertags: username did not match spec", errors.New(""))
+	}
+
+	if m.mockUserHasTags {
+		return &iam.ListUserTagsOutput{
+			Tags: []*iam.Tag{
+				&iam.Tag{
+					Key:   aws.String("ridecell-operator"),
+					Value: aws.String("True"),
+				},
+			},
+		}, nil
+	}
+
+	return &iam.ListUserTagsOutput{}, nil
+}
+
+func (m *mockIAMClient) TagUser(input *iam.TagUserInput) (*iam.TagUserOutput, error) {
+	if aws.StringValue(input.UserName) != instance.Spec.UserName {
+		return &iam.TagUserOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_taguser: username did not match spec", errors.New(""))
+	}
+	m.mockUserTagged = true
+	return &iam.TagUserOutput{}, nil
 }
