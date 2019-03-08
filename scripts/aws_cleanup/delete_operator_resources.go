@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 	if aws.StringValue(getCallerIdentityOutput.Account) != os.Getenv("AWS_TESTING_ACCOUNT_ID") {
-		fmt.Printf("This cleanup script is only permitted to run on the sandbox account.\n")
+		fmt.Printf("This cleanup script is only permitted to run on the testing account.\n")
 		os.Exit(1)
 	}
 
