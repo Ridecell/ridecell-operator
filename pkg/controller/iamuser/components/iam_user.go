@@ -88,6 +88,31 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		user = getUserOutput.User
 	}
 
+	// Get user tags
+
+	listUserTagsOutput, err := comp.iamAPI.ListUserTags(&iam.ListUserTagsInput{UserName: user.UserName})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "iam_user: failed to list user tags")
+	}
+
+	var foundTag bool
+	for _, tags := range listUserTagsOutput.Tags {
+		if aws.StringValue(tags.Key) == "ridecell-operator" {
+			foundTag = true
+		}
+	}
+	if !foundTag {
+		_, err = comp.iamAPI.TagUser(&iam.TagUserInput{
+			UserName: user.UserName,
+			Tags: []*iam.Tag{
+				&iam.Tag{
+					Key:   aws.String("ridecell-operator"),
+					Value: aws.String("True"),
+				},
+			},
+		})
+	}
+
 	// Get inline user policy names
 	listUserPoliciesOutput, err := comp.iamAPI.ListUserPolicies(&iam.ListUserPoliciesInput{UserName: user.UserName})
 	if err != nil {
