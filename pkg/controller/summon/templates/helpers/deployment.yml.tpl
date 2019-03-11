@@ -42,7 +42,7 @@ spec:
             memory: 512M
             cpu: 500m
           limits:
-            memory: 1G
+            memory: {{ block "memory_limit" . }}1G{{ end }}
             cpu: 1000m
         volumeMounts:
         - name: config-volume
