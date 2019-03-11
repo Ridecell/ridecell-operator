@@ -78,19 +78,18 @@ var _ = Describe("s3bucket controller", func() {
 			Spec: awssv1beta1.S3BucketSpec{
 				BucketName: "ridecell-s3bucket-test-static",
 				Region:     "us-west-2",
-				BucketPolicy: `
-		    {
-		      "Version": "2008-10-17",
-		      "Statement": [{
-		         "Sid": "PublicReadForGetBucketObjects",
-		         "Effect": "Allow",
-		         "Principal": {
-		           "AWS": "*"
-		         },
-		         "Action": "s3:GetObject",
-		         "Resource": "arn:aws:s3:::ridecell-s3bucket-test-static/*"
-		       }]
-		    }`,
+				BucketPolicy: `{
+					"Version": "2008-10-17",
+					"Statement": [{
+						 "Sid": "PublicReadForGetBucketObjects",
+						 "Effect": "Allow",
+						 "Principal": {
+							 "AWS": "*"
+						 },
+						 "Action": "s3:GetObject",
+						 "Resource": "arn:aws:s3:::ridecell-s3bucket-test-static/*"
+					 }]
+				}`,
 			},
 		}
 
