@@ -15,6 +15,8 @@ spec:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-celerybeat
   serviceName: {{ .Instance.Name }}-celerybeat
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
