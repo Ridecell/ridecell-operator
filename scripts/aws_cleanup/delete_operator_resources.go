@@ -22,27 +22,29 @@ func main() {
 	stssvc := sts.New(sess)
 	getCallerIdentityOutput, err := stssvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err != nil {
-		exitWithError(err)
+		panic(err)
 	}
 	if aws.StringValue(getCallerIdentityOutput.Account) != os.Getenv("AWS_TESTING_ACCOUNT_ID") {
-		exitWithError(errors.New("this cleanup script is only permitted to run on the testing account"))
+		fmt.Printf("this cleanup script is only permitted to run on the testing account")
+		os.Exit(1)
 	}
 
 	s3svc := s3.New(sess)
 	s3BucketsToDeleteOutput, err := getS3BucketsToDelete(s3svc)
 	if err != nil {
-		exitWithError(err)
+		panic(err)
 	}
 
 	// If there are a ton of results something bad happened
 	if len(s3BucketsToDeleteOutput) > 10 {
-		exitWithError(errors.New("more than ten buckets to delete, aborting"))
+		fmt.Printf("more than ten buckets to delete, aborting")
+		os.Exit(1)
 	}
 
 	for _, s3BucketToDelete := range s3BucketsToDeleteOutput {
 		err = deleteS3Bucket(s3svc, s3BucketToDelete)
 		if err != nil {
-			exitWithError(err)
+			panic(err)
 		}
 	}
 }
@@ -51,6 +53,7 @@ func getS3BucketsToDelete(s3svc *s3.S3) ([]*string, error) {
 	// List all the buckets
 	listBucketsOutput, err := s3svc.ListBuckets(&s3.ListBucketsInput{})
 	if err != nil {
+		fmt.Printf("Error was here\n")
 		return nil, err
 	}
 
@@ -86,9 +89,4 @@ func deleteS3Bucket(s3svc *s3.S3, bucketname *string) error {
 	// Buckets cannot be deleted if there are objects in them.
 	_, err := s3svc.DeleteBucket(&s3.DeleteBucketInput{Bucket: bucketname})
 	return err
-}
-
-func exitWithError(err error) {
-	fmt.Printf("%s\n", err.Error())
-	os.Exit(1)
 }
