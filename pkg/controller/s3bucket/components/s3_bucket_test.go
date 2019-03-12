@@ -60,6 +60,12 @@ var _ = Describe("s3bucket aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 
+	Describe("isReconcilable", func() {
+		It("returns true", func() {
+			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
+		})
+	})
+
 	It("reconciles with existing bucket policy", func() {
 		mockS3.mockBucketExists = true
 		mockS3.mockBucketPolicy = aws.String(`
@@ -211,7 +217,7 @@ func (m *mockS3Client) GetBucketTagging(input *s3.GetBucketTaggingInput) (*s3.Ge
 			},
 		}, nil
 	}
-	return &s3.GetBucketTaggingOutput{}, nil
+	return &s3.GetBucketTaggingOutput{}, awserr.New("NoSuchTagSet", "", nil)
 }
 
 func (m *mockS3Client) PutBucketTagging(input *s3.PutBucketTaggingInput) (*s3.PutBucketTaggingOutput, error) {
