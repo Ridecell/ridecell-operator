@@ -17,7 +17,6 @@ limitations under the License.
 package s3bucket_test
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,19 +28,20 @@ import (
 	"reflect"
 	"time"
 
-	awssv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const timeout = time.Second * 60
+const timeout = time.Second * 30
 
 var _ = Describe("s3bucket controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	var s3svc *s3.S3
 	var sess *session.Session
+	var s3Bucket *awsv1beta1.S3Bucket
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
@@ -63,83 +63,187 @@ var _ = Describe("s3bucket controller", func() {
 		}
 
 		s3svc = s3.New(sess)
+
+		s3Bucket = &awsv1beta1.S3Bucket{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: helpers.Namespace,
+			},
+			Spec: awsv1beta1.S3BucketSpec{
+				BucketName: "ridecell-s3bucket-test-static",
+				Region:     "us-west-2",
+			},
+		}
 	})
 
 	AfterEach(func() {
 		helpers.TeardownTest()
 	})
 
-	It("runs a full reconcile", func() {
-		s3Bucket := &awssv1beta1.S3Bucket{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: helpers.Namespace,
-			},
-			Spec: awssv1beta1.S3BucketSpec{
-				BucketName: "ridecell-s3bucket-test-static",
-				Region:     "us-west-2",
-				BucketPolicy: `{
-					"Version": "2008-10-17",
-					"Statement": [{
-						 "Sid": "PublicReadForGetBucketObjects",
-						 "Effect": "Allow",
-						 "Principal": {
-							 "AWS": "*"
-						 },
-						 "Action": "s3:GetObject",
-						 "Resource": "arn:aws:s3:::ridecell-s3bucket-test-static/*"
-					 }]
-				}`,
-			},
-		}
+	It("runs a basic reconcile", func() {
+		c := helpers.TestClient
+		s3Bucket.Spec.BucketPolicy = `{
+			"Version": "2008-10-17",
+			"Statement": [{
+				 "Sid": "PublicReadForGetBucketObjects",
+				 "Effect": "Allow",
+				 "Principal": {
+					 "AWS": "*"
+				 },
+				 "Action": "s3:GetObject",
+				 "Resource": "arn:aws:s3:::ridecell-s3bucket-test-static/*"
+			 }]
+		}`
+		c.Create(s3Bucket)
 
-		err := helpers.Client.Create(context.TODO(), s3Bucket)
-		Expect(err).ToNot(HaveOccurred())
-
-		// If bucket doesn't exist this will error
 		Eventually(func() error {
-			_, err = s3svc.ListObjects(&s3.ListObjectsInput{
-				Bucket:  aws.String("ridecell-s3bucket-test-static"),
-				MaxKeys: aws.Int64(1),
-			})
-			return err
+			return bucketExists(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
-
-		// Make sure our bucket has the correct tags
 		Eventually(func() error {
-			getBucketTags, err := s3svc.GetBucketTagging(&s3.GetBucketTaggingInput{Bucket: aws.String("ridecell-s3bucket-test-static")})
-			if err != nil {
-				return err
-			}
-			for _, tagSet := range getBucketTags.TagSet {
-				if aws.StringValue(tagSet.Key) == "ridecell-operator" {
-					return nil
-				}
-			}
-			return errors.New("did not find ridecell-operator bucket tag")
+			return bucketHasValidTag(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
-
-		// Match our bucket policy
 		Eventually(func() error {
-			getBucketPolicyObj, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String("ridecell-s3bucket-test-static")})
-			if err != nil {
-				return err
-			}
-			var existingPolicy interface{}
-			var goalPolicy interface{}
-			err = json.Unmarshal([]byte(*getBucketPolicyObj.Policy), &existingPolicy)
-			if err != nil {
-				return err
-			}
-			err = json.Unmarshal([]byte(s3Bucket.Spec.BucketPolicy), &goalPolicy)
-			if err != nil {
-				return err
-			}
-			if reflect.DeepEqual(existingPolicy, goalPolicy) {
-				return nil
-			}
-			return errors.New("Bucket policies did not match")
+			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
 	})
 
+	It("has an invalid bucket policy", func() {
+		c := helpers.TestClient
+		s3Bucket.Spec.BucketName = "ridecell-testbucket-static"
+		s3Bucket.Spec.BucketPolicy = "invalid"
+		c.Create(s3Bucket)
+
+		// If bucket doesn't exist this will error
+		Eventually(func() error {
+			return bucketExists(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			return bucketHasValidTag(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
+		}, timeout).ShouldNot(Succeed())
+	})
+
+	It("finds a bucket that already exists", func() {
+		c := helpers.TestClient
+		s3Bucket.Spec.BucketPolicy = `{
+			"Version": "2008-10-17",
+			"Statement": [{
+				 "Sid": "PublicReadForGetBucketObjects",
+				 "Effect": "Allow",
+				 "Principal": {
+					 "AWS": "*"
+				 },
+				 "Action": "s3:GetObject",
+				 "Resource": "arn:aws:s3:::ridecell-preexisting-test-static/*"
+			 }]
+		}`
+		s3Bucket.Spec.BucketName = "ridecell-preexisting-test-static"
+		_, err := s3svc.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String("ridecell-preexisting-test-static")})
+		Expect(err).ToNot(HaveOccurred())
+		c.Create(s3Bucket)
+
+		Eventually(func() error {
+			return bucketExists(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			return bucketHasValidTag(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+	})
+
+	It("updates existing bucket policy", func() {
+		_, err := s3svc.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String("ridecell-mismatchpolicy-test-static")})
+		Expect(err).ToNot(HaveOccurred())
+
+		oldPolicy := `{
+			"Version": "2008-10-17",
+			"Statement": [{
+				 "Sid": "PublicReadForGetBucketObjects",
+				 "Effect": "Deny",
+				 "Principal": {
+					 "AWS": "*"
+				 },
+				 "Action": "s3:GetObject",
+				 "Resource": "arn:aws:s3:::ridecell-mismatchpolicy-test-static/*"
+			 }]
+		}`
+
+		_, err = s3svc.PutBucketPolicy(&s3.PutBucketPolicyInput{
+			Bucket: aws.String("ridecell-mismatchpolicy-test-static"),
+			Policy: aws.String(oldPolicy),
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		c := helpers.TestClient
+		s3Bucket.Spec.BucketName = "ridecell-mismatchpolicy-test-static"
+		s3Bucket.Spec.BucketPolicy = `{
+			"Version": "2008-10-17",
+			"Statement": [{
+				 "Sid": "PublicReadForGetBucketObjects",
+				 "Effect": "Allow",
+				 "Principal": {
+					 "AWS": "*"
+				 },
+				 "Action": "s3:GetObject",
+				 "Resource": "arn:aws:s3:::ridecell-mismatchpolicy-test-static/*"
+			 }]
+		}`
+
+		c.Create(s3Bucket)
+		Eventually(func() error {
+			return bucketExists(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			return bucketHasValidTag(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+	})
 })
+
+func bucketExists(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
+	_, err := s3svc.ListObjects(&s3.ListObjectsInput{
+		Bucket:  aws.String(s3Bucket.Spec.BucketName),
+		MaxKeys: aws.Int64(1),
+	})
+	return err
+}
+
+func bucketHasValidTag(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
+	getBucketTags, err := s3svc.GetBucketTagging(&s3.GetBucketTaggingInput{Bucket: aws.String(s3Bucket.Spec.BucketName)})
+	if err != nil {
+		return err
+	}
+	for _, tagSet := range getBucketTags.TagSet {
+		if aws.StringValue(tagSet.Key) == "ridecell-operator" {
+			return nil
+		}
+	}
+	return errors.New("did not find ridecell-operator bucket tag")
+}
+
+func bucketHasMatchingBucketPolicy(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
+	getBucketPolicyObj, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(s3Bucket.Spec.BucketName)})
+	if err != nil {
+		return err
+	}
+	var existingPolicy interface{}
+	var goalPolicy interface{}
+	err = json.Unmarshal([]byte(*getBucketPolicyObj.Policy), &existingPolicy)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal([]byte(s3Bucket.Spec.BucketPolicy), &goalPolicy)
+	if err != nil {
+		return err
+	}
+	if reflect.DeepEqual(existingPolicy, goalPolicy) {
+		return nil
+	}
+	return errors.New("Bucket policies did not match")
+}
