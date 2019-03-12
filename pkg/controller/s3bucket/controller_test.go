@@ -204,6 +204,23 @@ var _ = Describe("s3bucket controller", func() {
 			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
 	})
+
+	It("Has a blank BucketPolicy in spec", func() {
+		c := helpers.TestClient
+		s3Bucket.Spec.BucketName = "ridecell-blankpolicy-test-static"
+		c.Create(s3Bucket)
+
+		Eventually(func() error {
+			return bucketExists(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			return bucketHasValidTag(s3svc, s3Bucket)
+		}, timeout).Should(Succeed())
+
+		time.Sleep(5 * time.Second)
+		_, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String("ridecell-blankpolicy-test-static")})
+		Expect(err).To(HaveOccurred())
+	})
 })
 
 func bucketExists(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
