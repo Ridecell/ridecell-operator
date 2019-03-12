@@ -105,6 +105,10 @@ var _ = Describe("s3bucket controller", func() {
 		Eventually(func() error {
 			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
+
+		fetchBucket := &awsv1beta1.S3Bucket{}
+		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+
 	})
 
 	It("has an invalid bucket policy", func() {
@@ -123,6 +127,9 @@ var _ = Describe("s3bucket controller", func() {
 		Eventually(func() error {
 			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
 		}, timeout).ShouldNot(Succeed())
+
+		fetchBucket := &awsv1beta1.S3Bucket{}
+		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusError))
 	})
 
 	It("finds a bucket that already exists", func() {
@@ -153,6 +160,9 @@ var _ = Describe("s3bucket controller", func() {
 		Eventually(func() error {
 			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
+
+		fetchBucket := &awsv1beta1.S3Bucket{}
+		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 	})
 
 	It("updates existing bucket policy", func() {
@@ -203,6 +213,9 @@ var _ = Describe("s3bucket controller", func() {
 		Eventually(func() error {
 			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
+
+		fetchBucket := &awsv1beta1.S3Bucket{}
+		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 	})
 
 	It("Has a blank BucketPolicy in spec", func() {
@@ -217,9 +230,11 @@ var _ = Describe("s3bucket controller", func() {
 			return bucketHasValidTag(s3svc, s3Bucket)
 		}, timeout).Should(Succeed())
 
-		time.Sleep(5 * time.Second)
 		_, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String("ridecell-blankpolicy-test-static")})
 		Expect(err).To(HaveOccurred())
+
+		fetchBucket := &awsv1beta1.S3Bucket{}
+		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 	})
 })
 
