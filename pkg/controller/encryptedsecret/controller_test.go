@@ -122,4 +122,16 @@ var _ = Describe("encryptedsecret controller", func() {
 		fetchEncryptedSecret := &secretsv1beta1.EncryptedSecret{}
 		c.EventuallyGet(helpers.Name("test"), fetchEncryptedSecret, c.EventuallyStatus(secretsv1beta1.StatusError))
 	})
+
+	It("creates an EncryptedSecret with no data", func() {
+		c := helpers.TestClient
+		c.Create(encryptedSecret)
+
+		fetchSecret := &corev1.Secret{}
+		c.EventuallyGet(helpers.Name("test"), fetchSecret, c.EventuallyTimeout(timeout))
+		Expect(len(fetchSecret.Data)).To(Equal(0))
+
+		fetchEncryptedSecret := &secretsv1beta1.EncryptedSecret{}
+		c.EventuallyGet(helpers.Name("test"), fetchEncryptedSecret, c.EventuallyStatus(secretsv1beta1.StatusReady))
+	})
 })
