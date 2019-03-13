@@ -42,7 +42,7 @@ var _ = Describe("encryptedsecret controller", func() {
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
 		if os.Getenv("AWS_TESTING_ACCOUNT_ID") == "" {
-			Skip("$AWS_TESTING_ACCOUNT_ID not set, skipping s3bucket integration tests")
+			Skip("$AWS_TESTING_ACCOUNT_ID not set, skipping encryptedsecret integration tests")
 		}
 
 		sess, err := session.NewSession()
