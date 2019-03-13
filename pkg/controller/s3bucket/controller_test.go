@@ -17,7 +17,6 @@ limitations under the License.
 package s3bucket_test
 
 import (
-	"encoding/json"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -25,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 	"os"
-	"reflect"
 	"time"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
@@ -34,14 +32,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const timeout = time.Second * 30
+const timeout = time.Second * 10
+
+var sess *session.Session
+var s3svc *s3.S3
+var s3Bucket *awsv1beta1.S3Bucket
 
 var _ = Describe("s3bucket controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-
-	var s3svc *s3.S3
-	var sess *session.Session
-	var s3Bucket *awsv1beta1.S3Bucket
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
@@ -96,15 +94,9 @@ var _ = Describe("s3bucket controller", func() {
 		}`
 		c.Create(s3Bucket)
 
-		Eventually(func() error {
-			return bucketExists(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasValidTag(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
+		Eventually(bucketExists, timeout).Should(Succeed())
+		Eventually(bucketHasValidTag, timeout).Should(Succeed())
+		Eventually(getBucketPolicy, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
@@ -117,16 +109,8 @@ var _ = Describe("s3bucket controller", func() {
 		s3Bucket.Spec.BucketPolicy = "invalid"
 		c.Create(s3Bucket)
 
-		// If bucket doesn't exist this will error
-		Eventually(func() error {
-			return bucketExists(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasValidTag(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
-		}, timeout).ShouldNot(Succeed())
+		Eventually(bucketExists, timeout).Should(Succeed())
+		Eventually(bucketHasValidTag, timeout).Should(Succeed())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusError))
@@ -151,15 +135,9 @@ var _ = Describe("s3bucket controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		c.Create(s3Bucket)
 
-		Eventually(func() error {
-			return bucketExists(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasValidTag(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
+		Eventually(bucketExists, timeout).Should(Succeed())
+		Eventually(bucketHasValidTag, timeout).Should(Succeed())
+		Eventually(getBucketPolicy, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
@@ -204,15 +182,10 @@ var _ = Describe("s3bucket controller", func() {
 		}`
 
 		c.Create(s3Bucket)
-		Eventually(func() error {
-			return bucketExists(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasValidTag(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasMatchingBucketPolicy(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
+
+		Eventually(bucketExists, timeout).Should(Succeed())
+		Eventually(bucketHasValidTag, timeout).Should(Succeed())
+		Eventually(getBucketPolicy, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
@@ -223,12 +196,8 @@ var _ = Describe("s3bucket controller", func() {
 		s3Bucket.Spec.BucketName = "ridecell-blankpolicy-test-static"
 		c.Create(s3Bucket)
 
-		Eventually(func() error {
-			return bucketExists(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
-		Eventually(func() error {
-			return bucketHasValidTag(s3svc, s3Bucket)
-		}, timeout).Should(Succeed())
+		Eventually(bucketExists, timeout).Should(Succeed())
+		Eventually(bucketHasValidTag, timeout).Should(Succeed())
 
 		_, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String("ridecell-blankpolicy-test-static")})
 		Expect(err).To(HaveOccurred())
@@ -238,7 +207,7 @@ var _ = Describe("s3bucket controller", func() {
 	})
 })
 
-func bucketExists(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
+func bucketExists() error {
 	_, err := s3svc.ListObjects(&s3.ListObjectsInput{
 		Bucket:  aws.String(s3Bucket.Spec.BucketName),
 		MaxKeys: aws.Int64(1),
@@ -246,7 +215,7 @@ func bucketExists(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
 	return err
 }
 
-func bucketHasValidTag(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
+func bucketHasValidTag() error {
 	getBucketTags, err := s3svc.GetBucketTagging(&s3.GetBucketTaggingInput{Bucket: aws.String(s3Bucket.Spec.BucketName)})
 	if err != nil {
 		return err
@@ -259,23 +228,10 @@ func bucketHasValidTag(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
 	return errors.New("did not find ridecell-operator bucket tag")
 }
 
-func bucketHasMatchingBucketPolicy(s3svc *s3.S3, s3Bucket *awsv1beta1.S3Bucket) error {
+func getBucketPolicy() string {
 	getBucketPolicyObj, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(s3Bucket.Spec.BucketName)})
 	if err != nil {
-		return err
+		return ""
 	}
-	var existingPolicy interface{}
-	var goalPolicy interface{}
-	err = json.Unmarshal([]byte(*getBucketPolicyObj.Policy), &existingPolicy)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal([]byte(s3Bucket.Spec.BucketPolicy), &goalPolicy)
-	if err != nil {
-		return err
-	}
-	if reflect.DeepEqual(existingPolicy, goalPolicy) {
-		return nil
-	}
-	return errors.New("Bucket policies did not match")
+	return aws.StringValue(getBucketPolicyObj.Policy)
 }
