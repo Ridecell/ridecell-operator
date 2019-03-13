@@ -107,7 +107,7 @@ var _ = Describe("s3bucket controller", func() {
 		}, timeout).Should(Succeed())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
-		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 
 	})
 
@@ -129,7 +129,7 @@ var _ = Describe("s3bucket controller", func() {
 		}, timeout).ShouldNot(Succeed())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
-		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusError))
+		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusError))
 	})
 
 	It("finds a bucket that already exists", func() {
@@ -162,7 +162,7 @@ var _ = Describe("s3bucket controller", func() {
 		}, timeout).Should(Succeed())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
-		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 	})
 
 	It("updates existing bucket policy", func() {
@@ -215,7 +215,7 @@ var _ = Describe("s3bucket controller", func() {
 		}, timeout).Should(Succeed())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
-		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 	})
 
 	It("Has a blank BucketPolicy in spec", func() {
@@ -234,7 +234,7 @@ var _ = Describe("s3bucket controller", func() {
 		Expect(err).To(HaveOccurred())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
-		c.EventuallyGet(helpers.Name(s3Bucket.Name), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 	})
 })
 
