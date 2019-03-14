@@ -52,7 +52,6 @@ func main() {
 	}
 
 	for _, s3BucketToDelete := range s3BucketsToDeleteOutput {
-		fmt.Printf("Bucket to delete: %s\n", aws.StringValue(s3BucketToDelete))
 		err = deleteS3Bucket(s3svc, s3BucketToDelete)
 		if err != nil {
 			panic(err)
@@ -72,7 +71,6 @@ func main() {
 	}
 
 	for _, iamUserToDelete := range iamUsersToDeleteOutput {
-		fmt.Printf("User to delete: %s\n", aws.StringValue(iamUserToDelete))
 		err = deleteIamUser(iamsvc, iamUserToDelete)
 		if err != nil {
 			panic(err)
@@ -118,7 +116,8 @@ func deleteS3Bucket(s3svc *s3.S3, bucketName *string) error {
 	//There should not be any items in the bucket from testing.
 	// If there are items in the bucket this will fail.
 	// Buckets cannot be deleted if there are objects in them.
-	fmt.Printf("Deleting bucket %s\n", aws.StringValue(bucketName))
+	fmt.Printf("Starting bucket deletion for %s:\n", aws.StringValue(bucketName))
+	fmt.Printf("- Deleting bucket\n")
 	_, err := s3svc.DeleteBucket(&s3.DeleteBucketInput{Bucket: bucketName})
 	return err
 }
