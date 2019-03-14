@@ -94,9 +94,9 @@ var _ = Describe("s3bucket controller", func() {
 		}`
 		c.Create(s3Bucket)
 
-		Eventually(bucketExists, timeout).Should(Succeed())
-		Eventually(bucketHasValidTag, timeout).Should(Succeed())
-		Eventually(getBucketPolicy, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
+		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
+		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
+		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
@@ -109,8 +109,8 @@ var _ = Describe("s3bucket controller", func() {
 		s3Bucket.Spec.BucketPolicy = "invalid"
 		c.Create(s3Bucket)
 
-		Eventually(bucketExists, timeout).Should(Succeed())
-		Eventually(bucketHasValidTag, timeout).Should(Succeed())
+		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
+		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusError))
@@ -135,9 +135,9 @@ var _ = Describe("s3bucket controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		c.Create(s3Bucket)
 
-		Eventually(bucketExists, timeout).Should(Succeed())
-		Eventually(bucketHasValidTag, timeout).Should(Succeed())
-		Eventually(getBucketPolicy, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
+		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
+		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
+		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
@@ -183,9 +183,9 @@ var _ = Describe("s3bucket controller", func() {
 
 		c.Create(s3Bucket)
 
-		Eventually(bucketExists, timeout).Should(Succeed())
-		Eventually(bucketHasValidTag, timeout).Should(Succeed())
-		Eventually(getBucketPolicy, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
+		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
+		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
+		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
@@ -196,8 +196,8 @@ var _ = Describe("s3bucket controller", func() {
 		s3Bucket.Spec.BucketName = "ridecell-blankpolicy-test-static"
 		c.Create(s3Bucket)
 
-		Eventually(bucketExists, timeout).Should(Succeed())
-		Eventually(bucketHasValidTag, timeout).Should(Succeed())
+		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
+		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
 
 		_, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String("ridecell-blankpolicy-test-static")})
 		Expect(err).To(HaveOccurred())
