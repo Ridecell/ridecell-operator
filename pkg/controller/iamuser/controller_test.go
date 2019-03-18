@@ -17,6 +17,8 @@ limitations under the License.
 package iamuser_test
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
@@ -40,6 +42,7 @@ const timeout = time.Second * 10
 var sess *session.Session
 var iamsvc *iam.IAM
 var iamUser *awsv1beta1.IAMUser
+var randOwnerPrefix string
 
 var _ = Describe("iamuser controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -51,6 +54,13 @@ var _ = Describe("iamuser controller", func() {
 		}
 		if os.Getenv("AWS_TEST_ACCOUNT_PERMISSIONS_BOUNDARY_ARN") == "" {
 			Skip("$AWS_TEST_ACCOUNT_PERMISSIONS_BOUNDARY_ARN not set, skipping iamuser integration tests")
+		}
+
+		if randOwnerPrefix == "" {
+			// ../../../ feels a bit awkward but it works
+			fileBytes, err := ioutil.ReadFile("../../../rand_owner_prefix")
+			Expect(err).ToNot(HaveOccurred())
+			randOwnerPrefix = string(fileBytes)
 		}
 
 		var err error
@@ -112,7 +122,7 @@ var _ = Describe("iamuser controller", func() {
 
 	It("runs a basic reconcile", func() {
 		c := helpers.TestClient
-		iamUser.Spec.UserName = "basicuser-test-summon-platform"
+		iamUser.Spec.UserName = fmt.Sprintf("%s-basicuser-test-summon-platform", randOwnerPrefix)
 		c.Create(iamUser)
 
 		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
@@ -134,18 +144,19 @@ var _ = Describe("iamuser controller", func() {
 
 	It("deletes old access key that does not match secret", func() {
 		c := helpers.TestClient
+		username := fmt.Sprintf("%s-preexistinguser-test-summon-platform", randOwnerPrefix)
 		_, err := iamsvc.CreateUser(&iam.CreateUserInput{
-			UserName:            aws.String("preexistinguser-test-summon-platform"),
+			UserName:            aws.String(username),
 			PermissionsBoundary: aws.String(iamUser.Spec.PermissionsBoundaryArn),
 		})
 		Expect(err).ToNot(HaveOccurred())
 
 		_, err = iamsvc.CreateAccessKey(&iam.CreateAccessKeyInput{
-			UserName: aws.String("preexistinguser-test-summon-platform"),
+			UserName: aws.String(username),
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		iamUser.Spec.UserName = "preexistinguser-test-summon-platform"
+		iamUser.Spec.UserName = username
 		c.Create(iamUser)
 
 		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
@@ -167,8 +178,9 @@ var _ = Describe("iamuser controller", func() {
 
 	It("deletes existing user policies not in spec", func() {
 		c := helpers.TestClient
+		username := fmt.Sprintf("%s-policynotinspec-test-summon-platform", randOwnerPrefix)
 		_, err := iamsvc.CreateUser(&iam.CreateUserInput{
-			UserName:            aws.String("policynotinspec-test-summon-platform"),
+			UserName:            aws.String(username),
 			PermissionsBoundary: aws.String(iamUser.Spec.PermissionsBoundaryArn),
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -185,11 +197,11 @@ var _ = Describe("iamuser controller", func() {
 		_, err = iamsvc.PutUserPolicy(&iam.PutUserPolicyInput{
 			PolicyDocument: aws.String(existingPolicy),
 			PolicyName:     aws.String("existing_policy"),
-			UserName:       aws.String("policynotinspec-test-summon-platform"),
+			UserName:       aws.String(username),
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		iamUser.Spec.UserName = "policynotinspec-test-summon-platform"
+		iamUser.Spec.UserName = username
 		c.Create(iamUser)
 
 		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
@@ -211,7 +223,8 @@ var _ = Describe("iamuser controller", func() {
 
 	It("fails to create user with bad inlinepolicies json", func() {
 		c := helpers.TestClient
-		iamUser.Spec.UserName = "badpolicyjson-test-summon-platform"
+		username := fmt.Sprintf("%s-badpolicyjson-test-summon-platform", randOwnerPrefix)
+		iamUser.Spec.UserName = username
 		iamUser.Spec.InlinePolicies["allow_s3"] = "invalid"
 		iamUser.Spec.InlinePolicies["allow_sqs"] = "invalid"
 		c.Create(iamUser)

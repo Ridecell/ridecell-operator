@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"regexp"
 
@@ -23,6 +24,12 @@ func main() {
 		fmt.Printf("$AWS_TESTING_ACCOUNT_ID not set, aborting")
 		os.Exit(1)
 	}
+	fileBytes, err := ioutil.ReadFile("rand_owner_prefix")
+	if err != nil {
+		fmt.Printf("Failed to read rand_owner_prefix, aborting")
+		os.Exit(1)
+	}
+	namePrefix := string(fileBytes)
 
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-2"),
@@ -40,7 +47,7 @@ func main() {
 	}
 
 	s3svc := s3.New(sess)
-	s3BucketsToDeleteOutput, err := getS3BucketsToDelete(s3svc)
+	s3BucketsToDeleteOutput, err := getS3BucketsToDelete(s3svc, namePrefix)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +66,7 @@ func main() {
 	}
 
 	iamsvc := iam.New(sess)
-	iamUsersToDeleteOutput, err := getIAMUsersToDelete(iamsvc)
+	iamUsersToDeleteOutput, err := getIAMUsersToDelete(iamsvc, namePrefix)
 	if err != nil {
 		panic(err)
 	}
@@ -78,7 +85,7 @@ func main() {
 	}
 }
 
-func getS3BucketsToDelete(s3svc *s3.S3) ([]*string, error) {
+func getS3BucketsToDelete(s3svc *s3.S3, prefix string) ([]*string, error) {
 	// List all the buckets
 	listBucketsOutput, err := s3svc.ListBuckets(&s3.ListBucketsInput{})
 	if err != nil {
@@ -89,7 +96,8 @@ func getS3BucketsToDelete(s3svc *s3.S3) ([]*string, error) {
 	// Iterate through buckets, find our targets via a combo of naming and tags
 	var bucketsToDelete []*string
 	for _, bucket := range listBucketsOutput.Buckets {
-		match := regexp.MustCompile(`^ridecell-.*-static$`).Match([]byte(aws.StringValue(bucket.Name)))
+		regexString := fmt.Sprintf(`^ridecell-%s-.*-static$`, prefix)
+		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(bucket.Name)))
 		if match {
 			getBucketTaggingOutput, err := s3svc.GetBucketTagging(&s3.GetBucketTaggingInput{
 				Bucket: bucket.Name,
@@ -122,7 +130,7 @@ func deleteS3Bucket(s3svc *s3.S3, bucketName *string) error {
 	return err
 }
 
-func getIAMUsersToDelete(iamsvc *iam.IAM) ([]*string, error) {
+func getIAMUsersToDelete(iamsvc *iam.IAM, prefix string) ([]*string, error) {
 	// List all the users
 	listUsersOutput, err := iamsvc.ListUsers(&iam.ListUsersInput{})
 	if err != nil {
@@ -131,7 +139,8 @@ func getIAMUsersToDelete(iamsvc *iam.IAM) ([]*string, error) {
 
 	var iamUsersToDelete []*string
 	for _, user := range listUsersOutput.Users {
-		match := regexp.MustCompile(`^.*-summon-platform$`).Match([]byte(aws.StringValue(user.UserName)))
+		regexString := fmt.Sprintf(`^%s-.*-summon-platform$`, prefix)
+		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(user.UserName)))
 		if match {
 			getUserOutput, err := iamsvc.GetUser(&iam.GetUserInput{UserName: user.UserName})
 			if err != nil {
@@ -160,7 +169,7 @@ func deleteIamUser(iamsvc *iam.IAM, username *string) error {
 		return err
 	}
 	for _, accessKeysMeta := range listAccessKeysOutput.AccessKeyMetadata {
-		fmt.Printf("- Deleting User Access Key %s\n", aws.StringValue(accessKeysMeta.AccessKeyId))
+		fmt.Printf("- Deleting Access Key %s\n", aws.StringValue(accessKeysMeta.AccessKeyId))
 		_, err := iamsvc.DeleteAccessKey(&iam.DeleteAccessKeyInput{
 			UserName:    username,
 			AccessKeyId: accessKeysMeta.AccessKeyId,
@@ -176,7 +185,7 @@ func deleteIamUser(iamsvc *iam.IAM, username *string) error {
 		return err
 	}
 	for _, policyName := range listUserPoliciesOutput.PolicyNames {
-		fmt.Printf("- Deleting User Policy %s\n", aws.StringValue(policyName))
+		fmt.Printf("- Deleting Policy %s\n", aws.StringValue(policyName))
 		_, err = iamsvc.DeleteUserPolicy(&iam.DeleteUserPolicyInput{
 			UserName:   username,
 			PolicyName: policyName,
@@ -186,7 +195,7 @@ func deleteIamUser(iamsvc *iam.IAM, username *string) error {
 		}
 	}
 	fmt.Printf("- Deleting User\n")
-	// Now that other resources tied to user are deleted we can delete the user itself
+	//Now that other resources tied to user are deleted we can delete the user itself
 	_, err = iamsvc.DeleteUser(&iam.DeleteUserInput{UserName: username})
 	if err != nil {
 		return err

@@ -17,19 +17,23 @@ limitations under the License.
 package s3bucket_test
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"time"
+
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
-	"os"
-	"time"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const timeout = time.Second * 10
@@ -37,6 +41,7 @@ const timeout = time.Second * 10
 var sess *session.Session
 var s3svc *s3.S3
 var s3Bucket *awsv1beta1.S3Bucket
+var randOwnerPrefix string
 
 var _ = Describe("s3bucket controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -46,6 +51,14 @@ var _ = Describe("s3bucket controller", func() {
 		if os.Getenv("AWS_TESTING_ACCOUNT_ID") == "" {
 			Skip("$AWS_TESTING_ACCOUNT_ID not set, skipping s3bucket integration tests")
 		}
+
+		if randOwnerPrefix == "" {
+			// ../../../ feels a bit awkward but it works
+			fileBytes, err := ioutil.ReadFile("../../../rand_owner_prefix")
+			Expect(err).ToNot(HaveOccurred())
+			randOwnerPrefix = string(fileBytes)
+		}
+
 		var err error
 		sess, err = session.NewSession(&aws.Config{
 			Region: aws.String("us-west-2"),
@@ -68,8 +81,7 @@ var _ = Describe("s3bucket controller", func() {
 				Namespace: helpers.Namespace,
 			},
 			Spec: awsv1beta1.S3BucketSpec{
-				BucketName: "ridecell-s3bucket-test-static",
-				Region:     "us-west-2",
+				Region: "us-west-2",
 			},
 		}
 	})
@@ -80,7 +92,9 @@ var _ = Describe("s3bucket controller", func() {
 
 	It("runs a basic reconcile", func() {
 		c := helpers.TestClient
-		s3Bucket.Spec.BucketPolicy = `{
+		bucketName := fmt.Sprintf("ridecell-%s-s3bucket-test-static", randOwnerPrefix)
+		s3Bucket.Spec.BucketName = bucketName
+		s3Bucket.Spec.BucketPolicy = fmt.Sprintf(`{
 			"Version": "2008-10-17",
 			"Statement": [{
 				 "Sid": "PublicReadForGetBucketObjects",
@@ -89,9 +103,9 @@ var _ = Describe("s3bucket controller", func() {
 					 "AWS": "*"
 				 },
 				 "Action": "s3:GetObject",
-				 "Resource": "arn:aws:s3:::ridecell-s3bucket-test-static/*"
+				 "Resource": "arn:aws:s3:::%s/*"
 			 }]
-		}`
+		}`, bucketName)
 		c.Create(s3Bucket)
 
 		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
@@ -105,7 +119,8 @@ var _ = Describe("s3bucket controller", func() {
 
 	It("has an invalid bucket policy", func() {
 		c := helpers.TestClient
-		s3Bucket.Spec.BucketName = "ridecell-testbucket-static"
+		bucketName := fmt.Sprintf("ridecell-%s-invalidpolicy-test-static", randOwnerPrefix)
+		s3Bucket.Spec.BucketName = bucketName
 		s3Bucket.Spec.BucketPolicy = "invalid"
 		c.Create(s3Bucket)
 
@@ -118,7 +133,9 @@ var _ = Describe("s3bucket controller", func() {
 
 	It("finds a bucket that already exists", func() {
 		c := helpers.TestClient
-		s3Bucket.Spec.BucketPolicy = `{
+		bucketName := fmt.Sprintf("ridecell-%s-preexisting-test-static", randOwnerPrefix)
+		s3Bucket.Spec.BucketName = bucketName
+		s3Bucket.Spec.BucketPolicy = fmt.Sprintf(`{
 			"Version": "2008-10-17",
 			"Statement": [{
 				 "Sid": "PublicReadForGetBucketObjects",
@@ -127,11 +144,10 @@ var _ = Describe("s3bucket controller", func() {
 					 "AWS": "*"
 				 },
 				 "Action": "s3:GetObject",
-				 "Resource": "arn:aws:s3:::ridecell-preexisting-test-static/*"
+				 "Resource": "arn:aws:s3:::%s/*"
 			 }]
-		}`
-		s3Bucket.Spec.BucketName = "ridecell-preexisting-test-static"
-		_, err := s3svc.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String("ridecell-preexisting-test-static")})
+		}`, bucketName)
+		_, err := s3svc.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String(bucketName)})
 		Expect(err).ToNot(HaveOccurred())
 		c.Create(s3Bucket)
 
@@ -144,10 +160,11 @@ var _ = Describe("s3bucket controller", func() {
 	})
 
 	It("updates existing bucket policy", func() {
-		_, err := s3svc.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String("ridecell-mismatchpolicy-test-static")})
+		bucketName := fmt.Sprintf("ridecell-%s-mismatchpolicy-test-static", randOwnerPrefix)
+		_, err := s3svc.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String(bucketName)})
 		Expect(err).ToNot(HaveOccurred())
 
-		oldPolicy := `{
+		oldPolicy := fmt.Sprintf(`{
 			"Version": "2008-10-17",
 			"Statement": [{
 				 "Sid": "PublicReadForGetBucketObjects",
@@ -156,19 +173,19 @@ var _ = Describe("s3bucket controller", func() {
 					 "AWS": "*"
 				 },
 				 "Action": "s3:GetObject",
-				 "Resource": "arn:aws:s3:::ridecell-mismatchpolicy-test-static/*"
+				 "Resource": "arn:aws:s3:::%s/*"
 			 }]
-		}`
+		}`, bucketName)
 
 		_, err = s3svc.PutBucketPolicy(&s3.PutBucketPolicyInput{
-			Bucket: aws.String("ridecell-mismatchpolicy-test-static"),
+			Bucket: aws.String(bucketName),
 			Policy: aws.String(oldPolicy),
 		})
 		Expect(err).ToNot(HaveOccurred())
 
 		c := helpers.TestClient
-		s3Bucket.Spec.BucketName = "ridecell-mismatchpolicy-test-static"
-		s3Bucket.Spec.BucketPolicy = `{
+		s3Bucket.Spec.BucketName = bucketName
+		s3Bucket.Spec.BucketPolicy = fmt.Sprintf(`{
 			"Version": "2008-10-17",
 			"Statement": [{
 				 "Sid": "PublicReadForGetBucketObjects",
@@ -177,9 +194,9 @@ var _ = Describe("s3bucket controller", func() {
 					 "AWS": "*"
 				 },
 				 "Action": "s3:GetObject",
-				 "Resource": "arn:aws:s3:::ridecell-mismatchpolicy-test-static/*"
+				 "Resource": "arn:aws:s3:::%s/*"
 			 }]
-		}`
+		}`, bucketName)
 
 		c.Create(s3Bucket)
 
@@ -193,13 +210,14 @@ var _ = Describe("s3bucket controller", func() {
 
 	It("Has a blank BucketPolicy in spec", func() {
 		c := helpers.TestClient
-		s3Bucket.Spec.BucketName = "ridecell-blankpolicy-test-static"
+		bucketName := fmt.Sprintf("ridecell-%s-blankpolicy-test-static", randOwnerPrefix)
+		s3Bucket.Spec.BucketName = bucketName
 		c.Create(s3Bucket)
 
 		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
 		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
 
-		_, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String("ridecell-blankpolicy-test-static")})
+		_, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(bucketName)})
 		Expect(err).To(HaveOccurred())
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
