@@ -250,7 +250,34 @@ func (comp *s3BucketComponent) deleteDependencies(ctx *components.ComponentConte
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "s3bucket: failed to get s3 client for finalizer")
 	}
-	// Starting with the assumption that there are no items in bucket
+
+	// All objects in the bucket must be deleted prior to bucket deletion
+	listObjectsOutput := []*s3.Object{}
+	err = s3Service.ListObjectsV2Pages(&s3.ListObjectsV2Input{
+		Bucket: aws.String(instance.Spec.BucketName),
+	}, func(page *s3.ListObjectsV2Output, lastPage bool) bool {
+		listObjectsOutput = append(listObjectsOutput, page.Contents...)
+		// If all results are returned IsTruncated returns false and breaks the loop.
+		return aws.BoolValue(page.IsTruncated)
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() != s3.ErrCodeNoSuchBucket {
+				return components.Result{}, errors.Wrapf(aerr, "s3bucket: failed to get objects for finalizer")
+			}
+		}
+	}
+
+	for _, s3Object := range listObjectsOutput {
+		_, err := s3Service.DeleteObject(&s3.DeleteObjectInput{
+			Bucket: aws.String(instance.Spec.BucketName),
+			Key:    s3Object.Key,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "s3bucket: failed to delete s3 object for finalizer")
+		}
+	}
+
 	_, err = s3Service.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(instance.Spec.BucketName)})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
