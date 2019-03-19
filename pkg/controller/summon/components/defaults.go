@@ -158,6 +158,7 @@ func defConfig(key string, value interface{}) {
 func init() {
 	configDefaults = map[string]summonv1beta1.ConfigValue{}
 	// Default config, mostly based on local dev.
+	defConfig("ALLOW_X_FORWARDED_PROTO", true)
 	defConfig("AMAZON_S3_USED", true)
 	defConfig("AMAZON_S3_MEDIA_ONLY", true)
 	defConfig("AUTH_SDK_AUTH_SERVICE_PUBLIC_KEY", `-----BEGIN PUBLIC KEY-----
