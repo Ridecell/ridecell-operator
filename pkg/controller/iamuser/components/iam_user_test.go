@@ -63,6 +63,12 @@ var _ = Describe("iam_user aws Component", func() {
 		instance.ObjectMeta.Finalizers = []string{"iamuser.finalizer"}
 	})
 
+	Describe("IsReconcilable", func() {
+		It("returns true", func() {
+			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
+		})
+	})
+
 	It("runs basic reconcile with no existing user", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
