@@ -32,6 +32,8 @@ import (
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
 )
 
+const s3BucketFinalizer = "s3bucket.finalizer"
+
 type S3Factory func(region string) (s3iface.S3API, error)
 
 type s3BucketComponent struct {
@@ -71,6 +73,33 @@ func (_ *s3BucketComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*awsv1beta1.S3Bucket)
+
+	// if object is not being deleted
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Is our finalizer attached to the object?
+		if !containsString(s3BucketFinalizer, instance.ObjectMeta.Finalizers) {
+			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, s3BucketFinalizer)
+			err := ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "s3bucket: failed to update instance while adding finalizer")
+			}
+			return components.Result{Requeue: true}, nil
+		}
+	} else {
+		if containsString(s3BucketFinalizer, instance.ObjectMeta.Finalizers) {
+			result, err := comp.deleteDependencies(ctx)
+			if err != nil {
+				return result, err
+			}
+			// All operations complete, remove finalizer
+			removeString(s3BucketFinalizer, instance.ObjectMeta.Finalizers)
+			err = ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "s3bucket: failed to update instance while removing finalizer")
+			}
+			return components.Result{}, nil
+		}
+	}
 
 	// Get an S3 API to work with. This has to match the bucket region.
 	s3Service, err := comp.getS3(instance)
@@ -213,4 +242,42 @@ func (comp *s3BucketComponent) getS3(instance *awsv1beta1.S3Bucket) (s3iface.S3A
 	}
 	comp.s3Services[instance.Spec.Region] = s3Service
 	return s3Service, nil
+}
+
+func (comp *s3BucketComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*awsv1beta1.S3Bucket)
+	s3Service, err := comp.getS3(instance)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "s3bucket: failed to get s3 client for finalizer")
+	}
+	// Starting with the assumption that there are no items in bucket
+	_, err = s3Service.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(instance.Spec.BucketName)})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() != s3.ErrCodeNoSuchBucket {
+				return components.Result{}, errors.Wrapf(aerr, "s3bucket: failed to delete bucket for finalizer")
+			}
+		}
+	}
+	return components.Result{}, nil
+}
+
+func containsString(input string, slice []string) bool {
+	for _, i := range slice {
+		if i == input {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(input string, slice []string) []string {
+	var outputSlice []string
+	for _, i := range slice {
+		if i == input {
+			continue
+		}
+		outputSlice = append(outputSlice, input)
+	}
+	return outputSlice
 }

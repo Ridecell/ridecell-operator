@@ -87,6 +87,11 @@ var _ = Describe("s3bucket controller", func() {
 	})
 
 	AfterEach(func() {
+		// Delete object and see if it cleans up on its own
+		c := helpers.TestClient
+		c.Delete(s3Bucket)
+		Eventually(func() error { return bucketExists() }, timeout).ShouldNot(Succeed())
+
 		helpers.TeardownTest()
 	})
 
@@ -222,6 +227,34 @@ var _ = Describe("s3bucket controller", func() {
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+	})
+
+	It("ensures bucket is not deleted prematurely by finalizer", func() {
+		c := helpers.TestClient
+		bucketName := fmt.Sprintf("ridecell-%s-premateturedelete-test-static", randOwnerPrefix)
+		s3Bucket.Spec.BucketName = bucketName
+		s3Bucket.Spec.BucketPolicy = fmt.Sprintf(`{
+			"Version": "2008-10-17",
+			"Statement": [{
+				 "Sid": "PublicReadForGetBucketObjects",
+				 "Effect": "Allow",
+				 "Principal": {
+					 "AWS": "*"
+				 },
+				 "Action": "s3:GetObject",
+				 "Resource": "arn:aws:s3:::%s/*"
+			 }]
+		}`, bucketName)
+		c.Create(s3Bucket)
+
+		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
+		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
+		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
+
+		fetchBucket := &awsv1beta1.S3Bucket{}
+		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Consistently(func() error { return bucketExists() }, time.Second*20).Should(Succeed())
 	})
 })
 

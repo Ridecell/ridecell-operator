@@ -28,8 +28,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
 
+	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
 	s3bucketcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/s3bucket/components"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type mockS3Client struct {
@@ -43,6 +46,7 @@ type mockS3Client struct {
 	putPolicyContent string
 	putBucketTagging bool
 	deletePolicy     bool
+	deleteBucket     bool
 }
 
 var _ = Describe("s3bucket aws Component", func() {
@@ -53,6 +57,8 @@ var _ = Describe("s3bucket aws Component", func() {
 		comp = s3bucketcomponents.NewS3Bucket()
 		mockS3 = &mockS3Client{}
 		comp.InjectS3Factory(func(_ string) (s3iface.S3API, error) { return mockS3, nil })
+		// Finalizer is added here to skip the return in reconcile after adding finalizer
+		instance.ObjectMeta.Finalizers = []string{"s3bucket.finalizer"}
 	})
 
 	It("runs basic reconcile with no existing bucket", func() {
@@ -143,6 +149,45 @@ var _ = Describe("s3bucket aws Component", func() {
 		Expect(mockS3.putPolicy).To(BeFalse())
 		Expect(mockS3.deletePolicy).To(BeTrue())
 	})
+
+	Describe("finalizer tests", func() {
+		It("adds finalizer when there isn't one", func() {
+			instance.ObjectMeta.Finalizers = []string{}
+
+			Expect(comp).To(ReconcileContext(ctx))
+
+			fetchS3Bucket := &awsv1beta1.S3Bucket{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-bucket", Namespace: "default"}, fetchS3Bucket)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fetchS3Bucket.ObjectMeta.Finalizers).To(Equal([]string{"s3bucket.finalizer"}))
+		})
+
+		It("sets deletiontimestamp to non-zero", func() {
+			mockS3.mockBucketExists = true
+			currentTime := metav1.Now()
+			instance.ObjectMeta.DeletionTimestamp = &currentTime
+
+			Expect(comp).To(ReconcileContext(ctx))
+
+			fetchS3Bucket := &awsv1beta1.S3Bucket{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-bucket", Namespace: "default"}, fetchS3Bucket)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(mockS3.deleteBucket).To(BeTrue())
+		})
+
+		It("simulates bucket not existing during finalizer deletion", func() {
+			currentTime := metav1.Now()
+			instance.ObjectMeta.DeletionTimestamp = &currentTime
+
+			Expect(comp).To(ReconcileContext(ctx))
+
+			fetchS3Bucket := &awsv1beta1.S3Bucket{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-bucket", Namespace: "default"}, fetchS3Bucket)
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
 })
 
 // Mock aws functions below
@@ -151,13 +196,13 @@ func (m *mockS3Client) ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsO
 	if m.mockBucketExists {
 		return &s3.ListObjectsOutput{}, nil
 	} else {
-		return nil, awserr.New("NoSuchBucket", "", nil)
+		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
 	}
 }
 
 func (m *mockS3Client) CreateBucket(input *s3.CreateBucketInput) (*s3.CreateBucketOutput, error) {
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
-		return &s3.CreateBucketOutput{}, errors.New("awsmock_createbucket: bucket name was incorrect")
+		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
 	}
 	if aws.StringValue(input.CreateBucketConfiguration.LocationConstraint) != instance.Spec.Region {
 		return &s3.CreateBucketOutput{}, errors.New("awsmock_createbucket: region was incorrect")
@@ -181,7 +226,7 @@ func (m *mockS3Client) GetBucketPolicy(input *s3.GetBucketPolicyInput) (*s3.GetB
 func (m *mockS3Client) PutBucketPolicy(input *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
 	// Check bucket name.
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
-		return nil, awserr.New("NoSuchBucket", "", nil)
+		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
 	}
 	// Check that we have valid JSON.
 	var ignored interface{}
@@ -197,7 +242,7 @@ func (m *mockS3Client) PutBucketPolicy(input *s3.PutBucketPolicyInput) (*s3.PutB
 func (m *mockS3Client) DeleteBucketPolicy(input *s3.DeleteBucketPolicyInput) (*s3.DeleteBucketPolicyOutput, error) {
 	// Check bucket name.
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
-		return nil, awserr.New("NoSuchBucket", "", nil)
+		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
 	}
 	m.deletePolicy = true
 	return &s3.DeleteBucketPolicyOutput{}, nil
@@ -205,7 +250,7 @@ func (m *mockS3Client) DeleteBucketPolicy(input *s3.DeleteBucketPolicyInput) (*s
 
 func (m *mockS3Client) GetBucketTagging(input *s3.GetBucketTaggingInput) (*s3.GetBucketTaggingOutput, error) {
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
-		return nil, awserr.New("NoSuchBucket", "", nil)
+		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
 	}
 	if m.mockBucketTagged {
 		return &s3.GetBucketTaggingOutput{
@@ -222,8 +267,16 @@ func (m *mockS3Client) GetBucketTagging(input *s3.GetBucketTaggingInput) (*s3.Ge
 
 func (m *mockS3Client) PutBucketTagging(input *s3.PutBucketTaggingInput) (*s3.PutBucketTaggingOutput, error) {
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
-		return nil, awserr.New("NoSuchBucket", "", nil)
+		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
 	}
 	m.putBucketTagging = true
 	return &s3.PutBucketTaggingOutput{}, nil
+}
+
+func (m *mockS3Client) DeleteBucket(input *s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error) {
+	if aws.StringValue(input.Bucket) != instance.Spec.BucketName || !m.mockBucketExists {
+		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
+	}
+	m.deleteBucket = true
+	return nil, nil
 }
