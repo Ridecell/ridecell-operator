@@ -145,6 +145,9 @@ var _ = Describe("iamuser controller", func() {
 
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("deletes old access key that does not match secret", func() {
@@ -179,6 +182,9 @@ var _ = Describe("iamuser controller", func() {
 
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("deletes existing user policies not in spec", func() {
@@ -224,6 +230,9 @@ var _ = Describe("iamuser controller", func() {
 
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("fails to create user with bad inlinepolicies json", func() {
@@ -240,6 +249,9 @@ var _ = Describe("iamuser controller", func() {
 
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusError))
+
+		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("ensures that object isn't deleted prematurely by finalizer", func() {
@@ -261,10 +273,13 @@ var _ = Describe("iamuser controller", func() {
 		userAccessKeys := getAccessKeys()
 		Expect(aws.StringValue(userAccessKeys[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
 
+		Consistently(func() error { return userExists() }, time.Second*20).Should(Succeed())
+
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Consistently(func() error { return userExists() }, time.Second*20).Should(Succeed())
+		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 })

@@ -120,6 +120,8 @@ var _ = Describe("s3bucket controller", func() {
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 
+		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("has an invalid bucket policy", func() {
@@ -134,6 +136,9 @@ var _ = Describe("s3bucket controller", func() {
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusError))
+
+		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("finds a bucket that already exists", func() {
@@ -162,6 +167,9 @@ var _ = Describe("s3bucket controller", func() {
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("updates existing bucket policy", func() {
@@ -211,6 +219,9 @@ var _ = Describe("s3bucket controller", func() {
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("Has a blank BucketPolicy in spec", func() {
@@ -227,6 +238,9 @@ var _ = Describe("s3bucket controller", func() {
 
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
 	It("ensures bucket is not deleted prematurely by finalizer", func() {
@@ -251,10 +265,13 @@ var _ = Describe("s3bucket controller", func() {
 		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
 		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
 
+		Consistently(func() error { return bucketExists() }, time.Second*20).Should(Succeed())
+
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Consistently(func() error { return bucketExists() }, time.Second*20).Should(Succeed())
+		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 })
 
