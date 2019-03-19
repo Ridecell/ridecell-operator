@@ -127,6 +127,12 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 
+	// Enable DEBUG automatically for dev/qa.
+	if instance.Namespace == "dev" || instance.Namespace == "qa" {
+		val := true
+		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+	}
+
 	return components.Result{}, nil
 }
 
