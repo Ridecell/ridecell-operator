@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
 	iamusercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/iamuser/components"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,9 @@ type mockIAMClient struct {
 	mockExtraUserPolicy bool
 	mockHasAccessKey    bool
 	mockUserTagged      bool
+
+	deleteUser    bool
+	finalizerTest bool
 }
 
 var _ = Describe("iam_user aws Component", func() {
@@ -55,6 +59,8 @@ var _ = Describe("iam_user aws Component", func() {
 		comp = iamusercomponents.NewIAMUser()
 		mockIAM = &mockIAMClient{}
 		comp.InjectIAMAPI(mockIAM)
+		// Finalizer is added here to skip the return in reconcile after adding finalizer
+		instance.ObjectMeta.Finalizers = []string{"iamuser.finalizer"}
 	})
 
 	It("runs basic reconcile with no existing user", func() {
@@ -137,6 +143,53 @@ var _ = Describe("iam_user aws Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("iam_user: user policy from spec test has invalid JSON: invalid character 'n' looking for beginning of object key string"))
 	})
+
+	Describe("finalizer tests", func() {
+		It("adds finalizer when there isn't one", func() {
+			mockIAM.finalizerTest = true
+			instance.ObjectMeta.Finalizers = []string{}
+
+			Expect(comp).To(ReconcileContext(ctx))
+
+			fetchIAMUser := &awsv1beta1.IAMUser{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user", Namespace: "default"}, fetchIAMUser)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fetchIAMUser.ObjectMeta.Finalizers).To(Equal([]string{"iamuser.finalizer"}))
+		})
+
+		It("sets deletiontimestamp to non-zero with mock objects existing", func() {
+			mockIAM.finalizerTest = true
+			mockIAM.mockHasAccessKey = true
+			mockIAM.mockhasUserPolicies = true
+			mockIAM.mockUserExists = true
+			currentTime := metav1.Now()
+			instance.ObjectMeta.DeletionTimestamp = &currentTime
+			instance.Spec.InlinePolicies = map[string]string{
+				"test777": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
+			}
+
+			Expect(comp).To(ReconcileContext(ctx))
+
+			fetchIAMUser := &awsv1beta1.IAMUser{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user", Namespace: "default"}, fetchIAMUser)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(mockIAM.deleteUser).To(BeTrue())
+		})
+
+		It("simulates user not existing during finalizer deletion", func() {
+			currentTime := metav1.Now()
+			mockIAM.finalizerTest = true
+			instance.ObjectMeta.DeletionTimestamp = &currentTime
+
+			Expect(comp).To(ReconcileContext(ctx))
+
+			fetchIAMUser := &awsv1beta1.IAMUser{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user", Namespace: "default"}, fetchIAMUser)
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
 })
 
 // Mock aws functions below
@@ -159,8 +212,8 @@ func (m *mockIAMClient) CreateUser(input *iam.CreateUserInput) (*iam.CreateUserO
 }
 
 func (m *mockIAMClient) ListUserPolicies(input *iam.ListUserPoliciesInput) (*iam.ListUserPoliciesOutput, error) {
-	if aws.StringValue(input.UserName) != instance.Spec.UserName {
-		return &iam.ListUserPoliciesOutput{}, errors.New("awsmock_listuserpolicies: given username does not match spec")
+	if aws.StringValue(input.UserName) != instance.Spec.UserName || (!m.mockUserExists && m.finalizerTest) {
+		return &iam.ListUserPoliciesOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_listuserpolicies: given username does not match spec", errors.New(""))
 	}
 	if m.mockhasUserPolicies {
 		inlinePoliciesPointers := []*string{}
@@ -210,7 +263,7 @@ func (m *mockIAMClient) DeleteUserPolicy(input *iam.DeleteUserPolicyInput) (*iam
 		return &iam.DeleteUserPolicyOutput{}, errors.New("awsmock_deleteuserpolicy: username did not match spec")
 	}
 	_, ok := instance.Spec.InlinePolicies[aws.StringValue(input.PolicyName)]
-	if !ok {
+	if !ok || m.finalizerTest {
 		return &iam.DeleteUserPolicyOutput{}, nil
 	}
 	return &iam.DeleteUserPolicyOutput{}, errors.New("awsmock_deleteuserpolicy: policy shouldn't be getting deleted")
@@ -236,14 +289,14 @@ func (m *mockIAMClient) DeleteAccessKey(input *iam.DeleteAccessKeyInput) (*iam.D
 	if aws.StringValue(input.UserName) != instance.Spec.UserName {
 		return &iam.DeleteAccessKeyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_deleteaccesskey: username did not match spec", errors.New(""))
 	}
-	if aws.StringValue(input.AccessKeyId) == "123456789" {
+	if aws.StringValue(input.AccessKeyId) == "123456789" || m.finalizerTest {
 		return &iam.DeleteAccessKeyOutput{}, nil
 	}
 	return &iam.DeleteAccessKeyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_deleteaccesskey: access key does not exist", errors.New(""))
 }
 
 func (m *mockIAMClient) ListAccessKeys(input *iam.ListAccessKeysInput) (*iam.ListAccessKeysOutput, error) {
-	if aws.StringValue(input.UserName) != instance.Spec.UserName {
+	if aws.StringValue(input.UserName) != instance.Spec.UserName || (!m.mockUserExists && m.finalizerTest) {
 		return &iam.ListAccessKeysOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_listaccesskeys: username did not match spec", errors.New(""))
 	}
 	if m.mockHasAccessKey {
@@ -277,4 +330,12 @@ func (m *mockIAMClient) TagUser(input *iam.TagUserInput) (*iam.TagUserOutput, er
 	}
 	m.mockUserTagged = true
 	return &iam.TagUserOutput{}, nil
+}
+
+func (m *mockIAMClient) DeleteUser(input *iam.DeleteUserInput) (*iam.DeleteUserOutput, error) {
+	if aws.StringValue(input.UserName) != instance.Spec.UserName || (!m.mockUserExists && m.finalizerTest) {
+		return nil, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_deleteuser: username did not match spec", errors.New(""))
+	}
+	m.deleteUser = true
+	return &iam.DeleteUserOutput{}, nil
 }

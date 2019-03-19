@@ -40,6 +40,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const iamUserFinalizer = "iamuser.finalizer"
+
 type iamUserComponent struct {
 	iamAPI iamiface.IAMAPI
 }
@@ -64,6 +66,33 @@ func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
 
 func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*awsv1beta1.IAMUser)
+
+	// if object is not being deleted
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Is our finalizer attached to the object?
+		if !containsString(iamUserFinalizer, instance.ObjectMeta.Finalizers) {
+			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, iamUserFinalizer)
+			err := ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while adding finalizer")
+			}
+			return components.Result{Requeue: true}, nil
+		}
+	} else {
+		if containsString(iamUserFinalizer, instance.ObjectMeta.Finalizers) {
+			result, err := comp.deleteDependencies(ctx)
+			if err != nil {
+				return result, err
+			}
+			// All operations complete, remove finalizer
+			removeString(iamUserFinalizer, instance.ObjectMeta.Finalizers)
+			err = ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while removing finalizer")
+			}
+			return components.Result{}, nil
+		}
+	}
 
 	// Try to get our user, if it can't be found create it
 	var user *iam.User
@@ -250,4 +279,76 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		instance.Status.Message = "User exists and has secret"
 		return nil
 	}}, nil
+}
+
+func (comp *iamUserComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*awsv1beta1.IAMUser)
+	// Have to delete access keys before user deletion
+	listAccessKeysOutput, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: aws.String(instance.Spec.UserName)})
+	// If the user doesn't exist skip error
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
+				return components.Result{}, errors.Wrapf(err, "iamuser: failed to list access keys for finalizer")
+			}
+		}
+	}
+	for _, accessKey := range listAccessKeysOutput.AccessKeyMetadata {
+		_, err = comp.iamAPI.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+			UserName:    aws.String(instance.Spec.UserName),
+			AccessKeyId: accessKey.AccessKeyId,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to delete access key for finalizer")
+		}
+	}
+	// Have to delete attached policies before user deletion
+	listUserPoliciesOutput, err := comp.iamAPI.ListUserPolicies(&iam.ListUserPoliciesInput{UserName: aws.String(instance.Spec.UserName)})
+	// If the user doesn't exist skip error
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
+				return components.Result{}, errors.Wrapf(err, "iamuser: failed to list user policies for finalizer")
+			}
+		}
+	}
+	for _, userPolicy := range listUserPoliciesOutput.PolicyNames {
+		_, err = comp.iamAPI.DeleteUserPolicy(&iam.DeleteUserPolicyInput{
+			UserName:   aws.String(instance.Spec.UserName),
+			PolicyName: userPolicy,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to delete user policy for finalizer")
+		}
+	}
+	_, err = comp.iamAPI.DeleteUser(&iam.DeleteUserInput{UserName: aws.String(instance.Spec.UserName)})
+	// If the user doesn't exist skip error
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
+				return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to delete user for finalizer")
+			}
+		}
+	}
+	return components.Result{}, nil
+}
+
+func containsString(input string, slice []string) bool {
+	for _, i := range slice {
+		if i == input {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(input string, slice []string) []string {
+	var outputSlice []string
+	for _, i := range slice {
+		if i == input {
+			continue
+		}
+		outputSlice = append(outputSlice, input)
+	}
+	return outputSlice
 }

@@ -117,6 +117,11 @@ var _ = Describe("iamuser controller", func() {
 	})
 
 	AfterEach(func() {
+		// Delete user and see if it cleans up on its own
+		c := helpers.TestClient
+		c.Delete(iamUser)
+		Eventually(func() error { return userExists() }, timeout).ShouldNot(Succeed())
+
 		helpers.TeardownTest()
 	})
 
@@ -235,6 +240,31 @@ var _ = Describe("iamuser controller", func() {
 
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusError))
+	})
+
+	It("ensures that object isn't deleted prematurely by finalizer", func() {
+		c := helpers.TestClient
+		username := fmt.Sprintf("%s-prematuredelete-test-summon-platform", randOwnerPrefix)
+		iamUser.Spec.UserName = username
+		c.Create(iamUser)
+
+		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
+		Eventually(func() bool { return userHasValidTag() }, timeout).Should(BeTrue())
+		Eventually(func() []*string { return getUserPolicyNames() }, timeout).Should(HaveLen(2))
+		Expect(getUserPolicyDocument("allow_s3")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_s3"]))
+		Expect(getUserPolicyDocument("allow_sqs")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_sqs"]))
+		Eventually(func() []*iam.AccessKeyMetadata { return getAccessKeys() }, timeout).Should(HaveLen(1))
+
+		fetchAccessKey := &corev1.Secret{}
+		c.EventuallyGet(helpers.Name("test.aws-credentials"), fetchAccessKey, c.EventuallyTimeout(timeout))
+
+		userAccessKeys := getAccessKeys()
+		Expect(aws.StringValue(userAccessKeys[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
+
+		fetchIAMUser := &awsv1beta1.IAMUser{}
+		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Consistently(func() error { return userExists() }, time.Second*20).Should(Succeed())
 	})
 
 })
