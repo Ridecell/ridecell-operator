@@ -127,6 +127,12 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 
+	// Enable DEBUG automatically for dev/qa.
+	if instance.Namespace == "dev" || instance.Namespace == "qa" {
+		val := true
+		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+	}
+
 	return components.Result{}, nil
 }
 
@@ -152,6 +158,7 @@ func defConfig(key string, value interface{}) {
 func init() {
 	configDefaults = map[string]summonv1beta1.ConfigValue{}
 	// Default config, mostly based on local dev.
+	defConfig("ALLOW_X_FORWARDED_PROTO", true)
 	defConfig("AMAZON_S3_USED", true)
 	defConfig("AMAZON_S3_MEDIA_ONLY", true)
 	defConfig("AUTH_SDK_AUTH_SERVICE_PUBLIC_KEY", `-----BEGIN PUBLIC KEY-----
