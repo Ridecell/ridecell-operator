@@ -92,6 +92,8 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			}
 			return components.Result{}, nil
 		}
+		// If object is being deleted and has no finalizer just exit.
+		return components.Result{}, nil
 	}
 
 	// Try to get our user, if it can't be found create it

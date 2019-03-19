@@ -99,6 +99,8 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 			}
 			return components.Result{}, nil
 		}
+		// If object is being deleted and has no finalizer just exit.
+		return components.Result{}, nil
 	}
 
 	// Get an S3 API to work with. This has to match the bucket region.
