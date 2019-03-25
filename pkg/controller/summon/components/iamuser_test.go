@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 
+	. "github.com/Benjamintf1/unmarshalledmatchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -42,5 +43,26 @@ var _ = Describe("SummonPlatform iamuser Component", func() {
 		target := &awsv1beta1.IAMUser{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	Context("MIV policy", func() {
+		It("handles an internal bucket", func() {
+			comp := summoncomponents.NewIAMUser("aws/iamuser.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &awsv1beta1.IAMUser{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.InlinePolicies["allow_s3_miv"]).To(ContainOrderedJSON(`{"Statement": [{"Resource": "arn:aws:s3:::ridecell-foo-miv"}]}`))
+		})
+
+		It("handles an external bucket", func() {
+			instance.Spec.MIV.ExistingBucket = "asdf"
+			comp := summoncomponents.NewIAMUser("aws/iamuser.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &awsv1beta1.IAMUser{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.InlinePolicies["allow_s3_miv"]).To(ContainOrderedJSON(`{"Statement": [{"Resource": "arn:aws:s3:::asdf"}]}`))
+		})
 	})
 })

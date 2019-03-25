@@ -10,6 +10,14 @@
   version = "v0.30.0"
 
 [[projects]]
+  digest = "1:cfd43114294fda4b19fec74456f9299e7bd178eb7b87844f09e389c030072b7a"
+  name = "github.com/Benjamintf1/unmarshalledmatchers"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "f49d1795d752929500b8ed2289f1e21f10414667"
+  version = "1.0.0"
+
+[[projects]]
   digest = "1:55388fd080150b9a072912f97b1f5891eb0b50df43401f8b75fb4273d3fec9fc"
   name = "github.com/Masterminds/semver"
   packages = ["."]
@@ -1089,6 +1097,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Benjamintf1/unmarshalledmatchers",
     "github.com/Masterminds/sprig",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
