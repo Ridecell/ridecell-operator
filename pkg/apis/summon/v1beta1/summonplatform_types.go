@@ -46,6 +46,13 @@ type DatabaseSpec struct {
 	SharedDatabaseName string `json:"sharedDatabaseName,omitempty"`
 }
 
+// MIVSpec defines the configuration of the Manual Identiy Verification bucket feature.
+type MIVSpec struct {
+	// The optional name of an existing S3 bucket to use. If set, this code does not create its own bucket.
+	// +optional
+	ExistingBucket string `json:"existingBucket,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -97,6 +104,9 @@ type SummonPlatformSpec struct {
 	// The flavor of data to be imported upon creation
 	// +optional
 	Flavor string `json:"flavor,omitempty"`
+	// Manual Identity Verification settings.
+	// +optional
+	MIV MIVSpec `json:"miv,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications
@@ -104,6 +114,12 @@ type NotificationStatus struct {
 	// The last version we posted a deploy success notification for.
 	// +optional
 	NotifyVersion string `json:"notifyVersion,omitempty"`
+}
+
+// MIVStatus is the output information for the Manual Identity Verification system.
+type MIVStatus struct {
+	// The MIV data S3 bucket name.
+	Bucket string `json:"bucket,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
@@ -129,6 +145,9 @@ type SummonPlatformStatus struct {
 	// Spec for Notification
 	// +optional
 	Notification NotificationStatus `json:"notification,omitempty"`
+	// Status for MIV system.
+	// +optional
+	MIV MIVStatus `json:"miv,omitempty"`
 }
 
 // +genclient
