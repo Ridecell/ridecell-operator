@@ -24,7 +24,7 @@ import (
 )
 
 // Gross workaround for limitations the Kubernetes code generator and interface{}.
-// If you want to see the weird inner workings of the hack, looking marshall.go.
+// If you want to see the weird inner workings of the hack, look in marshall.go.
 type ConfigValue struct {
 	Bool   *bool    `json:"bool,omitempty"`
 	Float  *float64 `json:"float,omitempty"`
