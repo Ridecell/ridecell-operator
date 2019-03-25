@@ -17,12 +17,14 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
@@ -46,6 +48,7 @@ func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	permissionsBoundaryArn := os.Getenv("PERMISSIONS_BOUNDARY_ARN")
 	if permissionsBoundaryArn == "" {
@@ -54,11 +57,14 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	// Data to be copied over to template
 	extra := map[string]interface{}{}
 	extra["permissionsBoundaryArn"] = permissionsBoundaryArn
+	extra["mivBucket"] = fmt.Sprintf("ridecell-%s-miv", instance.Name)
+	if instance.Spec.MIV.ExistingBucket != "" {
+		extra["mivBucket"] = instance.Spec.MIV.ExistingBucket
+	}
 
-	var existing *awsv1beta1.IAMUser
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*awsv1beta1.IAMUser)
-		existing = existingObj.(*awsv1beta1.IAMUser)
+		existing := existingObj.(*awsv1beta1.IAMUser)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil
