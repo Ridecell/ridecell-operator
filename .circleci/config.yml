@@ -16,7 +16,9 @@ jobs:
     - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
     - run: make dep test
     - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
-    - run: go run scripts/aws_cleanup/delete_operator_resources.go
+    - run:
+        command: go run scripts/aws_cleanup/delete_operator_resources.go
+        when: always
     - run: mkdir workspace && cp -r config/crds workspace/crds
     - persist_to_workspace:
         root: workspace
