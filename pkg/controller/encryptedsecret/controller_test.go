@@ -18,7 +18,6 @@ package encryptedsecret_test
 
 import (
 	"os"
-	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,8 +35,6 @@ import (
 var _ = Describe("encryptedsecret controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var encryptedSecret *secretsv1beta1.EncryptedSecret
-
-	timeout := 10 * time.Second
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
@@ -79,7 +76,7 @@ var _ = Describe("encryptedsecret controller", func() {
 		c.Create(encryptedSecret)
 
 		fetchSecret := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test"), fetchSecret, c.EventuallyTimeout(timeout))
+		c.EventuallyGet(helpers.Name("test"), fetchSecret)
 
 		Expect(string(fetchSecret.Data["test0"])).To(Equal("Testing1234"))
 		Expect(string(fetchSecret.Data["test1"])).To(Equal("thisisanecryptedvalue"))
@@ -128,7 +125,7 @@ var _ = Describe("encryptedsecret controller", func() {
 		c.Create(encryptedSecret)
 
 		fetchSecret := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test"), fetchSecret, c.EventuallyTimeout(timeout))
+		c.EventuallyGet(helpers.Name("test"), fetchSecret)
 		Expect(len(fetchSecret.Data)).To(Equal(0))
 
 		fetchEncryptedSecret := &secretsv1beta1.EncryptedSecret{}
