@@ -36,8 +36,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const timeout = time.Second * 10
-
 var sess *session.Session
 var s3svc *s3.S3
 var s3Bucket *awsv1beta1.S3Bucket
