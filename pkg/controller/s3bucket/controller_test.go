@@ -18,9 +18,7 @@ package s3bucket_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
@@ -50,11 +48,9 @@ var _ = Describe("s3bucket controller", func() {
 			Skip("$AWS_TESTING_ACCOUNT_ID not set, skipping s3bucket integration tests")
 		}
 
+		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
 		if randOwnerPrefix == "" {
-			// ../../../ feels a bit awkward but it works
-			fileBytes, err := ioutil.ReadFile("../../../rand_owner_prefix")
-			Expect(err).ToNot(HaveOccurred())
-			randOwnerPrefix = string(fileBytes)
+			panic("$RAND_OWNER_PREFIX not set, failing test")
 		}
 
 		var err error

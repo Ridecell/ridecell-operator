@@ -24,12 +24,11 @@ func main() {
 		fmt.Printf("$AWS_TESTING_ACCOUNT_ID not set, aborting")
 		os.Exit(1)
 	}
-	fileBytes, err := ioutil.ReadFile("rand_owner_prefix")
-	if err != nil {
-		fmt.Printf("Failed to read rand_owner_prefix, aborting")
+	namePrefix := os.Getenv("RAND_OWNER_PREFIX")
+	if namePrefix == "" {
+		fmt.Printf("$RAND_OWNER_PREFIX not set, aborting")
 		os.Exit(1)
 	}
-	namePrefix := string(fileBytes)
 
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-2"),

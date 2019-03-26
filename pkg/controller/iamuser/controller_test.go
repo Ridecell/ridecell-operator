@@ -18,7 +18,6 @@ package iamuser_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 
@@ -53,11 +52,9 @@ var _ = Describe("iamuser controller", func() {
 			Skip("$AWS_TEST_ACCOUNT_PERMISSIONS_BOUNDARY_ARN not set, skipping iamuser integration tests")
 		}
 
+		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
 		if randOwnerPrefix == "" {
-			// ../../../ feels a bit awkward but it works
-			fileBytes, err := ioutil.ReadFile("../../../rand_owner_prefix")
-			Expect(err).ToNot(HaveOccurred())
-			randOwnerPrefix = string(fileBytes)
+			panic("$RAND_OWNER_PREFIX not set, failing test")
 		}
 
 		var err error
