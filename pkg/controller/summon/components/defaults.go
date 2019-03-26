@@ -191,6 +191,7 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("OAUTH_HOSTED_DOMAIN", "")
 	defConfig("OUTGOING_SMS_NUMBER", "41254")
 	defConfig("PLATFORM_ENV", "DEV")
+	defConfig("REQUIRE_HTTPS", true)
 	defConfig("SAML_EMAIL_ATTRIBUTE", "eduPersonPrincipalName")
 	defConfig("SAML_FIRST_NAME_ATTRIBUTE", "givenName")
 	defConfig("SAML_IDP_ENTITY_ID", "https://idp.testshib.org/idp/shibboleth")
