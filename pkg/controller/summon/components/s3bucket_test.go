@@ -21,7 +21,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
@@ -32,10 +35,48 @@ import (
 var _ = Describe("SummonPlatform s3bucket Component", func() {
 
 	It("creates an S3Bucket object", func() {
-		comp := summoncomponents.NewS3Bucket("aws/s3bucket.yml.tpl")
+		comp := summoncomponents.NewS3Bucket("aws/staticbucket.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &awsv1beta1.S3Bucket{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, target)
 		Expect(err).ToNot(HaveOccurred())
+		// Make sure it doesn't touch the MIV status.
+		Expect(instance.Status.MIV.Bucket).To(Equal(""))
+	})
+
+	It("creates an MIV S3 bucket", func() {
+		comp := summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &awsv1beta1.S3Bucket{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-miv", Namespace: "default"}, target)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instance.Status.MIV.Bucket).To(Equal("ridecell-foo-miv"))
+	})
+
+	Context("when using an external MIV bucket", func() {
+		BeforeEach(func() {
+			instance.Spec.MIV.ExistingBucket = "asdf"
+		})
+
+		It("doesn't create a bucket", func() {
+			comp := summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &awsv1beta1.S3Bucket{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-miv", Namespace: "default"}, target)
+			Expect(err).To(HaveOccurred())
+			Expect(kerrors.IsNotFound(err)).To(BeTrue())
+			Expect(instance.Status.MIV.Bucket).To(Equal("asdf"))
+		})
+
+		It("deletes an existing operator-controlled bucket", func() {
+			target := &awsv1beta1.S3Bucket{ObjectMeta: metav1.ObjectMeta{Name: "foo-miv", Namespace: "default"}}
+			ctx.Client = fake.NewFakeClient(instance, target)
+			comp := summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-miv", Namespace: "default"}, target)
+			Expect(err).To(HaveOccurred())
+			Expect(kerrors.IsNotFound(err)).To(BeTrue())
+			Expect(instance.Status.MIV.Bucket).To(Equal("asdf"))
+		})
 	})
 })

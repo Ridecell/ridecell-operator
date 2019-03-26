@@ -17,18 +17,28 @@ limitations under the License.
 package components
 
 import (
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	summonv1beta "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
 )
 
 type s3BucketComponent struct {
 	templatePath string
+	miv          bool
 }
 
 func NewS3Bucket(templatePath string) *s3BucketComponent {
 	return &s3BucketComponent{templatePath: templatePath}
+}
+
+func NewMIVS3Bucket(templatePath string) *s3BucketComponent {
+	comp := NewS3Bucket(templatePath)
+	comp.miv = true
+	return comp
 }
 
 func (comp *s3BucketComponent) WatchTypes() []runtime.Object {
@@ -43,13 +53,39 @@ func (_ *s3BucketComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	var existing *awsv1beta1.S3Bucket
+	instance := ctx.Top.(*summonv1beta.SummonPlatform)
+	if comp.miv && instance.Spec.MIV.ExistingBucket != "" {
+		// We are using an external bucket, make sure the operator-managed bucket is deleted if it exists.
+		obj, err := ctx.GetTemplate(comp.templatePath, nil)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "s3bucket: error rendering template %s", comp.templatePath)
+		}
+		bucket := obj.(*awsv1beta1.S3Bucket)
+		err = ctx.Delete(ctx.Context, obj)
+		if err != nil && !kerrors.IsNotFound(err) {
+			return components.Result{}, errors.Wrapf(err, "s3bucket: error deleting existing bucket %s/%s", bucket.Namespace, bucket.Name)
+		}
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta.SummonPlatform)
+			instance.Status.MIV.Bucket = instance.Spec.MIV.ExistingBucket
+			return nil
+		}}, nil
+	}
+
+	var goal *awsv1beta1.S3Bucket
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*awsv1beta1.S3Bucket)
-		existing = existingObj.(*awsv1beta1.S3Bucket)
+		goal = goalObj.(*awsv1beta1.S3Bucket)
+		existing := existingObj.(*awsv1beta1.S3Bucket)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil
 	})
+	if comp.miv {
+		res.StatusModifier = func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta.SummonPlatform)
+			instance.Status.MIV.Bucket = goal.Spec.BucketName
+			return nil
+		}
+	}
 	return res, err
 }

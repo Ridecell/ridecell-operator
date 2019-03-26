@@ -9,16 +9,46 @@ spec:
    allow_s3: |
             {
                "Version": "2012-10-17",
-               "Statement": {
-                 "Effect": "Allow",
-                 "Action": [
-                    "s3:ListBucket",
-                    "s3:GetObject",
-                    "s3:DeleteObject",
-                    "s3:PutObject"
-                  ],
-                 "Resource": "arn:aws:s3:::ridecell-{{ .Instance.Name }}-static*"
-               }
+               "Statement": [
+                {
+                   "Effect": "Allow",
+                   "Action": [
+                      "s3:ListBucket"
+                    ],
+                   "Resource": "arn:aws:s3:::ridecell-{{ .Instance.Name }}-static"
+                },
+                {
+                   "Effect": "Allow",
+                   "Action": [
+                      "s3:GetObject",
+                      "s3:DeleteObject",
+                      "s3:PutObject",
+                      "s3:PutObjectAcl"
+                    ],
+                   "Resource": "arn:aws:s3:::ridecell-{{ .Instance.Name }}-static/*"
+                }
+              ]
+   allow_s3_miv: |
+            {
+               "Version": "2012-10-17",
+               "Statement": [
+                 {
+                    "Effect": "Allow",
+                    "Action": [
+                       "s3:ListBucket"
+                     ],
+                    "Resource": "arn:aws:s3:::{{ .Extra.mivBucket }}"
+                 },
+                 {
+                    "Effect": "Allow",
+                    "Action": [
+                       "s3:GetObject",
+                       "s3:DeleteObject",
+                       "s3:PutObject"
+                     ],
+                    "Resource": "arn:aws:s3:::{{ .Extra.mivBucket }}/*"
+                 }
+               ]
             }
    allow_sqs: |
             {
