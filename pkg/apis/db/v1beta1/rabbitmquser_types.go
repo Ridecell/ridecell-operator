@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,10 +26,9 @@ import (
 type RabbitmqUserSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Username          string             `json:"username"`
-	PasswordSecretref helpers.SecretRef  `json:"passwordSecretRef"`
-	Tags              string             `json:"tags"`
-	Connection        RabbitmqConnection `json:"connection"`
+	Username   string             `json:"username"`
+	Tags       string             `json:"tags"`
+	Connection RabbitmqConnection `json:"connection"`
 }
 
 // RabbitmqUserStatus defines the observed state of RabbitmqUser

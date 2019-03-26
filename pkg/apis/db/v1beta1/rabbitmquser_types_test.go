@@ -53,10 +53,6 @@ var _ = Describe("RabbitmqUser types", func() {
 			Spec: dbv1beta1.RabbitmqUserSpec{
 				Username: "rabbitmq-test",
 				Tags:     "policymaker, none",
-				PasswordSecretref: help.SecretRef{
-					Name: "user.credentials",
-					Key:  "password",
-				},
 				Connection: dbv1beta1.RabbitmqConnection{
 					Username: "rabbit-admin",
 					Password: help.SecretRef{

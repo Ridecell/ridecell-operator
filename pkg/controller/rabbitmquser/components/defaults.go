@@ -47,8 +47,5 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		// Use "guest" as the default username.
 		instance.Spec.Connection.Username = "guest"
 	}
-	if instance.Spec.PasswordSecretref.Key == "" {
-		instance.Spec.PasswordSecretref.Key = "rabbitmqUserPassword"
-	}
 	return components.Result{}, nil
 }

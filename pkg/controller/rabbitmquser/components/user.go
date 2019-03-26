@@ -18,12 +18,15 @@ package components
 
 import (
 	"crypto/tls"
+	"fmt"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 	"github.com/michaelklishin/rabbit-hole"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 )
 
@@ -53,6 +56,7 @@ func (_ *userComponent) IsReconcilable(_ *components.ComponentContext) bool {
 
 func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RabbitmqUser)
+	secretName := fmt.Sprintf("%s.rabbitmq-user-password", instance.Name)
 
 	transport := &http.Transport{TLSClientConfig: &tls.Config{
 		InsecureSkipVerify: instance.Spec.Connection.InsecureSkip,
@@ -72,12 +76,17 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}
 
-	var userPassword string
-	userPassword, err = instance.Spec.PasswordSecretref.Resolve(ctx, "rabbitmqUserPassword")
+	secret := &corev1.Secret{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "error resolving rabbitmq user password")
+		return components.Result{Requeue: true}, errors.Wrapf(err, "rabbitmq: Unable to load password secret %s/%s", instance.Namespace, secretName)
 	}
-	resp, err := rmqc.PutUser(instance.Spec.Username, rabbithole.UserSettings{Password: userPassword, Tags: instance.Spec.Tags})
+	userPassword, ok := secret.Data["password"]
+	if !ok {
+		return components.Result{Requeue: true}, errors.Errorf("rabbitmq: Password secret %s/%s has no key \"password\"", instance.Namespace, secretName)
+	}
+
+	resp, err := rmqc.PutUser(instance.Spec.Username, rabbithole.UserSettings{Password: string(userPassword), Tags: instance.Spec.Tags})
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error connection to rabbitmq host")
 	}

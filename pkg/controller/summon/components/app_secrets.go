@@ -118,7 +118,6 @@ func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bo
 
 func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
 	specInputSecrets, err := comp.fetchSecrets(ctx, instance, instance.Spec.Secrets, false)
 	if err != nil {
 		return components.Result{}, err
@@ -127,13 +126,15 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	if err != nil {
 		return components.Result{Requeue: true}, err
 	}
-
+	//fmt.Println(specInputSecrets)
 	// This order must match the one in inputSecrets().
 	postgresSecret := dynamicInputSecrets[0]
 	fernetKeys := dynamicInputSecrets[1]
 	secretKey := dynamicInputSecrets[2]
 	awsSecret := dynamicInputSecrets[3]
+	rabbitmqPassword := dynamicInputSecrets[4]
 
+	fmt.Println(rabbitmqPassword)
 	postgresDatabase, postgresUser := comp.postgresNames(instance)
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
@@ -175,7 +176,6 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")
 	}
-
 	newSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 		Data:       map[string][]byte{"summon-platform.yml": yamlData},
@@ -244,6 +244,7 @@ func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform
 		fmt.Sprintf("%s.fernet-keys", instance.Name),
 		fmt.Sprintf("%s.secret-key", instance.Name),
 		fmt.Sprintf("%s.aws-credentials", instance.Name),
+		fmt.Sprintf("%s.rabbitmq-user-password", instance.Name),
 	}
 }
 
@@ -264,5 +265,6 @@ func (_ *appSecretComponent) fetchSecrets(ctx *components.ComponentContext, inst
 		}
 		secrets = append(secrets, secret)
 	}
+	fmt.Println(secrets)
 	return secrets, nil
 }

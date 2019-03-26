@@ -25,7 +25,7 @@ import (
 
 	"crypto/sha512"
 	"encoding/hex"
-	//"fmt"
+	"fmt"
 	rmqucomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmquser/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
@@ -46,23 +46,29 @@ func (frc *fakeRabbitClient) ListUsers() ([]rabbithole.UserInfo, error) {
 }
 
 func (frc *fakeRabbitClient) PutUser(username string, settings rabbithole.UserSettings) (*http.Response, error) {
+	sha_512 := sha512.New()
+	_, err := sha_512.Write([]byte(settings.Password))
+	if err != nil {
+		return &http.Response{StatusCode: 500}, errors.Wrapf(err, "error writing bytes")
+	}
+	passInBytes := sha_512.Sum(nil)
+	passHash := hex.EncodeToString(passInBytes)
 	var user_exists bool
+	var usr rabbithole.UserInfo
 	for _, element := range frc.FakeUserList {
 		if element.Name == username {
 			user_exists = true
+			usr = element
 		}
 	}
 	if !user_exists {
-		sha_512 := sha512.New()
-		_, err := sha_512.Write([]byte(settings.Password))
-		if err != nil {
-			return &http.Response{StatusCode: 500}, errors.Wrapf(err, "error creating rabbitmq client")
-		}
-		passInBytes := sha_512.Sum(nil)
-		passHash := hex.EncodeToString(passInBytes)
+		//fmt.Println("hello")
 		frc.FakeUserList = append(frc.FakeUserList, rabbithole.UserInfo{Name: username, PasswordHash: passHash})
 		return &http.Response{StatusCode: 201}, nil
 	}
+	usr.PasswordHash = passHash
+	fmt.Println("FakeUserList")
+	fmt.Println(frc.FakeUserList)
 	return &http.Response{StatusCode: 200}, nil
 }
 
@@ -72,8 +78,7 @@ var _ = Describe("RabbitmqUser Component", func() {
 		dbSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "admin.foo-rabbitmq.credentials", Namespace: "default"},
 			Data: map[string][]byte{
-				"password":             []byte("secretrabbitmqpass"),
-				"rabbitmqUserPassword": []byte("secretrabbitmquserpass"),
+				"password": []byte("secretrabbitmqpass"),
 			},
 		}
 		ctx.Client = fake.NewFakeClient(dbSecret)
@@ -113,5 +118,22 @@ var _ = Describe("RabbitmqUser Component", func() {
 		instance.Spec.Connection.Host = "htt://127.0.0.1:80"
 		comp := rmqucomponents.NewUser()
 		Expect(comp).ToNot(ReconcileContext(ctx))
+	})
+	It("Generates password if the user already exists", func() {
+		comp := rmqucomponents.NewUser()
+		mgr := &fakeRabbitClient{}
+		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
+			fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
+			mgr.FakeClient = fclient
+			mgr.FakeUserList = []rabbithole.UserInfo{}
+			return mgr, nil
+		}
+		comp.InjectFakeNewTLSClient(fakeFunc)
+		Expect(comp).To(ReconcileContext(ctx))
+		//fmt.Println(mgr.FakeUserList)
+		// Reconcile again, generates new password
+		//Expect(comp).To(ReconcileContext(ctx))
+		//fmt.Println(mgr.FakeUserList)
+
 	})
 })
