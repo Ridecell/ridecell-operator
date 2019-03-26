@@ -126,7 +126,6 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	if err != nil {
 		return components.Result{Requeue: true}, err
 	}
-	//fmt.Println(specInputSecrets)
 	// This order must match the one in inputSecrets().
 	postgresSecret := dynamicInputSecrets[0]
 	fernetKeys := dynamicInputSecrets[1]
@@ -265,6 +264,5 @@ func (_ *appSecretComponent) fetchSecrets(ctx *components.ComponentContext, inst
 		}
 		secrets = append(secrets, secret)
 	}
-	fmt.Println(secrets)
 	return secrets, nil
 }

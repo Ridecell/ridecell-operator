@@ -75,6 +75,6 @@ var _ = Describe("rotate_fernet Component", func() {
 		fetchSecret := &corev1.Secret{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
-		//Expect(fetchSecret.Data).To(HaveLen(2))
+		Expect(fetchSecret.Data).To(HaveLen(2))
 	})
 })
