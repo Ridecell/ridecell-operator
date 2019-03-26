@@ -108,13 +108,12 @@ var _ = Describe("s3bucket controller", func() {
 		}`, bucketName)
 		c.Create(s3Bucket)
 
-		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
-		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
-		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
-
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 
+		Expect(bucketExists()).ToNot(HaveOccurred())
+		Expect(bucketHasValidTag()).ToNot(HaveOccurred())
+		Expect(getBucketPolicy()).To(MatchJSON(s3Bucket.Spec.BucketPolicy))
 	})
 
 	It("has an invalid bucket policy", func() {
