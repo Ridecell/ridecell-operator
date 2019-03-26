@@ -108,9 +108,13 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	// Look for ridecell-operator tag, if it doesn't exist create it
 	getBucketTags, err := s3Service.GetBucketTagging(&s3.GetBucketTaggingInput{Bucket: aws.String(instance.Spec.BucketName)})
-	if err != nil {
+	if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "NoSuchTagSet" {
+		// There is no tag set associated with the bucket.
+		getBucketTags = &s3.GetBucketTaggingOutput{TagSet: []*s3.Tag{}}
+	} else if err != nil {
 		return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to get bucket tags")
 	}
+
 	var foundTag bool
 	for _, tagSet := range getBucketTags.TagSet {
 		if aws.StringValue(tagSet.Key) == "ridecell-operator" {

@@ -111,6 +111,9 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 				},
 			},
 		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to tag user")
+		}
 	}
 
 	// Get inline user policy names
@@ -198,7 +201,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	_, ok1 := fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"]
 
 	if !ok0 || !ok1 {
-		// Find any access keys related attached to this user
+		// Find any unrelated access keys attached to this user
 		existingAccessKeys, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: user.UserName})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to list access keys")
