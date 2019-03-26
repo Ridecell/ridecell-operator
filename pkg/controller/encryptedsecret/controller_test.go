@@ -50,7 +50,7 @@ var _ = Describe("encryptedsecret controller", func() {
 		getCallerIdentityOutput, err := stssvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 		Expect(err).NotTo(HaveOccurred())
 		if aws.StringValue(getCallerIdentityOutput.Account) != os.Getenv("AWS_TESTING_ACCOUNT_ID") {
-			Skip("These tests should only be run on the testing account.")
+			panic("These tests should only be run on the testing account.")
 		}
 
 		encryptedSecret = &secretsv1beta1.EncryptedSecret{
@@ -75,16 +75,16 @@ var _ = Describe("encryptedsecret controller", func() {
 		}
 		c.Create(encryptedSecret)
 
+		fetchEncryptedSecret := &secretsv1beta1.EncryptedSecret{}
+		c.EventuallyGet(helpers.Name("test"), fetchEncryptedSecret, c.EventuallyStatus(secretsv1beta1.StatusReady))
+
 		fetchSecret := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test"), fetchSecret)
+		c.Get(helpers.Name("test"), fetchSecret)
 
 		Expect(string(fetchSecret.Data["test0"])).To(Equal("Testing1234"))
 		Expect(string(fetchSecret.Data["test1"])).To(Equal("thisisanecryptedvalue"))
 		Expect(string(fetchSecret.Data["test2"])).To(Equal("moretestvalues"))
 		Expect(string(fetchSecret.Data["test3"])).To(Equal(`\i\heard\you\like\back\slashes\`))
-
-		fetchEncryptedSecret := &secretsv1beta1.EncryptedSecret{}
-		c.EventuallyGet(helpers.Name("test"), fetchEncryptedSecret, c.EventuallyStatus(secretsv1beta1.StatusReady))
 	})
 
 	It("tries to decrypt key with wrong or missing encryption context", func() {
@@ -124,11 +124,11 @@ var _ = Describe("encryptedsecret controller", func() {
 		c := helpers.TestClient
 		c.Create(encryptedSecret)
 
-		fetchSecret := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test"), fetchSecret)
-		Expect(len(fetchSecret.Data)).To(Equal(0))
-
 		fetchEncryptedSecret := &secretsv1beta1.EncryptedSecret{}
 		c.EventuallyGet(helpers.Name("test"), fetchEncryptedSecret, c.EventuallyStatus(secretsv1beta1.StatusReady))
+
+		fetchSecret := &corev1.Secret{}
+		c.Get(helpers.Name("test"), fetchSecret)
+		Expect(len(fetchSecret.Data)).To(Equal(0))
 	})
 })
