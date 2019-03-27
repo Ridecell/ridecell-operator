@@ -29,6 +29,7 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("rabbitmq-user-controller", mgr, &dbv1beta1.RabbitmqUser{}, nil, []components.Component{
 		rmqucomponents.NewDefaults(),
+		rmqucomponents.NewSecrets(),
 		rmqucomponents.NewUser(),
 	})
 	return err

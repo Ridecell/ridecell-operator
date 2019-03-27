@@ -118,6 +118,7 @@ func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bo
 
 func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
 	specInputSecrets, err := comp.fetchSecrets(ctx, instance, instance.Spec.Secrets, false)
 	if err != nil {
 		return components.Result{}, err
@@ -126,6 +127,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	if err != nil {
 		return components.Result{Requeue: true}, err
 	}
+
 	// This order must match the one in inputSecrets().
 	postgresSecret := dynamicInputSecrets[0]
 	fernetKeys := dynamicInputSecrets[1]

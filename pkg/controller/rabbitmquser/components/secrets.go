@@ -49,7 +49,7 @@ func (comp *secretsComponent) Reconcile(ctx *components.ComponentContext) (compo
 	secretName := fmt.Sprintf("%s.rabbitmq-user-password", instance.Name)
 
 	// Generate password for user
-	userPassword := RandStringRunes(20)
+	userPassword := randStringRunes(20)
 	target := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: instance.Namespace},
 		Data: map[string][]byte{
@@ -71,7 +71,7 @@ func (comp *secretsComponent) Reconcile(ctx *components.ComponentContext) (compo
 	return components.Result{}, nil
 }
 
-func RandStringRunes(n int) string {
+func randStringRunes(n int) string {
 	rand.Seed(time.Now().UnixNano())
 	var alphaNumList = []rune("123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, n)
