@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type userComponent struct {
@@ -68,28 +67,6 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	rmqHost := os.Getenv("RABBITMQ_NODE")
 	rmqUser := os.Getenv("RABBITMQ_SUPERUSER")
 	rmqPass := os.Getenv("RABBITMQ_SUPERUSER_PASSWORD")
-	secret := &corev1.Secret{}
-	secret.Data = make(map[string][]byte)
-	secret.Data["RABBITMQ_NODE"] = []byte(rmqHost)
-	secret.Data["RABBITMQ_SUPERUSER"] = []byte(rmqUser)
-	secret.Data["RABBITMQ_SUPERUSER_PASSWORD"] = []byte(rmqPass)
-
-	_, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, rabbitmqCredentials.DeepCopyObject(), func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
-		// Sync important fields.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		if err != nil {
-			return errors.Wrapf(err, "iam_user: Failed to set controller reference")
-		}
-		existing.Labels = fetchAccessKey.Labels
-		existing.Annotations = fetchAccessKey.Annotations
-		existing.Type = fetchAccessKey.Type
-		existing.Data = fetchAccessKey.Data
-		return nil
-	})
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "iam_user: failed to create or update secret")
-	}
 
 	if rmqHost == "" || rmqUser == "" || rmqPass == "" {
 		return components.Result{}, errors.New("empty rabbitmq connection credentials")
@@ -102,6 +79,7 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}
 
+	secret := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "rabbitmq: Unable to load password secret %s/%s", instance.Namespace, secretName)
