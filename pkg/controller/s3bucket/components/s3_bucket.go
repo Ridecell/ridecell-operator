@@ -116,8 +116,7 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 		MaxKeys: aws.Int64(1), // We don't actually care about the keys, so set this down for perf.
 	})
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if ok && aerr.Code() == s3.ErrCodeNoSuchBucket {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == s3.ErrCodeNoSuchBucket {
 			bucketExists = false
 		} else {
 			return components.Result{}, errors.Wrapf(err, "s3_bucket: error listing objects in %s", instance.Spec.BucketName)
@@ -173,8 +172,7 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 	bucketHasPolicy := true
 	getBucketPolicyObj, err := s3Service.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(instance.Spec.BucketName)})
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if ok && aerr.Code() == "NoSuchBucketPolicy" { // There is no ErrCode const for this error. What?
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NoSuchBucketPolicy" {
 			bucketHasPolicy = false
 		} else {
 			return components.Result{}, errors.Wrapf(err, "s3_bucket: failed to get bucket policy for bucket %s", instance.Spec.BucketName)
@@ -263,10 +261,8 @@ func (comp *s3BucketComponent) deleteDependencies(ctx *components.ComponentConte
 		return aws.BoolValue(page.IsTruncated)
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != s3.ErrCodeNoSuchBucket {
-				return components.Result{}, errors.Wrapf(aerr, "s3bucket: failed to get objects for finalizer")
-			}
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != s3.ErrCodeNoSuchBucket {
+			return components.Result{}, errors.Wrapf(err, "s3bucket: failed to get objects for finalizer")
 		}
 	}
 
@@ -282,10 +278,8 @@ func (comp *s3BucketComponent) deleteDependencies(ctx *components.ComponentConte
 
 	_, err = s3Service.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(instance.Spec.BucketName)})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != s3.ErrCodeNoSuchBucket {
-				return components.Result{}, errors.Wrapf(aerr, "s3bucket: failed to delete bucket for finalizer")
-			}
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != s3.ErrCodeNoSuchBucket {
+			return components.Result{}, errors.Wrapf(aerr, "s3bucket: failed to delete bucket for finalizer")
 		}
 	}
 	return components.Result{}, nil

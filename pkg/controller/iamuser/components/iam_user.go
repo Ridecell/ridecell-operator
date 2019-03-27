@@ -100,20 +100,18 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	var user *iam.User
 	getUserOutput, err := comp.iamAPI.GetUser(&iam.GetUserInput{UserName: aws.String(instance.Spec.UserName)})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
-				return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to get user")
-			}
-			// If user does not exist create it
-			createUserOutput, err := comp.iamAPI.CreateUser(&iam.CreateUserInput{
-				UserName:            aws.String(instance.Spec.UserName),
-				PermissionsBoundary: aws.String(instance.Spec.PermissionsBoundaryArn),
-			})
-			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "iam_user: failed to create user")
-			}
-			user = createUserOutput.User
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to get user")
 		}
+		// If user does not exist create it
+		createUserOutput, err := comp.iamAPI.CreateUser(&iam.CreateUserInput{
+			UserName:            aws.String(instance.Spec.UserName),
+			PermissionsBoundary: aws.String(instance.Spec.PermissionsBoundaryArn),
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to create user")
+		}
+		user = createUserOutput.User
 	} else {
 		// If getUser did not return an error
 		user = getUserOutput.User
@@ -289,10 +287,8 @@ func (comp *iamUserComponent) deleteDependencies(ctx *components.ComponentContex
 	listAccessKeysOutput, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: aws.String(instance.Spec.UserName)})
 	// If the user doesn't exist skip error
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
-				return components.Result{}, errors.Wrapf(err, "iamuser: failed to list access keys for finalizer")
-			}
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to list access keys for finalizer")
 		}
 	}
 	for _, accessKey := range listAccessKeysOutput.AccessKeyMetadata {
@@ -308,10 +304,8 @@ func (comp *iamUserComponent) deleteDependencies(ctx *components.ComponentContex
 	listUserPoliciesOutput, err := comp.iamAPI.ListUserPolicies(&iam.ListUserPoliciesInput{UserName: aws.String(instance.Spec.UserName)})
 	// If the user doesn't exist skip error
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
-				return components.Result{}, errors.Wrapf(err, "iamuser: failed to list user policies for finalizer")
-			}
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to list user policies for finalizer")
 		}
 	}
 	for _, userPolicy := range listUserPoliciesOutput.PolicyNames {
@@ -326,10 +320,8 @@ func (comp *iamUserComponent) deleteDependencies(ctx *components.ComponentContex
 	_, err = comp.iamAPI.DeleteUser(&iam.DeleteUserInput{UserName: aws.String(instance.Spec.UserName)})
 	// If the user doesn't exist skip error
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
-				return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to delete user for finalizer")
-			}
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to delete user for finalizer")
 		}
 	}
 	return components.Result{}, nil
