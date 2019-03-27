@@ -26,9 +26,9 @@ import (
 type RabbitmqUserSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Username   string             `json:"username"`
-	Tags       string             `json:"tags"`
-	Connection RabbitmqConnection `json:"connection"`
+	Username     string `json:"username"`
+	Tags         string `json:"tags"`
+	InsecureSkip bool   `json:"insecureSkip,omitempty"` // skip server certificate trust, by default false
 }
 
 // RabbitmqUserStatus defines the observed state of RabbitmqUser

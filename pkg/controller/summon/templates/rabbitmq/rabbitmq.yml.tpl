@@ -6,7 +6,4 @@ metadata:
 spec:
  username: {{ .Instance.Name }}-user
  tags: policymaker
- connection:
-   username: ridecell-operator
-   passwordSecretRef: ridecell-operator-rabbitmq.credentials
-   host: {{ .Instance.Spec.Database.Connection.Host }}
+ insecureSkip: false

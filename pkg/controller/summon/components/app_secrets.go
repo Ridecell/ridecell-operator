@@ -166,13 +166,13 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
 	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
 	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
+	appSecretsData["RABBITMQ_USER_PASSWORD"] = string(awsSecret.Data["password"])
 
 	for _, secret := range specInputSecrets {
 		for k, v := range secret.Data {
 			appSecretsData[k] = string(v)
 		}
 	}
-
 	yamlData, err := yaml.Marshal(appSecretsData)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")

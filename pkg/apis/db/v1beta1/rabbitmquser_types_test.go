@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	help "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -53,14 +52,6 @@ var _ = Describe("RabbitmqUser types", func() {
 			Spec: dbv1beta1.RabbitmqUserSpec{
 				Username: "rabbitmq-test",
 				Tags:     "policymaker, none",
-				Connection: dbv1beta1.RabbitmqConnection{
-					Username: "rabbit-admin",
-					Password: help.SecretRef{
-						Name: "node.credentials",
-						Key:  "password",
-					},
-					Host: "http://rabbitmq-node:15672",
-				},
 			},
 		}
 		err := c.Create(context.TODO(), created)

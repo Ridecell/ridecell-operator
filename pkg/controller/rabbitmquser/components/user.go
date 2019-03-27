@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
+	"os"
 )
 
 type userComponent struct {
@@ -59,18 +60,20 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	secretName := fmt.Sprintf("%s.rabbitmq-user-password", instance.Name)
 
 	transport := &http.Transport{TLSClientConfig: &tls.Config{
-		InsecureSkipVerify: instance.Spec.Connection.InsecureSkip,
+		InsecureSkipVerify: instance.Spec.InsecureSkip,
 	},
 	}
 
-	hostPassword, err := instance.Spec.Connection.Password.Resolve(ctx, "password")
+	rmqHost := os.Getenv("RABBITMQ_NODE")
+	rmqUser := os.Getenv("RABBITMQ_SUPERUSER")
+	rmqPass := os.Getenv("RABBITMQ_SUPERUSER_PASSWORD")
 
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "error resolving rabbitmq connection credentials")
+	if rmqHost == "" || rmqUser == "" || rmqPass == "" {
+		return components.Result{}, errors.New("empty rabbitmq connection credentials")
 	}
 
 	// Connect to the rabbitmq cluster
-	rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, hostPassword, transport)
+	rmqc, err := comp.Client(rmqHost, rmqUser, rmqPass, transport)
 
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
