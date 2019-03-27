@@ -19,6 +19,7 @@ package summon_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -36,6 +37,7 @@ import (
 var _ = Describe("Summon controller appsecrets", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.SummonPlatform
+	var oldRabbitHost string
 
 	// Test helper functions.
 	getData := func(obj runtime.Object) (interface{}, error) {
@@ -82,6 +84,17 @@ var _ = Describe("Summon controller appsecrets", func() {
 		return secret
 	}
 
+	createRmqSecret := func() *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		helpers.TestClient.Create(secret)
+		return secret
+	}
+
 	createInstance := func() {
 		instance.Spec.Secrets = []string{"testsecret"}
 		helpers.TestClient.Create(instance)
@@ -95,6 +108,10 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
+
+		// Set up $RABBITMQ_HOST_DEV.
+		oldRabbitHost = os.Getenv("RABBITMQ_HOST_DEV")
+		os.Setenv("RABBITMQ_HOST_DEV", "myrabbitserver")
 
 		// Set up the instance object for other tests.
 		instance = &summonv1beta1.SummonPlatform{
@@ -126,6 +143,9 @@ var _ = Describe("Summon controller appsecrets", func() {
 			}
 		}
 
+		// Restore $RABBITMQ_HOST_DEV.
+		os.Setenv("RABBITMQ_HOST_DEV", oldRabbitHost)
+
 		helpers.TeardownTest()
 	})
 
@@ -136,6 +156,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		createInputSecret()
 		createAwsSecret()
 		createDbSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
@@ -149,6 +170,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		err := yaml.Unmarshal(appSecret.Data["summon-platform.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data["DATABASE_URL"]).To(Equal("postgis://summon:secretdbpass@appsecretstest-database/summon"))
+		Expect(data["CELERY_BROKER_URL"]).To(Equal("pyamqp://appsecretstest-user:secretrabbitpass@myrabbitserver/appsecretstest?ssl=true"))
 		Expect(data["TOKEN"]).To(Equal("secrettoken"))
 	})
 
@@ -158,6 +180,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		// Create some of the input secrets.
 		createInputSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
@@ -184,6 +207,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		createInputSecret()
 		dbSecret := createDbSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
@@ -204,6 +228,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		// Create some of the input secrets.
 		createDbSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
@@ -219,6 +244,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		inputSecret := createInputSecret()
 		createDbSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()

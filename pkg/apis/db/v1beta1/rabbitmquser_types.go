@@ -20,21 +20,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // RabbitmqUserSpec defines the desired state of RabbitmqUser
 type RabbitmqUserSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	Username     string `json:"username"`
-	Tags         string `json:"tags"`
-	InsecureSkip bool   `json:"insecureSkip,omitempty"` // skip server certificate trust, by default false
+	Username   string             `json:"username"`
+	Tags       string             `json:"tags"`
+	Connection RabbitmqConnection `json:"connection,omitempty"`
 }
 
 // RabbitmqUserStatus defines the observed state of RabbitmqUser
 type RabbitmqUserStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }

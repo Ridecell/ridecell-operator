@@ -19,6 +19,7 @@ package components
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -133,9 +134,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	fernetKeys := dynamicInputSecrets[1]
 	secretKey := dynamicInputSecrets[2]
 	awsSecret := dynamicInputSecrets[3]
-	rabbitmqPassword := dynamicInputSecrets[4]
+	rabbitmqSecret := dynamicInputSecrets[4]
 
-	fmt.Println(rabbitmqPassword)
 	postgresDatabase, postgresUser := comp.postgresNames(instance)
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
@@ -156,17 +156,29 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		return components.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
 	}
 
+	val, ok = rabbitmqSecret.Data["password"]
+	if !ok || len(val) == 0 {
+		return components.Result{}, errors.New("app_secrets: Invalid data in RabbitMQ password secret")
+	}
+
+	// This is messy, fixme.
+	var rmqHost string
+	if instance.Namespace == "prod" || instance.Namespace == "uat" {
+		rmqHost = os.Getenv("RABBITMQ_HOST_PROD")
+	} else {
+		rmqHost = os.Getenv("RABBITMQ_HOST_DEV")
+	}
+
 	appSecretsData := map[string]interface{}{}
 
 	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s-database/%s", postgresUser, postgresPassword, postgresDatabase, postgresUser)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
-	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
+	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s-user:%s@%s/%s?ssl=true", instance.Name, rabbitmqSecret.Data["password"], rmqHost, instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
 	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
 	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
-	appSecretsData["RABBITMQ_USER_PASSWORD"] = string(awsSecret.Data["password"])
 
 	for _, secret := range specInputSecrets {
 		for k, v := range secret.Data {

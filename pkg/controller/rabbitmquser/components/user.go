@@ -17,8 +17,8 @@ limitations under the License.
 package components
 
 import (
-	"crypto/tls"
 	"fmt"
+
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
@@ -27,16 +27,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
-	"os"
 )
 
 type userComponent struct {
 	Client utils.NewTLSClientFactory
-}
-
-func RabbitholeTLSClientFactory(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
-	return rabbithole.NewTLSClient(uri, user, pass, t)
 }
 
 func (comp *userComponent) InjectFakeNewTLSClient(fakeFunc utils.NewTLSClientFactory) {
@@ -44,7 +38,7 @@ func (comp *userComponent) InjectFakeNewTLSClient(fakeFunc utils.NewTLSClientFac
 }
 
 func NewUser() *userComponent {
-	return &userComponent{Client: RabbitholeTLSClientFactory}
+	return &userComponent{Client: utils.RabbitholeTLSClientFactory}
 }
 
 func (_ *userComponent) WatchTypes() []runtime.Object {
@@ -59,22 +53,8 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	instance := ctx.Top.(*dbv1beta1.RabbitmqUser)
 	secretName := fmt.Sprintf("%s.rabbitmq-user-password", instance.Name)
 
-	transport := &http.Transport{TLSClientConfig: &tls.Config{
-		InsecureSkipVerify: instance.Spec.InsecureSkip,
-	},
-	}
-
-	rmqHost := os.Getenv("RABBITMQ_NODE")
-	rmqUser := os.Getenv("RABBITMQ_SUPERUSER")
-	rmqPass := os.Getenv("RABBITMQ_SUPERUSER_PASSWORD")
-
-	if rmqHost == "" || rmqUser == "" || rmqPass == "" {
-		return components.Result{}, errors.New("empty rabbitmq connection credentials")
-	}
-
 	// Connect to the rabbitmq cluster
-	rmqc, err := comp.Client(rmqHost, rmqUser, rmqPass, transport)
-
+	rmqc, err := utils.OpenRabbit(ctx, instance.Spec.Connection, comp.Client)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}

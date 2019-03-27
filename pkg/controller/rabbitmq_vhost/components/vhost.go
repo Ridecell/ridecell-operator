@@ -17,36 +17,24 @@ limitations under the License.
 package components
 
 import (
-	"crypto/tls"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 	"github.com/michaelklishin/rabbit-hole"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"net/http"
 )
 
 type vhostComponent struct {
-	Client NewTLSClientFactory
+	Client utils.NewTLSClientFactory
 }
 
-type RabbitMQManager interface {
-	ListVhosts() ([]rabbithole.VhostInfo, error)
-	PutVhost(string, rabbithole.VhostSettings) (*http.Response, error)
-}
-
-type NewTLSClientFactory func(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error)
-
-func RabbitholeTLSClientFactory(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error) {
-	return rabbithole.NewTLSClient(uri, user, pass, t)
-}
-
-func (comp *vhostComponent) InjectFakeNewTLSClient(fakeFunc NewTLSClientFactory) {
+func (comp *vhostComponent) InjectFakeNewTLSClient(fakeFunc utils.NewTLSClientFactory) {
 	comp.Client = fakeFunc
 }
 
 func NewVhost() *vhostComponent {
-	return &vhostComponent{Client: RabbitholeTLSClientFactory}
+	return &vhostComponent{Client: utils.RabbitholeTLSClientFactory}
 }
 
 func (_ *vhostComponent) WatchTypes() []runtime.Object {
@@ -60,19 +48,8 @@ func (_ *vhostComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
 
-	transport := &http.Transport{TLSClientConfig: &tls.Config{
-		InsecureSkipVerify: instance.Spec.Connection.InsecureSkip,
-	},
-	}
-
-	hostPassword, err := instance.Spec.Connection.Password.Resolve(ctx, "password")
-
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "error resolving rabbitmq connection credentials")
-	}
-
 	// Connect to the rabbitmq cluster
-	rmqc, err := comp.Client(instance.Spec.Connection.Host, instance.Spec.Connection.Username, hostPassword, transport)
+	rmqc, err := utils.OpenRabbit(ctx, instance.Spec.Connection, comp.Client)
 
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
