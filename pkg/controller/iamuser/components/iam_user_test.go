@@ -170,7 +170,7 @@ var _ = Describe("iam_user aws Component", func() {
 			mockIAM.mockhasUserPolicies = true
 			mockIAM.mockUserExists = true
 			currentTime := metav1.Now()
-			instance.ObjectMeta.DeletionTimestamp = &currentTime
+			instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
 			instance.Spec.InlinePolicies = map[string]string{
 				"test777": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
 			}
@@ -187,7 +187,7 @@ var _ = Describe("iam_user aws Component", func() {
 		It("simulates user not existing during finalizer deletion", func() {
 			currentTime := metav1.Now()
 			mockIAM.finalizerTest = true
-			instance.ObjectMeta.DeletionTimestamp = &currentTime
+			instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
 
 			Expect(comp).To(ReconcileContext(ctx))
 

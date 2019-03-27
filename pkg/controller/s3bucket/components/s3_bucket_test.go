@@ -166,7 +166,7 @@ var _ = Describe("s3bucket aws Component", func() {
 		It("sets deletiontimestamp to non-zero", func() {
 			mockS3.mockBucketExists = true
 			currentTime := metav1.Now()
-			instance.ObjectMeta.DeletionTimestamp = &currentTime
+			instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
 
 			Expect(comp).To(ReconcileContext(ctx))
 
@@ -179,7 +179,7 @@ var _ = Describe("s3bucket aws Component", func() {
 
 		It("simulates bucket not existing during finalizer deletion", func() {
 			currentTime := metav1.Now()
-			instance.ObjectMeta.DeletionTimestamp = &currentTime
+			instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
 
 			Expect(comp).To(ReconcileContext(ctx))
 
@@ -204,7 +204,7 @@ func (m *mockS3Client) ListObjectsV2Pages(input *s3.ListObjectsV2Input, fn func(
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
 		return awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
 	}
-	fn(&s3.ListObjectsV2Output{IsTruncated: aws.Bool(false)}, false)
+	fn(&s3.ListObjectsV2Output{IsTruncated: aws.Bool(false)}, true)
 	return nil
 }
 
