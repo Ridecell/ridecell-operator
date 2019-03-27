@@ -200,6 +200,14 @@ func (m *mockS3Client) ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsO
 	}
 }
 
+func (m *mockS3Client) ListObjectsV2Pages(input *s3.ListObjectsV2Input, fn func(*s3.ListObjectsV2Output, bool) bool) error {
+	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
+		return awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
+	}
+	fn(&s3.ListObjectsV2Output{IsTruncated: aws.Bool(false)}, false)
+	return nil
+}
+
 func (m *mockS3Client) CreateBucket(input *s3.CreateBucketInput) (*s3.CreateBucketOutput, error) {
 	if aws.StringValue(input.Bucket) != instance.Spec.BucketName {
 		return nil, awserr.New(s3.ErrCodeNoSuchBucket, "", nil)
