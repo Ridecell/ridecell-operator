@@ -11,7 +11,7 @@ jobs:
         keys:
         - v1-vendor-{{ checksum "Gopkg.lock" }}
         - v1-vendor
-    - run: head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8 > rand_owner_prefix
+    - run: echo "export RAND_OWNER_PREFIX=$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
     - run: sudo mkdir /usr/local/kubebuilder/
     - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
     - run: make dep test

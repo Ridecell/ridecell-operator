@@ -18,10 +18,8 @@ package iamuser_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,8 +34,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-const timeout = time.Second * 10
 
 var sess *session.Session
 var iamsvc *iam.IAM
@@ -56,11 +52,9 @@ var _ = Describe("iamuser controller", func() {
 			Skip("$AWS_TEST_ACCOUNT_PERMISSIONS_BOUNDARY_ARN not set, skipping iamuser integration tests")
 		}
 
+		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
 		if randOwnerPrefix == "" {
-			// ../../../ feels a bit awkward but it works
-			fileBytes, err := ioutil.ReadFile("../../../rand_owner_prefix")
-			Expect(err).ToNot(HaveOccurred())
-			randOwnerPrefix = string(fileBytes)
+			panic("$RAND_OWNER_PREFIX not set, failing test")
 		}
 
 		var err error
@@ -130,24 +124,19 @@ var _ = Describe("iamuser controller", func() {
 		iamUser.Spec.UserName = fmt.Sprintf("%s-basicuser-test-summon-platform", randOwnerPrefix)
 		c.Create(iamUser)
 
-		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
-		Eventually(func() bool { return userHasValidTag() }, timeout).Should(BeTrue())
-		Eventually(func() []*string { return getUserPolicyNames() }, timeout).Should(HaveLen(2))
-		Expect(getUserPolicyDocument("allow_s3")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_s3"]))
-		Expect(getUserPolicyDocument("allow_sqs")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_sqs"]))
-		Eventually(func() []*iam.AccessKeyMetadata { return getAccessKeys() }, timeout).Should(HaveLen(1))
-
-		fetchAccessKey := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test.aws-credentials"), fetchAccessKey, c.EventuallyTimeout(timeout))
-
-		userAccessKeys := getAccessKeys()
-		Expect(aws.StringValue(userAccessKeys[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
-
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
-		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+		fetchAccessKey := &corev1.Secret{}
+		c.Get(helpers.Name("test.aws-credentials"), fetchAccessKey)
+
+		Expect(aws.StringValue(getAccessKeys()[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
+		Expect(userExists()).ToNot(HaveOccurred())
+		Expect(userHasValidTag()).To(BeTrue())
+		Expect(getUserPolicyNames()).To(HaveLen(2))
+		Expect(getUserPolicyDocument("allow_s3")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_s3"]))
+		Expect(getUserPolicyDocument("allow_sqs")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_sqs"]))
+		Expect(getAccessKeys()).To(HaveLen(1))
 	})
 
 	It("deletes old access key that does not match secret", func() {
@@ -167,24 +156,19 @@ var _ = Describe("iamuser controller", func() {
 		iamUser.Spec.UserName = username
 		c.Create(iamUser)
 
-		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
-		Eventually(func() bool { return userHasValidTag() }, timeout).Should(BeTrue())
-		Eventually(func() []*string { return getUserPolicyNames() }, timeout).Should(HaveLen(2))
-		Expect(getUserPolicyDocument("allow_s3")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_s3"]))
-		Expect(getUserPolicyDocument("allow_sqs")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_sqs"]))
-		Eventually(func() []*iam.AccessKeyMetadata { return getAccessKeys() }, timeout).Should(HaveLen(1))
-
-		fetchAccessKey := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test.aws-credentials"), fetchAccessKey, c.EventuallyTimeout(timeout))
-
-		userAccessKeys := getAccessKeys()
-		Expect(aws.StringValue(userAccessKeys[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
-
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
-		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+		fetchAccessKey := &corev1.Secret{}
+		c.Get(helpers.Name("test.aws-credentials"), fetchAccessKey)
+
+		Expect(aws.StringValue(getAccessKeys()[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
+		Expect(userExists()).ToNot(HaveOccurred())
+		Expect(userHasValidTag()).To(BeTrue())
+		Expect(getUserPolicyNames()).To(HaveLen(2))
+		Expect(getUserPolicyDocument("allow_s3")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_s3"]))
+		Expect(getUserPolicyDocument("allow_sqs")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_sqs"]))
+		Expect(getAccessKeys()).To(HaveLen(1))
 	})
 
 	It("deletes existing user policies not in spec", func() {
@@ -215,24 +199,19 @@ var _ = Describe("iamuser controller", func() {
 		iamUser.Spec.UserName = username
 		c.Create(iamUser)
 
-		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
-		Eventually(func() bool { return userHasValidTag() }, timeout).Should(BeTrue())
-		Eventually(func() []*string { return getUserPolicyNames() }, timeout).Should(HaveLen(2))
-		Expect(getUserPolicyDocument("allow_s3")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_s3"]))
-		Expect(getUserPolicyDocument("allow_sqs")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_sqs"]))
-		Eventually(func() []*iam.AccessKeyMetadata { return getAccessKeys() }, timeout).Should(HaveLen(1))
-
-		fetchAccessKey := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test.aws-credentials"), fetchAccessKey, c.EventuallyTimeout(timeout))
-
-		userAccessKeys := getAccessKeys()
-		Expect(aws.StringValue(userAccessKeys[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
-
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(1))
-		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+		fetchAccessKey := &corev1.Secret{}
+		c.Get(helpers.Name("test.aws-credentials"), fetchAccessKey)
+
+		Expect(aws.StringValue(getAccessKeys()[0].AccessKeyId)).To(Equal(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])))
+		Expect(userExists()).ToNot(HaveOccurred())
+		Expect(userHasValidTag()).To(BeTrue())
+		Expect(getUserPolicyNames()).To(HaveLen(2))
+		Expect(getUserPolicyDocument("allow_s3")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_s3"]))
+		Expect(getUserPolicyDocument("allow_sqs")).To(MatchJSON(iamUser.Spec.InlinePolicies["allow_sqs"]))
+		Expect(getAccessKeys()).To(HaveLen(1))
 	})
 
 	It("fails to create user with bad inlinepolicies json", func() {
@@ -242,10 +221,6 @@ var _ = Describe("iamuser controller", func() {
 		iamUser.Spec.InlinePolicies["allow_s3"] = "invalid"
 		iamUser.Spec.InlinePolicies["allow_sqs"] = "invalid"
 		c.Create(iamUser)
-
-		Eventually(func() error { return userExists() }, timeout).Should(Succeed())
-		Eventually(func() bool { return userHasValidTag() }, timeout).Should(BeTrue())
-		Consistently(func() []*string { return getUserPolicyNames() }, 3*time.Second, time.Second).Should(HaveLen(0))
 
 		fetchIAMUser := &awsv1beta1.IAMUser{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMUser, c.EventuallyStatus(awsv1beta1.StatusError))
@@ -282,6 +257,10 @@ var _ = Describe("iamuser controller", func() {
 		Expect(fetchIAMUser.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
 
+		Expect(userExists()).ToNot(HaveOccurred())
+		Expect(userHasValidTag()).To(BeTrue())
+		Expect(getUserPolicyNames()).To(HaveLen(0))
+	})
 })
 
 func userExists() error {

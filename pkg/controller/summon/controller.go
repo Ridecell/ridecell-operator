@@ -38,7 +38,8 @@ func Add(mgr manager.Manager) error {
 
 		// aws stuff
 		summoncomponents.NewIAMUser("aws/iamuser.yml.tpl"),
-		summoncomponents.NewS3Bucket("aws/s3bucket.yml.tpl"),
+		summoncomponents.NewS3Bucket("aws/staticbucket.yml.tpl"),
+		summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl"),
 
 		// Secrets components
 		summoncomponents.NewSecretKey(),

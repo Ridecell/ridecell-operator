@@ -18,9 +18,7 @@ package s3bucket_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,8 +34,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const timeout = time.Second * 10
-
 var sess *session.Session
 var s3svc *s3.S3
 var s3Bucket *awsv1beta1.S3Bucket
@@ -52,11 +48,9 @@ var _ = Describe("s3bucket controller", func() {
 			Skip("$AWS_TESTING_ACCOUNT_ID not set, skipping s3bucket integration tests")
 		}
 
+		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
 		if randOwnerPrefix == "" {
-			// ../../../ feels a bit awkward but it works
-			fileBytes, err := ioutil.ReadFile("../../../rand_owner_prefix")
-			Expect(err).ToNot(HaveOccurred())
-			randOwnerPrefix = string(fileBytes)
+			panic("$RAND_OWNER_PREFIX not set, failing test")
 		}
 
 		var err error
@@ -70,7 +64,7 @@ var _ = Describe("s3bucket controller", func() {
 		getCallerIdentityOutput, err := stssvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 		Expect(err).NotTo(HaveOccurred())
 		if aws.StringValue(getCallerIdentityOutput.Account) != os.Getenv("AWS_TESTING_ACCOUNT_ID") {
-			Skip("These tests should only be run on the testing account.")
+			panic("These tests should only be run on the testing account.")
 		}
 
 		s3svc = s3.New(sess)
@@ -113,15 +107,12 @@ var _ = Describe("s3bucket controller", func() {
 		}`, bucketName)
 		c.Create(s3Bucket)
 
-		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
-		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
-		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
-
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
-		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+		Expect(bucketExists()).ToNot(HaveOccurred())
+		Expect(bucketHasValidTag()).ToNot(HaveOccurred())
+		Expect(getBucketPolicy()).To(MatchJSON(s3Bucket.Spec.BucketPolicy))
 	})
 
 	It("has an invalid bucket policy", func() {
@@ -131,14 +122,11 @@ var _ = Describe("s3bucket controller", func() {
 		s3Bucket.Spec.BucketPolicy = "invalid"
 		c.Create(s3Bucket)
 
-		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
-		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
-
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusError))
 
-		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
-		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+		Expect(bucketExists()).ToNot(HaveOccurred())
+		Expect(bucketHasValidTag()).ToNot(HaveOccurred())
 	})
 
 	It("finds a bucket that already exists", func() {
@@ -161,15 +149,12 @@ var _ = Describe("s3bucket controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		c.Create(s3Bucket)
 
-		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
-		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
-		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
-
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
-		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+		Expect(bucketExists()).ToNot(HaveOccurred())
+		Expect(bucketHasValidTag()).ToNot(HaveOccurred())
+		Expect(getBucketPolicy()).To(MatchJSON(s3Bucket.Spec.BucketPolicy))
 	})
 
 	It("updates existing bucket policy", func() {
@@ -213,15 +198,12 @@ var _ = Describe("s3bucket controller", func() {
 
 		c.Create(s3Bucket)
 
-		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
-		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
-		Eventually(func() string { return getBucketPolicy() }, timeout).Should(MatchJSON(s3Bucket.Spec.BucketPolicy))
-
 		fetchBucket := &awsv1beta1.S3Bucket{}
 		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
 
-		Expect(fetchBucket.ObjectMeta.Finalizers).To(HaveLen(1))
-		Expect(fetchBucket.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+		Expect(bucketExists()).ToNot(HaveOccurred())
+		Expect(bucketHasValidTag()).ToNot(HaveOccurred())
+		Expect(getBucketPolicy()).To(MatchJSON(s3Bucket.Spec.BucketPolicy))
 	})
 
 	It("Has a blank BucketPolicy in spec", func() {
@@ -230,8 +212,11 @@ var _ = Describe("s3bucket controller", func() {
 		s3Bucket.Spec.BucketName = bucketName
 		c.Create(s3Bucket)
 
-		Eventually(func() error { return bucketExists() }, timeout).Should(Succeed())
-		Eventually(func() error { return bucketHasValidTag() }, timeout).Should(Succeed())
+		fetchBucket := &awsv1beta1.S3Bucket{}
+		c.EventuallyGet(helpers.Name("test"), fetchBucket, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(bucketExists()).ToNot(HaveOccurred())
+		Expect(bucketHasValidTag()).ToNot(HaveOccurred())
 
 		_, err := s3svc.GetBucketPolicy(&s3.GetBucketPolicyInput{Bucket: aws.String(bucketName)})
 		Expect(err).To(HaveOccurred())
