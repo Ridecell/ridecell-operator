@@ -28,6 +28,7 @@ spec:
                    "Resource": "arn:aws:s3:::ridecell-{{ .Instance.Name }}-static/*"
                 }
               ]
+            }
    allow_s3_miv: |
             {
                "Version": "2012-10-17",
