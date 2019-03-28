@@ -133,6 +133,15 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Create(accessKey)
 
+		// Create fake rmq creds from rabbitmquser controller
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		c.Create(rmqSecret)
+
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
 		c.Status().Update(postgres)
@@ -216,6 +225,16 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), accessKey)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create fake rmq creds from rabbitmquser controller
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		err = c.Create(context.TODO(), rmqSecret)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of PullSecret to ready.
@@ -326,6 +345,17 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), accessKey)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create fake rmq creds from rabbitmquser controller
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		err = c.Create(context.TODO(), rmqSecret)
+
 		Expect(err).NotTo(HaveOccurred())
 		inSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
