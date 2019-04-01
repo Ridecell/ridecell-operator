@@ -17,10 +17,9 @@ limitations under the License.
 package components_test
 
 import (
+	"github.com/michaelklishin/rabbit-hole"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/michaelklishin/rabbit-hole"
 	"net/http"
 
 	"crypto/sha512"
@@ -87,7 +86,7 @@ var _ = Describe("RabbitmqUser Component", func() {
 		ctx.Client = fake.NewFakeClient(dbSecret, rabbitSecret)
 	})
 
-	It("Reconcile with empty parameters", func() {
+	It("Reconcile with empty username", func() {
 		comp := rmqucomponents.NewUser()
 		instance.Spec.Username = ""
 		os.Setenv("RABBITMQ_HOST_DEV", "https://rabbitmq-prod:5671")
@@ -102,6 +101,10 @@ var _ = Describe("RabbitmqUser Component", func() {
 	})
 	It("Create new user if it does not exist", func() {
 		comp := rmqucomponents.NewUser()
+		instance.Spec.Username = "foo"
+		os.Setenv("RABBITMQ_HOST_DEV", "https://rabbitmq-prod:5671")
+		os.Setenv("RABBITMQ_SUPERUSER", "rabbitmq-superuser")
+		os.Setenv("RABBITMQ_SUPERUSER_PASSWORD", "rabbitmq-superuser-password")
 		mgr := &fakeRabbitClient{}
 		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
 			fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
@@ -112,6 +115,7 @@ var _ = Describe("RabbitmqUser Component", func() {
 		comp.InjectFakeNewTLSClient(fakeFunc)
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mgr.FakeUserList).To(HaveLen(1))
+		Ω(mgr.FakeUserList[0].Name).Should(Equal("foo"))
 	})
 	It("Fails to connect to unavailable rabbitmq host", func() {
 		comp := rmqucomponents.NewUser()
