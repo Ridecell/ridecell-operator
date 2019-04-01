@@ -25,7 +25,6 @@ import (
 
 	"crypto/sha512"
 	"encoding/hex"
-	"fmt"
 	rmqucomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmquser/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
@@ -63,13 +62,10 @@ func (frc *fakeRabbitClient) PutUser(username string, settings rabbithole.UserSe
 		}
 	}
 	if !user_exists {
-		//fmt.Println("hello")
 		frc.FakeUserList = append(frc.FakeUserList, rabbithole.UserInfo{Name: username, PasswordHash: passHash})
 		return &http.Response{StatusCode: 201}, nil
 	}
 	usr.PasswordHash = passHash
-	fmt.Println("FakeUserList")
-	fmt.Println(frc.FakeUserList)
 	return &http.Response{StatusCode: 200}, nil
 }
 
@@ -125,22 +121,5 @@ var _ = Describe("RabbitmqUser Component", func() {
 		os.Setenv("RABBITMQ_HOST_DEV", "htt://127.0.0.1:80")
 		comp := rmqucomponents.NewUser()
 		Expect(comp).ToNot(ReconcileContext(ctx))
-	})
-	It("Generates password if the user already exists", func() {
-		comp := rmqucomponents.NewUser()
-		mgr := &fakeRabbitClient{}
-		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
-			fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
-			mgr.FakeClient = fclient
-			mgr.FakeUserList = []rabbithole.UserInfo{}
-			return mgr, nil
-		}
-		comp.InjectFakeNewTLSClient(fakeFunc)
-		Expect(comp).To(ReconcileContext(ctx))
-		//fmt.Println(mgr.FakeUserList)
-		// Reconcile again, generates new password
-		//Expect(comp).To(ReconcileContext(ctx))
-		//fmt.Println(mgr.FakeUserList)
-
 	})
 })
