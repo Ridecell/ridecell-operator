@@ -17,12 +17,11 @@ limitations under the License.
 package components_test
 
 import (
-	"time"
-
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"time"
 
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,7 +34,7 @@ import (
 )
 
 var _ = Describe("app_secrets Component", func() {
-	var inSecret, postgresSecret, fernetKeys, secretKey, accessKey *corev1.Secret
+	var inSecret, postgresSecret, fernetKeys, rabbitmqPassword, secretKey, accessKey *corev1.Secret
 	var comp components.Component
 
 	BeforeEach(func() {
@@ -79,7 +78,14 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey)
+		rabbitmqPassword = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("rabbitmqpassword"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		comp = summoncomponents.NewAppSecret()
 	})
 
@@ -99,7 +105,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("Run reconcile with a blank postgres password", func() {
 		delete(postgresSecret.Data, "password")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("app_secrets: Postgres password not found in secret"))
 	})
@@ -118,7 +124,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://summon:postgresPassword@foo-database/summon"))
 		Expect(parsedYaml["OUTBOUNDSMS_URL"]).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo.ridecell.us/sms/receive/"))
-		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("redis://foo-redis/2"))
+		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-user:rabbitmqpassword@/foo?ssl=true"))
 		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
 		Expect(parsedYaml["AWS_ACCESS_KEY_ID"]).To(Equal("testid"))
 		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(Equal("testkey"))
@@ -150,7 +156,8 @@ var _ = Describe("app_secrets Component", func() {
 		addKey("-3h", "3")
 		addKey("-4h", "4")
 		addKey("-5h", "5")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey)
+		addKey("-6h", "6")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -164,7 +171,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(parsedYaml.Keys).To(Equal([]string{"1", "2", "3", "4", "5"}))
+		Expect(parsedYaml.Keys).To(Equal([]string{"1", "2", "3", "4", "5", "6"}))
 	})
 
 	It("runs reconcile with no secret_key", func() {
@@ -195,7 +202,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, fernetKeys, secretKey, accessKey)
+		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -218,7 +225,7 @@ var _ = Describe("app_secrets Component", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.shareddb-database.credentials", Namespace: "default"},
 			Data:       map[string][]byte{"password": []byte("postgresPassword")},
 		}
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -234,7 +241,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://foo:postgresPassword@shareddb-database/foo"))
 		Expect(parsedYaml["OUTBOUNDSMS_URL"]).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo.ridecell.us/sms/receive/"))
-		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("redis://foo-redis/2"))
+		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-user:rabbitmqpassword@/foo?ssl=true"))
 		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
 	})
 })
