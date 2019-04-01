@@ -82,6 +82,10 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 	})
 	It("Create new vhost if it does not exist", func() {
 		comp := rmqvcomponents.NewVhost()
+		instance.Spec.VhostName = "foo"
+		os.Setenv("RABBITMQ_HOST_DEV", "https://rabbitmq-prod:5671")
+		os.Setenv("RABBITMQ_SUPERUSER", "rabbitmq-superuser")
+		os.Setenv("RABBITMQ_SUPERUSER_PASSWORD", "rabbitmq-superuser-password")
 		mgr := &fakeRabbitClient{}
 		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
 			fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
@@ -92,6 +96,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		comp.InjectFakeNewTLSClient(fakeFunc)
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mgr.FakeVhostList).To(HaveLen(1))
+		Ω(mgr.FakeVhostList[0].Name).Should(Equal("foo"))
 	})
 	It("Fails to connect to unavailable rabbitmq host", func() {
 		comp := rmqvcomponents.NewVhost()
