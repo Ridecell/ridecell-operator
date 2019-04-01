@@ -49,7 +49,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
 
 	// Connect to the rabbitmq cluster
-	rmqc, err := utils.OpenRabbit(ctx, instance.Spec.Connection, comp.Client)
+	rmqc, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.Client)
 
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")

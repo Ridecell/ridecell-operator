@@ -19,15 +19,16 @@ package components_test
 import (
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	//corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	//"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var instance *dbv1beta1.RabbitmqUser
@@ -44,5 +45,13 @@ var _ = ginkgo.BeforeEach(func() {
 	instance = &dbv1beta1.RabbitmqUser{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 	}
+	//target := &corev1.Secret{
+	//	ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: instance.Namespace},
+	//	Data: map[string][]byte{
+	//		"password": []byte("rabbitmqpass"),
+	//	},
+	//}
 	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
+	//controllerutil.SetControllerReference(instance, target, ctx.Scheme)
+	//ctx.Create(ctx.Context, target)
 })

@@ -27,5 +27,6 @@ var _ = Describe("RabbitmqUser Defaults Component", func() {
 		comp := rmqucomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(instance.Spec.Username).To(Equal(instance.Name))
 	})
 })

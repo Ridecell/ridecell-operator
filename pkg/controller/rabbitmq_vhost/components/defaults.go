@@ -44,9 +44,5 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		// Default extension name is just the name of the resource.
 		instance.Spec.VhostName = instance.Name
 	}
-	if instance.Spec.Connection.Username == "" {
-		// Use "guest" as the default username.
-		instance.Spec.Connection.Username = "guest"
-	}
 	return components.Result{}, nil
 }

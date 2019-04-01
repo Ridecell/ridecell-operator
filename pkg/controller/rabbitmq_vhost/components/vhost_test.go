@@ -20,18 +20,19 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/michaelklishin/rabbit-hole"
-	"net/http"
-
 	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
+	"github.com/michaelklishin/rabbit-hole"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type fakeRabbitClient struct {
-	rmqvcomponents.RabbitMQManager
+	utils.RabbitMQManager
 	FakeClient    *rabbithole.Client
 	FakeVhostList []rabbithole.VhostInfo
 }
@@ -69,11 +70,11 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 	It("Reconcile with empty parameters", func() {
 		comp := rmqvcomponents.NewVhost()
 		instance.Spec.VhostName = ""
-		instance.Spec.Connection.Password.Key = ""
-		instance.Spec.Connection.Username = ""
-		instance.Spec.Connection.Host = ""
-		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
-			var mgr rmqvcomponents.RabbitMQManager = &fakeRabbitClient{}
+		os.Setenv("RABBITMQ_HOST_DEV", "https://rabbitmq-prod:5671")
+		os.Setenv("RABBITMQ_SUPERUSER", "rabbitmq-superuser")
+		os.Setenv("RABBITMQ_SUPERUSER_PASSWORD", "rabbitmq-superuser-password")
+		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
+			var mgr utils.RabbitMQManager = &fakeRabbitClient{}
 			return mgr, nil
 		}
 		comp.InjectFakeNewTLSClient(fakeFunc)
@@ -82,7 +83,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 	It("Create new vhost if it does not exist", func() {
 		comp := rmqvcomponents.NewVhost()
 		mgr := &fakeRabbitClient{}
-		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
+		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
 			fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
 			mgr.FakeClient = fclient
 			mgr.FakeVhostList = []rabbithole.VhostInfo{}
@@ -98,7 +99,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 	})
 	It("Fails to create a rabbithole Client", func() {
 		comp := rmqvcomponents.NewVhost()
-		instance.Spec.Connection.Host = "htt://127.0.0.1:80"
+		os.Setenv("RABBITMQ_HOST_DEV", "htt://127.0.0.1:80")
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 })

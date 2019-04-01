@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -81,15 +82,21 @@ var _ = Describe("RabbitmqUser Component", func() {
 				"password": []byte("secretrabbitmqpass"),
 			},
 		}
-		ctx.Client = fake.NewFakeClient(dbSecret)
+		rabbitSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"password": []byte("rabbitmqpass"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(dbSecret, rabbitSecret)
 	})
 
 	It("Reconcile with empty parameters", func() {
 		comp := rmqucomponents.NewUser()
 		instance.Spec.Username = ""
-		instance.Spec.Connection.Password.Key = ""
-		instance.Spec.Connection.Username = ""
-		instance.Spec.Connection.Host = ""
+		os.Setenv("RABBITMQ_HOST_DEV", "https://rabbitmq-prod:5671")
+		os.Setenv("RABBITMQ_SUPERUSER", "rabbitmq-superuser")
+		os.Setenv("RABBITMQ_SUPERUSER_PASSWORD", "rabbitmq-superuser-password")
 		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (utils.RabbitMQManager, error) {
 			var mgr utils.RabbitMQManager = &fakeRabbitClient{}
 			return mgr, nil
@@ -115,7 +122,7 @@ var _ = Describe("RabbitmqUser Component", func() {
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 	It("Fails to create a rabbithole Client", func() {
-		instance.Spec.Connection.Host = "htt://127.0.0.1:80"
+		os.Setenv("RABBITMQ_HOST_DEV", "htt://127.0.0.1:80")
 		comp := rmqucomponents.NewUser()
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})

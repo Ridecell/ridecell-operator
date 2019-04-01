@@ -29,7 +29,6 @@ var _ = Describe("RabbitmqVhost Defaults Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.VhostName).To(Equal(instance.Name))
-		Expect(instance.Spec.Connection.Username).To(Equal("guest"))
 		Expect(instance.Spec.Connection.InsecureSkip).To(Equal(false))
 	})
 })
