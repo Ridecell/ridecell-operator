@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ import (
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 )
 
-var _ = Describe("SummonPlatform rabbitmquser Component", func() {
-	comp := summoncomponents.NewRabbitmqUser("rabbitmq/rabbitmquser.yml.tpl")
-	It("creates a rabbitmquser", func() {
+var _ = Describe("SummonPlatform rabbitmqvhost Component", func() {
+	comp := summoncomponents.NewRabbitmqVhost("rabbitmq/rabbitmqvhost.yml.tpl")
+	It("creates a rabbitmqvhost", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 })
