@@ -21,8 +21,10 @@ import (
 )
 
 const (
-	StatusReady = "Ready"
-	StatusError = "Error"
+	StatusReady     = "Ready"
+	StatusCreating  = "RDS Creating"
+	StatusModifying = "Modifying"
+	StatusError     = "Error"
 )
 
 // Connection details for a Postgres database.

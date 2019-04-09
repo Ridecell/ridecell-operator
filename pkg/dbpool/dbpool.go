@@ -23,6 +23,9 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+
+	// this is the database/sql postgres driver
+	_ "github.com/lib/pq"
 )
 
 var Dbs sync.Map
