@@ -66,10 +66,11 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	for _, element := range xs {
 		if element.Name == instance.Spec.VhostName {
 			vhost_exists = true
+			break
 		}
 	}
 	if !vhost_exists {
-		resp, err := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
+		resp, err := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "error creating vhost %s", instance.Spec.VhostName)
 		}

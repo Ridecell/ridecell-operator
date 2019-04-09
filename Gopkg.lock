@@ -1108,6 +1108,7 @@
     "github.com/aws/aws-sdk-go/service/kms/kmsiface",
     "github.com/aws/aws-sdk-go/service/s3",
     "github.com/aws/aws-sdk-go/service/s3/s3iface",
+    "github.com/aws/aws-sdk-go/service/sts",
     "github.com/emicklei/go-restful",
     "github.com/golang/glog",
     "github.com/lib/pq",

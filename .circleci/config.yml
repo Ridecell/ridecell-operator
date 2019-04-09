@@ -3,7 +3,12 @@ jobs:
   test:
     docker:
     - image: circleci/golang:1
+    - image: rabbitmq:3-management
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      RABBITMQ_HOST_DEV: http://localhost:15672
+      RABBITMQ_SUPERUSER: guest
+      RABBITMQ_SUPERUSER_PASSWORD: guest
 
     steps:
     - checkout

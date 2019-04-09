@@ -91,9 +91,11 @@ var _ = Describe("RabbitmqVhost controller", func() {
 				InsecureSkipVerify: false,
 			},
 		}
+		rmqc, err := rabbithole.NewTLSClient(os.Getenv("RABBITMQ_HOST_DEV"), os.Getenv("RABBITMQ_SUPERUSER"), os.Getenv("RABBITMQ_SUPERUSER_PASSWORD"), transport)
+		Expect(err).ToNot(HaveOccurred())
 
 		// Confirm that our credentials work.
-		rmqc, err := rabbithole.NewTLSClient(os.Getenv("RABBITMQ_HOST_DEV"), os.Getenv("RABBITMQ_SUPERUSER"), os.Getenv("RABBITMQ_SUPERUSER_PASSWORD"), transport)
+		_, err = rmqc.ListVhosts()
 		Expect(err).ToNot(HaveOccurred())
 
 		// Create our vhost and wait for it to be Ready.
@@ -102,8 +104,9 @@ var _ = Describe("RabbitmqVhost controller", func() {
 		c.EventuallyGet(helpers.Name("test"), fetchVhost, c.EventuallyStatus(dbv1beta1.StatusReady))
 
 		// Check that the vhost exists.
-		xs, err := rmqc.ListVhosts()
+		vhosts, err := rmqc.ListVhosts()
 		Expect(err).ToNot(HaveOccurred())
-		fmt.Println(xs)
+		GetName := func(vhost rabbithole.VhostInfo) string { return vhost.Name }
+		Expect(vhosts).To(ContainElement(WithTransform(GetName, Equal("ridecell-test"))))
 	})
 })
