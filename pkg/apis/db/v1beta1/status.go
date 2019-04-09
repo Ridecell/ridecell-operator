@@ -45,3 +45,16 @@ func (po *PostgresOperatorDatabase) SetErrorStatus(errorMsg string) {
 	po.Status.Status = StatusError
 	po.Status.Message = errorMsg
 }
+
+func (pe *RabbitmqVhost) GetStatus() components.Status {
+	return pe.Status
+}
+
+func (pe *RabbitmqVhost) SetStatus(status components.Status) {
+	pe.Status = status.(RabbitmqVhostStatus)
+}
+
+func (pe *RabbitmqVhost) SetErrorStatus(errorMsg string) {
+	pe.Status.Status = StatusError
+	pe.Status.Message = errorMsg
+}

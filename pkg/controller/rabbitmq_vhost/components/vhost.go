@@ -17,6 +17,8 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
@@ -50,7 +52,6 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 
 	// Connect to the rabbitmq cluster
 	rmqc, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.Client)
-
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}
@@ -68,10 +69,18 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 		}
 	}
 	if !vhost_exists {
-		resp, _ := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
+		resp, err := rmqc.PutVhost(instance.Spec.VhostName, rabbithole.VhostSettings{Tracing: false})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "error creating vhost %s", instance.Spec.VhostName)
+		}
 		if resp.StatusCode != 201 {
-			return components.Result{}, errors.Wrapf(err, "unable to create vhost %s", instance.Spec.VhostName)
+			return components.Result{}, errors.Errorf("unable to create vhost %s, got response code %v", instance.Spec.VhostName, resp.StatusCode)
 		}
 	}
-	return components.Result{}, nil
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*dbv1beta1.RabbitmqVhost)
+		instance.Status.Status = dbv1beta1.StatusReady
+		instance.Status.Message = fmt.Sprintf("Vhost %s ready", instance.Spec.VhostName)
+		return nil
+	}}, nil
 }
