@@ -113,7 +113,9 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 }
 
 func (_ *deploymentComponent) hashItem(data []byte) string {
-	hash := sha1.New().Sum(data)
+	s := sha1.New()
+	s.Write(data)
+	hash := s.Sum(nil)
 	encodedHash := hex.EncodeToString(hash)
 	return encodedHash
 }
