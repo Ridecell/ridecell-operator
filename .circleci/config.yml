@@ -8,9 +8,7 @@ jobs:
         RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 256Mi
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      RABBITMQ_HOST_DEV: http://localhost:15672
-      RABBITMQ_SUPERUSER: guest
-      RABBITMQ_SUPERUSER_PASSWORD: guest
+      RABBITMQ_URI: http://guest:guest@localhost:15672
 
     steps:
     - checkout
