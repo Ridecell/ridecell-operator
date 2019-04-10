@@ -17,10 +17,7 @@ limitations under the License.
 package rabbitmq_vhost_test
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"os"
 
 	rabbithole "github.com/michaelklishin/rabbit-hole"
@@ -30,6 +27,7 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
 var _ = Describe("RabbitmqVhost controller", func() {
@@ -38,7 +36,7 @@ var _ = Describe("RabbitmqVhost controller", func() {
 
 	BeforeEach(func() {
 		// Check for required environment variables.
-		if os.Getenv("RABBITMQ_HOST_DEV") == "" || os.Getenv("RABBITMQ_SUPERUSER") == "" || os.Getenv("RABBITMQ_SUPERUSER_PASSWORD") == "" {
+		if os.Getenv("RABBITMQ_URI") == "" {
 			if os.Getenv("CI") == "" {
 				Skip("Skipping RabbitMQ controller tests")
 			} else {
@@ -62,15 +60,11 @@ var _ = Describe("RabbitmqVhost controller", func() {
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			vhosts := &dbv1beta1.RabbitmqVhostList{}
-			err := helpers.Client.List(context.Background(), nil, vhosts)
-			if err != nil {
-				fmt.Printf("!!!!!! %s\n", err)
-			} else {
-				fmt.Print("Instances:\n")
-				for _, item := range vhosts.Items {
-					if item.Namespace == helpers.Namespace {
-						fmt.Printf("\t%s %#v\n", item.Name, item.Status)
-					}
+			helpers.TestClient.List(nil, vhosts)
+			fmt.Print("Instances:\n")
+			for _, item := range vhosts.Items {
+				if item.Namespace == helpers.Namespace {
+					fmt.Printf("\t%s %#v\n", item.Name, item.Status)
 				}
 			}
 		}
@@ -82,20 +76,23 @@ var _ = Describe("RabbitmqVhost controller", func() {
 		c := helpers.TestClient
 
 		// Connect to RabbitMQ.
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
-			},
-		}
-		rmqc, err := rabbithole.NewTLSClient(os.Getenv("RABBITMQ_HOST_DEV"), os.Getenv("RABBITMQ_SUPERUSER"), os.Getenv("RABBITMQ_SUPERUSER_PASSWORD"), transport)
+		rmqc, err := utils.OpenRabbit(nil, nil, utils.RabbitholeClientFactory)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Confirm that our credentials work.
 		_, err = rmqc.ListVhosts()
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create our vhost and wait for it to be Ready.
+		// Create our vhost.
 		c.Create(rabbitmqvhost)
+
+		// Set the user to ready.
+		user := &dbv1beta1.RabbitmqUser{}
+		c.EventuallyGet(helpers.Name("test"), user)
+		user.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(user)
+
+		// Wait for the vhost to be ready.
 		fetchVhost := &dbv1beta1.RabbitmqVhost{}
 		c.EventuallyGet(helpers.Name("test"), fetchVhost, c.EventuallyStatus(dbv1beta1.StatusReady))
 
