@@ -76,5 +76,24 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
 		return components.Result{}, errors.Wrapf(err, "unable to create rabbitmq user %s", instance.Spec.Username)
 	}
-	return components.Result{}, nil
+
+	// Data for the status modifier.
+	hostAndPort, err := utils.RabbitHostAndPort(rmqc)
+	if err != nil {
+		return components.Result{}, err
+	}
+	username := instance.Spec.Username
+
+	// Good to go.
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*dbv1beta1.RabbitmqUser)
+		instance.Status.Status = dbv1beta1.StatusReady
+		instance.Status.Message = fmt.Sprintf("User %s ready", username)
+		instance.Status.Connection.Host = hostAndPort.Host
+		instance.Status.Connection.Port = hostAndPort.Port
+		instance.Status.Connection.Username = username
+		instance.Status.Connection.PasswordSecretRef.Name = fmt.Sprintf("%s.rabbitmq-user-password", instance.Name)
+		instance.Status.Connection.PasswordSecretRef.Key = "password"
+		return nil
+	}}, nil
 }

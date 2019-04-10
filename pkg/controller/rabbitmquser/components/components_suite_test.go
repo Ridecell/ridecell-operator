@@ -17,6 +17,7 @@ limitations under the License.
 package components_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
@@ -24,6 +25,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+
 	//corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -54,4 +56,6 @@ var _ = ginkgo.BeforeEach(func() {
 	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
 	//controllerutil.SetControllerReference(instance, target, ctx.Scheme)
 	//ctx.Create(ctx.Context, target)
+
+	os.Setenv("RABBITMQ_URI", "https://guest:guest@rabbitmq-prod:5671")
 })
