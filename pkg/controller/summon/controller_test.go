@@ -142,6 +142,19 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Create(rmqSecret)
 
+		// Set the rmq vhost to ready.
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		c.EventuallyGet(helpers.Name("foo"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "foo-user",
+				Vhost:    "foo",
+			},
+		}
+		c.Status().Update(rmqVhost)
+
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
 		c.Status().Update(postgres)
@@ -271,6 +284,19 @@ var _ = Describe("Summon controller", func() {
 		ext.Status.Status = dbv1beta1.StatusReady
 		err = c.Status().Update(context.TODO(), ext)
 		Expect(err).NotTo(HaveOccurred())
+
+		// Set the rmq vhost to ready.
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		helpers.TestClient.EventuallyGet(helpers.Name("foo"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "foo-user",
+				Vhost:    "foo",
+			},
+		}
+		helpers.TestClient.Status().Update(rmqVhost)
 
 		// Fetch the Deployment and check the initial label.
 		deploy := &appsv1.Deployment{}
@@ -418,6 +444,19 @@ var _ = Describe("Summon controller", func() {
 		pullSecret.Status.Status = secretsv1beta1.StatusReady
 		err = c.Status().Update(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
+
+		// Set the rmq vhost to ready.
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		helpers.TestClient.EventuallyGet(helpers.Name("statustester"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "statustester-user",
+				Vhost:    "statustester",
+			},
+		}
+		helpers.TestClient.Status().Update(rmqVhost)
 
 		// Check the status again. Should be Migrating.
 		assertStatus(summonv1beta1.StatusMigrating)
