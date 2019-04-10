@@ -24,7 +24,7 @@ import (
 	"runtime"
 )
 
-//go:generate go run ../../../hack/assets_generate.go
+//go:generate go run ../../../hack/assets_generate.go summon
 var Templates http.FileSystem
 
 func init() {
