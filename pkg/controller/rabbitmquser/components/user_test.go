@@ -68,7 +68,13 @@ var _ = Describe("RabbitmqUser Component", func() {
 
 	It("Handles an invalid URI", func() {
 		os.Setenv("RABBITMQ_URI", "htt://127.0.0.1:80")
-		comp := rmqucomponents.NewUser()
 		Expect(comp).ToNot(ReconcileContext(ctx))
+	})
+
+	It("set the output connection info", func() {
+		instance.Spec.Username = "foo"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Status.Connection.Host).To(Equal("mockhost"))
+		Expect(instance.Status.Connection.Port).To(Equal(5671))
 	})
 })
