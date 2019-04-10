@@ -25,7 +25,7 @@ import (
 )
 
 var _ = Describe("SummonPlatform rabbitmqvhost Component", func() {
-	comp := summoncomponents.NewRabbitmqVhost("rabbitmq/rabbitmqvhost.yml.tpl")
+	comp := summoncomponents.NewRabbitmqVhost("rabbitmq/vhost.yml.tpl")
 	It("creates a rabbitmqvhost", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 	})

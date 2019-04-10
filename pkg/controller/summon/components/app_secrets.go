@@ -19,7 +19,6 @@ package components
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -36,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
@@ -153,7 +153,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	val, ok := secretKey.Data["SECRET_KEY"]
 	if !ok || len(val) == 0 {
-		return components.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
+		return components.Result{}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
 	}
 
 	val, ok = rabbitmqSecret.Data["password"]
@@ -161,12 +161,15 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		return components.Result{}, errors.New("app_secrets: Invalid data in RabbitMQ password secret")
 	}
 
-	// This is messy, fixme.
-	var rmqHost string
-	if instance.Namespace == "prod" || instance.Namespace == "uat" {
-		rmqHost = os.Getenv("RABBITMQ_HOST_PROD")
-	} else {
-		rmqHost = os.Getenv("RABBITMQ_HOST_DEV")
+	// Find the RabbitMQ Vhost object.
+	rmqVhost := &dbv1beta1.RabbitmqVhost{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, rmqVhost)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "error fetching RabbitMQ vhost %s/%s", instance.Namespace, instance.Name)
+	}
+	if rmqVhost.Status.Status != dbv1beta1.StatusReady {
+		// This probably needs to be improved so it's not an error.
+		return components.Result{}, errors.New("RabbitMQ vhost not ready")
 	}
 
 	appSecretsData := map[string]interface{}{}
@@ -174,7 +177,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s-database/%s", postgresUser, postgresPassword, postgresDatabase, postgresUser)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
-	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s-user:%s@%s/%s?ssl=true", instance.Name, rabbitmqSecret.Data["password"], rmqHost, instance.Name)
+	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rmqVhost.Status.Connection.Username, rabbitmqSecret.Data["password"], rmqVhost.Status.Connection.Host, rmqVhost.Status.Connection.Vhost)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
 	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])

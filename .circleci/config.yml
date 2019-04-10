@@ -3,7 +3,12 @@ jobs:
   test:
     docker:
     - image: circleci/golang:1
+    - image: rabbitmq:3-management-alpine
+      environment:
+        RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 256Mi
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      RABBITMQ_URI: http://guest:guest@localhost:15672
 
     steps:
     - checkout

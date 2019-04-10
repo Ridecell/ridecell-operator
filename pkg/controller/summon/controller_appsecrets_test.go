@@ -19,7 +19,6 @@ package summon_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -30,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
@@ -37,7 +37,6 @@ import (
 var _ = Describe("Summon controller appsecrets", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.SummonPlatform
-	var oldRabbitHost string
 
 	// Test helper functions.
 	getData := func(obj runtime.Object) (interface{}, error) {
@@ -95,6 +94,21 @@ var _ = Describe("Summon controller appsecrets", func() {
 		return secret
 	}
 
+	updateRmqVhost := func() *dbv1beta1.RabbitmqVhost {
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		helpers.TestClient.EventuallyGet(helpers.Name("appsecretstest"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "appsecretstest-user",
+				Vhost:    "appsecretstest",
+			},
+		}
+		helpers.TestClient.Status().Update(rmqVhost)
+		return rmqVhost
+	}
+
 	createInstance := func() {
 		instance.Spec.Secrets = []string{"testsecret"}
 		helpers.TestClient.Create(instance)
@@ -108,10 +122,6 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
-
-		// Set up $RABBITMQ_HOST_DEV.
-		oldRabbitHost = os.Getenv("RABBITMQ_HOST_DEV")
-		os.Setenv("RABBITMQ_HOST_DEV", "myrabbitserver")
 
 		// Set up the instance object for other tests.
 		instance = &summonv1beta1.SummonPlatform{
@@ -143,9 +153,6 @@ var _ = Describe("Summon controller appsecrets", func() {
 			}
 		}
 
-		// Restore $RABBITMQ_HOST_DEV.
-		os.Setenv("RABBITMQ_HOST_DEV", oldRabbitHost)
-
 		helpers.TeardownTest()
 	})
 
@@ -160,6 +167,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Get the output app secrets.
 		appSecret := &corev1.Secret{}
@@ -170,7 +178,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		err := yaml.Unmarshal(appSecret.Data["summon-platform.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data["DATABASE_URL"]).To(Equal("postgis://summon:secretdbpass@appsecretstest-database/summon"))
-		Expect(data["CELERY_BROKER_URL"]).To(Equal("pyamqp://appsecretstest-user:secretrabbitpass@myrabbitserver/appsecretstest?ssl=true"))
+		Expect(data["CELERY_BROKER_URL"]).To(Equal("pyamqp://appsecretstest-user:secretrabbitpass@rabbitmqserver/appsecretstest?ssl=true"))
 		Expect(data["TOKEN"]).To(Equal("secrettoken"))
 	})
 
@@ -184,6 +192,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Create the DB secret later than where it would normally be created.
 		time.Sleep(2 * time.Second)
@@ -211,6 +220,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Change the DB secret
 		time.Sleep(10 * time.Second)
@@ -232,6 +242,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Check the status.
 		c.EventuallyGet(helpers.Name("appsecretstest"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
@@ -248,6 +259,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Change the DB secret
 		time.Sleep(10 * time.Second)

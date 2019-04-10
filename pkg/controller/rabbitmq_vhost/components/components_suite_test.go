@@ -17,6 +17,7 @@ limitations under the License.
 package components_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/onsi/ginkgo"
@@ -43,6 +44,11 @@ var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &dbv1beta1.RabbitmqVhost{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Spec: dbv1beta1.RabbitmqVhostSpec{
+			VhostName: "foo",
+		},
 	}
 	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
+
+	os.Setenv("RABBITMQ_URI", "https://guest:guest@rabbitmq-prod:5671")
 })

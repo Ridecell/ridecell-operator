@@ -1,5 +1,7 @@
+// +build !release
+
 /*
-Copyright 2019-2020 Ridecell, Inc.
+Copyright 2018-2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,19 +16,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package components_test
+package rabbitmq_vhost
 
 import (
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	"net/http"
+	"path"
+	"runtime"
 )
 
-var _ = Describe("SummonPlatform rabbitmquser Component", func() {
-	comp := summoncomponents.NewRabbitmqUser("rabbitmq/rabbitmquser.yml.tpl")
-	It("creates a rabbitmquser", func() {
-		Expect(comp).To(ReconcileContext(ctx))
-	})
-})
+//go:generate go run ../../../hack/assets_generate.go rabbitmq_vhost
+var Templates http.FileSystem
+
+func init() {
+	_, line, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("Unable to find caller line")
+	}
+	Templates = http.Dir(path.Dir(line) + "/templates")
+}

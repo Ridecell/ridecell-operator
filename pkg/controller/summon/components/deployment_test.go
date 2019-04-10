@@ -58,14 +58,12 @@ var _ = Describe("deployment Component", func() {
 		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 		Expect(comp).To(ReconcileContext(ctx))
 
-		expectedAppSecrets := "7b2266696c6c6572223a226447567a64413d3d222c2274657374223a22595735766447686c636c39305a584e30227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
-		expectedConfigHash := "7b2273756d6d6f6e2d706c6174666f726d2e796d6c223a227b7d5c6e227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
 		deployment := &appsv1.Deployment{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, deployment)
 		Expect(err).ToNot(HaveOccurred())
 		deploymentPodAnnotations := deployment.Spec.Template.Annotations
-		Expect(deploymentPodAnnotations["summon.ridecell.io/appSecretsHash"]).To(Equal(expectedAppSecrets))
-		Expect(deploymentPodAnnotations["summon.ridecell.io/configHash"]).To(Equal(expectedConfigHash))
+		Expect(deploymentPodAnnotations["summon.ridecell.io/appSecretsHash"]).To(HaveLen(40))
+		Expect(deploymentPodAnnotations["summon.ridecell.io/configHash"]).To(HaveLen(40))
 	})
 
 	It("makes sure keys are sorted before hash", func() {
@@ -91,12 +89,11 @@ var _ = Describe("deployment Component", func() {
 		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 		Expect(comp).To(ReconcileContext(ctx))
 
-		expectedAppSecrets := "7b2266696c6c6572223a226447567a64413d3d222c2274657374223a22595735766447686c636c39305a584e30227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
 		deployment := &appsv1.Deployment{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, deployment)
 		Expect(err).ToNot(HaveOccurred())
 		deploymentPodAnnotations := deployment.Spec.Template.Annotations
-		Expect(deploymentPodAnnotations["summon.ridecell.io/appSecretsHash"]).To(Equal(expectedAppSecrets))
+		Expect(deploymentPodAnnotations["summon.ridecell.io/appSecretsHash"]).To(HaveLen(40))
 	})
 
 	It("updates existing hashes", func() {
@@ -134,14 +131,12 @@ var _ = Describe("deployment Component", func() {
 		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 		Expect(comp).To(ReconcileContext(ctx))
 
-		expectedAppSecrets := "7b2266696c6c6572223a226447567a6444493d227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
-		expectedConfigHash := "7b2273756d6d6f6e2d706c6174666f726d2e796d6c223a227b746573747d5c6e227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
 		deployment := &appsv1.Deployment{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, deployment)
 		Expect(err).ToNot(HaveOccurred())
 		deploymentPodAnnotations := deployment.Spec.Template.Annotations
-		Expect(deploymentPodAnnotations["summon.ridecell.io/appSecretsHash"]).To(Equal(expectedAppSecrets))
-		Expect(deploymentPodAnnotations["summon.ridecell.io/configHash"]).To(Equal(expectedConfigHash))
+		Expect(deploymentPodAnnotations["summon.ridecell.io/appSecretsHash"]).To(HaveLen(40))
+		Expect(deploymentPodAnnotations["summon.ridecell.io/configHash"]).To(HaveLen(40))
 
 	})
 })

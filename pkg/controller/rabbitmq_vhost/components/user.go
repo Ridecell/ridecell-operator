@@ -17,37 +17,32 @@ limitations under the License.
 package components
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type rabbitmqUserComponent struct {
-	templatePath string
+type userComponent struct{}
+
+func NewUser() *userComponent {
+	return &userComponent{}
 }
 
-func NewRabbitmqUser(templatePath string) *rabbitmqUserComponent {
-	return &rabbitmqUserComponent{templatePath: templatePath}
-}
-
-func (comp *rabbitmqUserComponent) WatchTypes() []runtime.Object {
+func (_ *userComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&dbv1beta1.RabbitmqUser{},
 	}
 }
 
-func (_ *rabbitmqUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
-	// Has no dependencies, always reconcilable.
-	return true
+func (_ *userComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
+	return !instance.Spec.SkipUser
 }
 
-func (comp *rabbitmqUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-
-	var existing *dbv1beta1.RabbitmqUser
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	res, _, err := ctx.CreateOrUpdate("rabbitmq_user.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.RabbitmqUser)
-		existing = existingObj.(*dbv1beta1.RabbitmqUser)
+		existing := existingObj.(*dbv1beta1.RabbitmqUser)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil

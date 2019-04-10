@@ -34,7 +34,13 @@ type PostgresConnection struct {
 	Database          string            `json:"database,omitempty"`
 }
 
-type RabbitmqConnection struct {
-	Production   bool `json:"production,omitempty"`
-	InsecureSkip bool `json:"insecureSkip,omitempty"` // skip server certificate trust, by default false
+// Currently unused but could hold future per-object connection details.
+type RabbitmqConnection struct{}
+
+type RabbitmqStatusConnection struct {
+	Host              string            `json:"host"`
+	Port              int               `json:"port,omitempty"`
+	Username          string            `json:"username"`
+	PasswordSecretRef helpers.SecretRef `json:"passwordSecretRef"`
+	Vhost             string            `json:"vhost,omitempty"`
 }
