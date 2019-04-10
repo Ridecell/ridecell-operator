@@ -20,17 +20,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// RabbitmqPermission defines a single user permissions entry.
+type RabbitmqPermission struct {
+	// Vhost this applies to.
+	Vhost string `json:"vhost"`
+	// Configuration permissions.
+	Configure string `json:"configure"`
+	// Write permissions.
+	Write string `json:"write"`
+	// Read permissions.
+	Read string `json:"read"`
+}
+
 // RabbitmqUserSpec defines the desired state of RabbitmqUser
 type RabbitmqUserSpec struct {
-	Username   string             `json:"username"`
-	Tags       string             `json:"tags"`
+	Username    string               `json:"username"`
+	Tags        string               `json:"tags,omitempty"`
+	Permissions []RabbitmqPermission `json:"permissions,omitempty"`
+	// TODO TopicPermissions
 	Connection RabbitmqConnection `json:"connection,omitempty"`
 }
 
 // RabbitmqUserStatus defines the observed state of RabbitmqUser
 type RabbitmqUserStatus struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status     string                   `json:"status"`
+	Message    string                   `json:"message"`
+	Connection RabbitmqStatusConnection `json:"connection,omitempty"`
 }
 
 // +genclient
