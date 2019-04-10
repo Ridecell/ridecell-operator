@@ -85,7 +85,7 @@ var _ = Describe("s3bucket controller", func() {
 		// Delete object and see if it cleans up on its own
 		c := helpers.TestClient
 		c.Delete(s3Bucket)
-		Eventually(func() error { return bucketExists() }, time.Second*10).ShouldNot(Succeed())
+		Eventually(func() error { return bucketExists() }, time.Second*30).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})
