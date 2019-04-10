@@ -42,8 +42,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl"),
 
 		//Rabbitmq components
-		summoncomponents.NewRabbitmqVhost("rabbitmq/rabbitmqvhost.yml.tpl"),
-		summoncomponents.NewRabbitmqUser("rabbitmq/rabbitmquser.yml.tpl"),
+		summoncomponents.NewRabbitmqVhost("rabbitmq/vhost.yml.tpl"),
 
 		// Secrets components
 		summoncomponents.NewSecretKey(),
