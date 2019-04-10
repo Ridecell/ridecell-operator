@@ -19,24 +19,26 @@ package components
 import (
 	"fmt"
 
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/utils"
 	"github.com/michaelklishin/rabbit-hole"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
 type vhostComponent struct {
-	Client utils.NewTLSClientFactory
+	ClientFactory utils.RabbitMQClientFactory
 }
 
-func (comp *vhostComponent) InjectFakeNewTLSClient(fakeFunc utils.NewTLSClientFactory) {
-	comp.Client = fakeFunc
+func (comp *vhostComponent) InjectClientFactory(factory utils.RabbitMQClientFactory) {
+	comp.ClientFactory = factory
 }
 
 func NewVhost() *vhostComponent {
-	return &vhostComponent{Client: utils.RabbitholeTLSClientFactory}
+	return &vhostComponent{ClientFactory: utils.RabbitholeClientFactory}
 }
 
 func (_ *vhostComponent) WatchTypes() []runtime.Object {
@@ -51,7 +53,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
 
 	// Connect to the rabbitmq cluster
-	rmqc, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.Client)
+	rmqc, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.ClientFactory)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}
@@ -78,10 +80,39 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 			return components.Result{}, errors.Errorf("unable to create vhost %s, got response code %v", instance.Spec.VhostName, resp.StatusCode)
 		}
 	}
+
+	// Unless we aren't making a user, wait for it to be ready.
+	var user *dbv1beta1.RabbitmqUser
+	if !instance.Spec.SkipUser {
+		user = &dbv1beta1.RabbitmqUser{}
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, user)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "error fetching RabbitmeUser %s/%s", instance.Namespace, instance.Name)
+		}
+		if user.Status.Status != dbv1beta1.StatusReady {
+			// Could make a specific status for this, but it shouldn't take long.
+			return components.Result{}, nil
+		}
+	}
+
+	// Data for the status modifier.
+	hostAndPort, err := utils.RabbitHostAndPort(rmqc)
+	if err != nil {
+		return components.Result{}, err
+	}
+	vhostName := instance.Spec.VhostName
+
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.RabbitmqVhost)
 		instance.Status.Status = dbv1beta1.StatusReady
 		instance.Status.Message = fmt.Sprintf("Vhost %s ready", instance.Spec.VhostName)
+		instance.Status.Connection.Host = hostAndPort.Host
+		instance.Status.Connection.Port = hostAndPort.Port
+		if user != nil {
+			instance.Status.Connection.Username = user.Status.Connection.Username
+			instance.Status.Connection.PasswordSecretRef = user.Status.Connection.PasswordSecretRef
+		}
+		instance.Status.Connection.Vhost = vhostName
 		return nil
 	}}, nil
 }

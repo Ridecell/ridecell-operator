@@ -27,6 +27,7 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("rabbitmq-vhost-controller", mgr, &dbv1beta1.RabbitmqVhost{}, nil, []components.Component{
 		rmqvcomponents.NewDefaults(),
+		rmqvcomponents.NewUser(),
 		rmqvcomponents.NewVhost(),
 	})
 	return err

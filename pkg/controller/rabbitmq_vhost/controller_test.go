@@ -54,10 +54,6 @@ var _ = Describe("RabbitmqVhost controller", func() {
 			},
 			Spec: dbv1beta1.RabbitmqVhostSpec{
 				VhostName: "ridecell-test",
-				Connection: dbv1beta1.RabbitmqConnection{
-					Production:   false,
-					InsecureSkip: false,
-				},
 			},
 		}
 	})

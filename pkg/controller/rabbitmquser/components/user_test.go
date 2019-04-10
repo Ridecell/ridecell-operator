@@ -43,11 +43,11 @@ var _ = Describe("RabbitmqUser Component", func() {
 				"password": []byte("rabbitmqpass"),
 			},
 		}
-		ctx.Client = fake.NewFakeClient(rabbitSecret)
+		ctx.Client = fake.NewFakeClient(instance, rabbitSecret)
 
 		comp = rmqucomponents.NewUser()
 		frc = fake_rabbitmq.New()
-		comp.InjectFakeNewTLSClient(frc.Inject)
+		comp.InjectClientFactory(frc.Factory)
 	})
 
 	It("Create new user if it does not exist", func() {

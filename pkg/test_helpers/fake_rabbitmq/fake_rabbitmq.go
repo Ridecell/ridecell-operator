@@ -33,7 +33,7 @@ func New() *FakeRabbitClient {
 	return &FakeRabbitClient{Users: []rabbithole.UserInfo{}, Vhosts: []rabbithole.VhostInfo{}}
 }
 
-func (frc *FakeRabbitClient) Inject(_uri, _user, _pass string, _t *http.Transport) (utils.RabbitMQManager, error) {
+func (frc *FakeRabbitClient) Factory(_uri, _user, _pass string, _t *http.Transport) (utils.RabbitMQManager, error) {
 	return frc, nil
 }
 
@@ -56,7 +56,12 @@ func (frc *FakeRabbitClient) ListVhosts() ([]rabbithole.VhostInfo, error) {
 	return frc.Vhosts, nil
 }
 
-func (frc *FakeRabbitClient) PutVhost(_vhost string, _settings rabbithole.VhostSettings) (*http.Response, error) {
-	// TODO
-	return &http.Response{StatusCode: 500}, nil
+func (frc *FakeRabbitClient) PutVhost(vhost string, _settings rabbithole.VhostSettings) (*http.Response, error) {
+	for _, element := range frc.Vhosts {
+		if element.Name == vhost {
+			return &http.Response{StatusCode: 200}, nil
+		}
+	}
+	frc.Vhosts = append(frc.Vhosts, rabbithole.VhostInfo{Name: vhost})
+	return &http.Response{StatusCode: 201}, nil
 }

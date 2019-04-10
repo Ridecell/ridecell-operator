@@ -37,15 +37,15 @@ type RabbitMQManager interface {
 	PutUser(string, rabbithole.UserSettings) (*http.Response, error)
 }
 
-type NewTLSClientFactory func(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error)
+type RabbitMQClientFactory func(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error)
 
 // Implementation of NewTLSClientFactory using rabbithole (i.e. a real client).
-func RabbitholeTLSClientFactory(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error) {
+func RabbitholeClientFactory(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error) {
 	return rabbithole.NewTLSClient(uri, user, pass, t)
 }
 
 // Open a connection to the RabbitMQ server as defined by a RabbitmqConnection object.
-func OpenRabbit(_ctx *components.ComponentContext, _dbInfo *dbv1beta1.RabbitmqConnection, clientFactory NewTLSClientFactory) (RabbitMQManager, error) {
+func OpenRabbit(_ctx *components.ComponentContext, _dbInfo *dbv1beta1.RabbitmqConnection, clientFactory RabbitMQClientFactory) (RabbitMQManager, error) {
 	uri := os.Getenv("RABBITMQ_URI")
 	insecure := os.Getenv("RABBITMQ_INSECURE")
 
