@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rabbitmq_vhost_test
+package rabbitmquser_test
 
 import (
 	"fmt"
@@ -23,6 +23,7 @@ import (
 	rabbithole "github.com/michaelklishin/rabbit-hole"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -30,9 +31,9 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
-var _ = Describe("RabbitmqVhost controller @rabbitmq", func() {
+var _ = Describe("RabbitmqUser controller @rabbitmq", func() {
 	var helpers *test_helpers.PerTestHelpers
-	var rabbitmqvhost *dbv1beta1.RabbitmqVhost
+	var user *dbv1beta1.RabbitmqUser
 
 	BeforeEach(func() {
 		// Check for required environment variables.
@@ -45,13 +46,13 @@ var _ = Describe("RabbitmqVhost controller @rabbitmq", func() {
 		}
 
 		helpers = testHelpers.SetupTest()
-		rabbitmqvhost = &dbv1beta1.RabbitmqVhost{
+		user = &dbv1beta1.RabbitmqUser{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
 				Namespace: helpers.Namespace,
 			},
-			Spec: dbv1beta1.RabbitmqVhostSpec{
-				VhostName: "ridecell-test",
+			Spec: dbv1beta1.RabbitmqUserSpec{
+				Tags: "administrator",
 			},
 		}
 	})
@@ -59,10 +60,10 @@ var _ = Describe("RabbitmqVhost controller @rabbitmq", func() {
 	AfterEach(func() {
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
-			vhosts := &dbv1beta1.RabbitmqVhostList{}
-			helpers.TestClient.List(nil, vhosts)
+			users := &dbv1beta1.RabbitmqUserList{}
+			helpers.TestClient.List(nil, users)
 			fmt.Print("Instances:\n")
-			for _, item := range vhosts.Items {
+			for _, item := range users.Items {
 				if item.Namespace == helpers.Namespace {
 					fmt.Printf("\t%s %#v\n", item.Name, item.Status)
 				}
@@ -83,23 +84,28 @@ var _ = Describe("RabbitmqVhost controller @rabbitmq", func() {
 		_, err = rmqc.ListVhosts()
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create our vhost.
-		c.Create(rabbitmqvhost)
+		// Create our user.
+		c.Create(user)
 
-		// Set the user to ready.
-		user := &dbv1beta1.RabbitmqUser{}
-		c.EventuallyGet(helpers.Name("test"), user)
-		user.Status.Status = dbv1beta1.StatusReady
-		c.Status().Update(user)
+		// Wait for the user to be ready.
+		fetchUser := &dbv1beta1.RabbitmqUser{}
+		c.EventuallyGet(helpers.Name("test"), fetchUser, c.EventuallyStatus(dbv1beta1.StatusReady))
 
-		// Wait for the vhost to be ready.
-		fetchVhost := &dbv1beta1.RabbitmqVhost{}
-		c.EventuallyGet(helpers.Name("test"), fetchVhost, c.EventuallyStatus(dbv1beta1.StatusReady))
-
-		// Check that the vhost exists.
-		vhosts, err := rmqc.ListVhosts()
+		// Check that the user exists.
+		users, err := rmqc.ListUsers()
 		Expect(err).ToNot(HaveOccurred())
-		GetName := func(vhost rabbithole.VhostInfo) string { return vhost.Name }
-		Expect(vhosts).To(ContainElement(WithTransform(GetName, Equal("ridecell-test"))))
+		GetName := func(user rabbithole.UserInfo) string { return user.Name }
+		Expect(users).To(ContainElement(WithTransform(GetName, Equal("test"))))
+
+		// Try to connect as the user.
+		secret := &corev1.Secret{}
+		conn := fetchUser.Status.Connection
+		c.Get(helpers.Name(conn.PasswordSecretRef.Name), secret)
+		password := string(secret.Data[conn.PasswordSecretRef.Key])
+		// Hardcoding non-TLS here, probably will break some day.
+		userClient, err := rabbithole.NewClient(fmt.Sprintf("http://%v:%v", conn.Host, conn.Port), conn.Username, password)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = userClient.Overview()
+		Expect(err).ToNot(HaveOccurred())
 	})
 })

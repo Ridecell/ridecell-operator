@@ -31,7 +31,7 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("RabbitmqUser Component", func() {
+var _ = Describe("RabbitmqUser User Component", func() {
 	comp := rmqucomponents.NewUser()
 	var frc *fake_rabbitmq.FakeRabbitClient
 

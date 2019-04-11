@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rabbitmq_vhost
+package rabbitmquser
 
 import (
 	"net/http"
@@ -24,7 +24,7 @@ import (
 	"runtime"
 )
 
-//go:generate go run ../../../hack/assets_generate.go rabbitmq_vhost
+//go:generate go run ../../../hack/assets_generate.go rabbitmquser
 var Templates http.FileSystem
 
 func init() {

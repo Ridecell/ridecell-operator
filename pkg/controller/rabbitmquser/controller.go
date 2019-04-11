@@ -26,9 +26,9 @@ import (
 
 // Create a new RabbitMQ user controller.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("rabbitmq-user-controller", mgr, &dbv1beta1.RabbitmqUser{}, nil, []components.Component{
+	_, err := components.NewReconciler("rabbitmq-user-controller", mgr, &dbv1beta1.RabbitmqUser{}, Templates, []components.Component{
 		rmqucomponents.NewDefaults(),
-		rmqucomponents.NewSecrets(),
+		rmqucomponents.NewSecret(),
 		rmqucomponents.NewUser(),
 	})
 	return err

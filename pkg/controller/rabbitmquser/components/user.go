@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -51,7 +52,12 @@ func (_ *userComponent) IsReconcilable(_ *components.ComponentContext) bool {
 
 func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RabbitmqUser)
-	secretName := fmt.Sprintf("%s.rabbitmq-user-password", instance.Name)
+	secretName := instance.Status.Connection.PasswordSecretRef.Name
+	secretKey := instance.Status.Connection.PasswordSecretRef.Key
+
+	if secretName == "" || secretKey == "" {
+		return components.Result{}, errors.New("Secret name or key not set in status.")
+	}
 
 	// Connect to the rabbitmq cluster
 	rmqc, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.ClientFactory)
@@ -62,19 +68,23 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	secret := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "rabbitmq: Unable to load password secret %s/%s", instance.Namespace, secretName)
+		return components.Result{}, errors.Wrapf(err, "rabbitmq: Unable to load password secret %s/%s", instance.Namespace, secretName)
 	}
-	userPassword, ok := secret.Data["password"]
+	userPassword, ok := secret.Data[secretKey]
 	if !ok {
-		return components.Result{Requeue: true}, errors.Errorf("rabbitmq: Password secret %s/%s has no key \"password\"", instance.Namespace, secretName)
+		return components.Result{}, errors.Errorf("rabbitmq: Password secret %s/%s has no key \"%s\"", instance.Namespace, secretName, secretKey)
 	}
 
 	resp, err := rmqc.PutUser(instance.Spec.Username, rabbithole.UserSettings{Password: string(userPassword), Tags: instance.Spec.Tags})
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error connection to rabbitmq host")
 	}
-	if resp.StatusCode != 201 && resp.StatusCode != 200 {
-		return components.Result{}, errors.Wrapf(err, "unable to create rabbitmq user %s", instance.Spec.Username)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "error reading PutUser response: %s", resp.Status)
+		}
+		return components.Result{}, errors.Errorf("unable to create rabbitmq user %s: %s %s", instance.Spec.Username, resp.Status, body)
 	}
 
 	// Data for the status modifier.
@@ -92,8 +102,6 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 		instance.Status.Connection.Host = hostAndPort.Host
 		instance.Status.Connection.Port = hostAndPort.Port
 		instance.Status.Connection.Username = username
-		instance.Status.Connection.PasswordSecretRef.Name = fmt.Sprintf("%s.rabbitmq-user-password", instance.Name)
-		instance.Status.Connection.PasswordSecretRef.Key = "password"
 		return nil
 	}}, nil
 }
