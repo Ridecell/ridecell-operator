@@ -24,6 +24,7 @@ import (
 	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
 )
 
+// Create a new RabbitMQ user controller.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("rabbitmq-vhost-controller", mgr, &dbv1beta1.RabbitmqVhost{}, Templates, []components.Component{
 		rmqvcomponents.NewDefaults(),

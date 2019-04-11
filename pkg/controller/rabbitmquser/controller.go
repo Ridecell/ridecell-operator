@@ -24,8 +24,7 @@ import (
 	rmqucomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmquser/components"
 )
 
-// Add creates a new DjangoUser Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// Create a new RabbitMQ user controller.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("rabbitmq-user-controller", mgr, &dbv1beta1.RabbitmqUser{}, nil, []components.Component{
 		rmqucomponents.NewDefaults(),
