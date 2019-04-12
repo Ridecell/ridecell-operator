@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	rmqucomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmquser/components"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_rabbitmq"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -38,12 +39,14 @@ var _ = Describe("RabbitmqUser User Component", func() {
 	BeforeEach(func() {
 		// Set password in secrets
 		rabbitSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("rabbitmqpass"),
 			},
 		}
 		ctx.Client = fake.NewFakeClient(instance, rabbitSecret)
+
+		instance.Status.Connection.PasswordSecretRef = helpers.SecretRef{Name: "foo.rabbitmq-user-password", Key: "password"}
 
 		comp = rmqucomponents.NewUser()
 		frc = fake_rabbitmq.New()
