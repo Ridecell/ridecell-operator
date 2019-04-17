@@ -34,13 +34,14 @@ type RDSInstanceSpec struct {
 	VPCID             string            `json:"vpcID,omitempty"`
 	MultiAZ           *bool             `json:"multiAZ,omitempty"`
 	MaintenanceWindow string            `json:"maintenanceWindow,omitempty"`
+	DatabaseName      string            `json:"databaseName,omitempty"`
 }
 
 // RDSInstanceStatus defines the observed state of RDSInstance
 type RDSInstanceStatus struct {
 	Status               string             `json:"status"`
 	Message              string             `json:"message"`
-	RDSConnection        PostgresConnection `json:"rdsConnection"`
+	Connection           PostgresConnection `json:"rdsConnection"`
 	InstanceID           string             `json:"instanceID"`
 	SecurityGroupStatus  string             `json:"securityGroupStatus"`
 	SecurityGroupID      string             `json:"securityGroupID"`
