@@ -60,7 +60,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	if instance.Spec.Username == "" {
-		instance.Spec.Username = "Summon"
+		instance.Spec.Username = instance.Name
 	}
 
 	if instance.Spec.InstanceClass == "" {
@@ -77,6 +77,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	if instance.Spec.MaintenanceWindow == "" {
 		instance.Spec.MaintenanceWindow = "Sun:07:00-Sun:08:00"
+	}
+
+	if instance.Spec.DatabaseName == "" {
+		instance.Spec.DatabaseName = instance.Spec.Username
 	}
 
 	return components.Result{}, nil
