@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -38,9 +39,10 @@ import (
 type mockRDSDBClient struct {
 	rdsiface.RDSAPI
 
-	dbInstanceExists bool
-	createdDB        bool
-	modifiedDB       bool
+	dbInstanceExists  bool
+	createdDB         bool
+	modifiedDB        bool
+	deletedDBInstance bool
 }
 
 var _ = Describe("rds aws Component", func() {
@@ -52,6 +54,7 @@ var _ = Describe("rds aws Component", func() {
 		mockRDS = &mockRDSDBClient{}
 		comp.InjectRDSAPI(mockRDS)
 		instance.Spec.SubnetGroupName = "test"
+		instance.ObjectMeta.Finalizers = []string{"rdsinstance.database.finalizer"}
 	})
 
 	Describe("isReconcilable", func() {
@@ -106,6 +109,31 @@ var _ = Describe("rds aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mockRDS.modifiedDB)
 	})
+
+	It("tests adding the finalizer", func() {
+		instance.ObjectMeta.Finalizers = []string{}
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchRDSInstance := &dbv1beta1.RDSInstance{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchRDSInstance)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(fetchRDSInstance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
+	})
+
+	It("test finalizer behavior during deletion", func() {
+		mockRDS.dbInstanceExists = true
+		currentTime := metav1.Now()
+		instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
+
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchRDSInstance := &dbv1beta1.RDSInstance{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchRDSInstance)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mockRDS.deletedDBInstance).To(BeTrue())
+		Expect(fetchRDSInstance.ObjectMeta.Finalizers).To(HaveLen(0))
+	})
 })
 
 // Mock aws functions below
@@ -143,4 +171,12 @@ func (m *mockRDSDBClient) CreateDBInstance(input *rds.CreateDBInstanceInput) (*r
 func (m *mockRDSDBClient) ModifyDBInstance(input *rds.ModifyDBInstanceInput) (*rds.ModifyDBInstanceOutput, error) {
 	m.modifiedDB = true
 	return &rds.ModifyDBInstanceOutput{}, nil
+}
+
+func (m *mockRDSDBClient) DeleteDBInstance(input *rds.DeleteDBInstanceInput) (*rds.DeleteDBInstanceOutput, error) {
+	if aws.StringValue(input.DBInstanceIdentifier) != instance.Name {
+		return nil, errors.New("mock_rds: instance identifier did not match expected value")
+	}
+	m.deletedDBInstance = true
+	return &rds.DeleteDBInstanceOutput{}, nil
 }

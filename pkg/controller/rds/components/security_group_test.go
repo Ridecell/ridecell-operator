@@ -17,6 +17,8 @@ limitations under the License.
 package components_test
 
 import (
+	"context"
+
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,19 +27,22 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	rdscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rds/components"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type mockEC2SGClient struct {
 	ec2iface.EC2API
-	securityGroupExists bool
-	hasValidIpRange     bool
-	hasValidTags        bool
-
-	createdSG    bool
-	authorizedSG bool
-	createdTag   bool
+	securityGroupExists  bool
+	hasValidIpRange      bool
+	hasValidTags         bool
+	createdSG            bool
+	authorizedSG         bool
+	createdTag           bool
+	deletedSecurityGroup bool
 }
 
 var _ = Describe("rds security group Component", func() {
@@ -49,6 +54,7 @@ var _ = Describe("rds security group Component", func() {
 		mockEC2 = &mockEC2SGClient{}
 		comp.InjectEC2API(mockEC2)
 		instance.Spec.VPCID = "test"
+		instance.ObjectMeta.Finalizers = []string{"rdsinstance.securitygroup.finalizer"}
 	})
 
 	Describe("isReconcilable", func() {
@@ -95,6 +101,31 @@ var _ = Describe("rds security group Component", func() {
 		Expect(mockEC2.createdSG).To(BeFalse())
 		Expect(mockEC2.authorizedSG).To(BeTrue())
 		Expect(mockEC2.createdTag).To(BeFalse())
+	})
+
+	It("tests adding the finalizer", func() {
+		instance.ObjectMeta.Finalizers = []string{}
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchRDSInstance := &dbv1beta1.RDSInstance{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchRDSInstance)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(fetchRDSInstance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.securitygroup.finalizer"))
+	})
+
+	It("test finalizer behavior during deletion", func() {
+		mockEC2.securityGroupExists = true
+		currentTime := metav1.Now()
+		instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
+
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchRDSInstance := &dbv1beta1.RDSInstance{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchRDSInstance)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mockEC2.deletedSecurityGroup).To(BeTrue())
+		Expect(fetchRDSInstance.ObjectMeta.Finalizers).To(HaveLen(0))
 	})
 
 })
@@ -157,4 +188,9 @@ func (m *mockEC2SGClient) CreateTags(input *ec2.CreateTagsInput) (*ec2.CreateTag
 	}
 	m.createdTag = true
 	return nil, nil
+}
+
+func (m *mockEC2SGClient) DeleteSecurityGroup(input *ec2.DeleteSecurityGroupInput) (*ec2.DeleteSecurityGroupOutput, error) {
+	m.deletedSecurityGroup = true
+	return &ec2.DeleteSecurityGroupOutput{}, nil
 }

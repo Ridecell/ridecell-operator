@@ -17,6 +17,7 @@ limitations under the License.
 package rds_test
 
 import (
+	"database/sql"
 	"os"
 	"time"
 
@@ -24,9 +25,12 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/pkg/errors"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +42,7 @@ import (
 
 var sess *session.Session
 var rdssvc *rds.RDS
+var ec2svc *ec2.EC2
 var rdsInstance *dbv1beta1.RDSInstance
 var randOwnerPrefix string
 
@@ -74,24 +79,29 @@ var _ = Describe("rds controller", func() {
 		}
 
 		rdssvc = rds.New(sess)
+		ec2svc = ec2.New(sess)
 
 		rdsInstance = &dbv1beta1.RDSInstance{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
+				Name:      "test-rds",
 				Namespace: helpers.Namespace,
 			},
 		}
-		rdsInstance.Spec.Username = "testUsername"
+		rdsInstance.Spec.Username = "test-rds"
 		// multiaz false should save some time in testing while being operationally similar to normal usage
 		rdsInstance.Spec.MultiAZ = aws.Bool(false)
 	})
 
 	AfterEach(func() {
 		// Delete object and see if it cleans up on its own
-		//c := helpers.TestClient
+		c := helpers.TestClient
 
-		//c.Delete(rdsInstance)
-		//Eventually(func() error { return bucketExists() }, time.Second*10).ShouldNot(Succeed())
+		c.Delete(rdsInstance)
+
+		// Database deletion may take a long time
+		Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
+		Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
+		Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
 
 		helpers.TeardownTest()
 	})
@@ -101,70 +111,151 @@ var _ = Describe("rds controller", func() {
 		c.Create(rdsInstance)
 
 		fetchRDS := &dbv1beta1.RDSInstance{}
-		c.EventuallyGet(helpers.Name("test"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating))
+		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating))
 
-		// Initial testing pegs full db creation at 12 with multiaz minutes, lets use 15 to be safe.
-		c.EventuallyGet(helpers.Name("test"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*15))
+		//c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
+
+		// This process should max out at roughly 10 minutes
+		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 
 		fetchSecret := &corev1.Secret{}
-		c.EventuallyGet(helpers.Name("test.rds.credentials"), fetchSecret)
-		Expect(string(fetchSecret.Data["username"])).To(Equal("testUsername"))
+		c.Get(helpers.Name("test-rds.rds.credentials"), fetchSecret)
+		Expect(string(fetchSecret.Data["username"])).To(Equal("test_rds"))
 		Expect(len(string(fetchSecret.Data["password"]))).To(BeNumerically(">", 0))
 		Expect(len(string(fetchSecret.Data["endpoint"]))).To(BeNumerically(">", 0))
 
-		// We need a component context to user the helpers here
-		testContext := components.NewTestContext(fetchRDS, nil)
-		// Make sure we can query the database, while we're at it make sure our user is in the rds_superuser group
-		db, err := postgres.Open(testContext, &rdsInstance.Status.RDSConnection)
-		defer db.Close()
+		testContext := components.NewTestContext(fetchSecret, nil)
+
+		db, err := postgres.Open(testContext, &fetchRDS.Status.Connection)
 		Expect(err).ToNot(HaveOccurred())
+		Expect(runTestQuery(db)).ToNot(HaveOccurred())
 
-		output, err := db.Query(`SELECT groname FROM pg_group WHERE (SELECT usesysid FROM pg_user WHERE usename = current_user)=ANY(grolist);`)
-		defer output.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		var column0 string
-		for output.Next() {
-			err := output.Scan(&column0)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(column0).To(Equal("rds_superuser"))
-		}
-
-		// Make sure that the database will update password if it is lost somehow
+		// Delete the password, make sure it re-creates it.
 		c.Delete(fetchSecret)
-		c.EventuallyGet(helpers.Name("test"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying))
-		// It also should go back to ready state
-		c.EventuallyGet(helpers.Name("test"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
+		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*5))
 
-		c.EventuallyGet(helpers.Name("test.rds.credentials"), fetchSecret)
-		Expect(string(fetchSecret.Data["username"])).To(Equal("testUsername"))
+		c.Get(helpers.Name("test-rds.rds.credentials"), fetchSecret)
+		Expect(string(fetchSecret.Data["username"])).To(Equal("test_rds"))
 		Expect(len(string(fetchSecret.Data["password"]))).To(BeNumerically(">", 0))
 		Expect(len(string(fetchSecret.Data["endpoint"]))).To(BeNumerically(">", 0))
 
-		db, err = postgres.Open(testContext, &rdsInstance.Status.RDSConnection)
-		defer db.Close()
+		db2, err := postgres.Open(testContext, &fetchRDS.Status.Connection)
 		Expect(err).ToNot(HaveOccurred())
-
-		// run a test query, bonus make sure we're rds_superuser
-		output, err = db.Query(`SELECT groname FROM pg_group WHERE (SELECT usesysid FROM pg_user WHERE usename = current_user)=ANY(grolist);`)
-		defer output.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		for output.Next() {
-			err := output.Scan(&column0)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(column0).To(Equal("rds_superuser"))
-		}
+		Expect(runTestQuery(db2)).ToNot(HaveOccurred())
+		db.Close()
+		db2.Close()
 
 		// Lets edit the parameter group!
-		rdsInstance.Spec.Parameters = map[string]string{
+		fetchRDS.Spec.Parameters = map[string]string{
 			"log_min_duration_statement": "5000",
 		}
-		//c.Update(rdsInstance)
-		//c.EventuallyGet(helpers.Name("test"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying))
-		// In this case the parameter change should be applied immediately, others will put the db into pending-reboot
-		//c.EventuallyGet(helpers.Name("test"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady))
+		c.Update(fetchRDS)
 
+		Eventually(func() bool {
+			params, err := getDBParameters()
+			if err != nil {
+				return false
+			}
+			for k, v := range fetchRDS.Spec.Parameters {
+				if params[k] != v {
+					return false
+				}
+			}
+			return true
+		}, time.Minute*4, time.Second*20).Should(BeTrue())
+
+		fetchRDS.Spec.Parameters = map[string]string{}
+		c.Update(fetchRDS)
+
+		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*3))
+		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*11))
+
+		params, err := getDBParameters()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(params["log_min_duration_statement"]).To(Equal(""))
 	})
-
 })
+
+func runTestQuery(db *sql.DB) error {
+	output, err := db.Query(`SELECT groname FROM pg_group WHERE (SELECT usesysid FROM pg_user WHERE usename = current_user)=ANY(grolist);`)
+	if err != nil {
+		return errors.Wrap(err, "db.query")
+	}
+	defer output.Close()
+
+	var column0 string
+	for output.Next() {
+		err := output.Scan(&column0)
+		if err != nil {
+			return errors.Wrap(err, "output.scan")
+		}
+		if column0 != "rds_superuser" {
+			return errors.New("user was not in rds_superuser group")
+		}
+	}
+
+	return nil
+}
+
+func dbInstanceExists() bool {
+	_, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
+		DBInstanceIdentifier: aws.String(rdsInstance.Name),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBInstanceNotFoundFault {
+			return false
+		}
+	}
+	return true
+}
+
+func dbParameterGroupExists() bool {
+	_, err := rdssvc.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
+		DBParameterGroupName: aws.String(rdsInstance.Name),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
+			return false
+		}
+	}
+	return true
+}
+
+func securityGroupExists() bool {
+	describeSecurityGroupsOutput, err := ec2svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-name"),
+				Values: []*string{aws.String(rdsInstance.Name)},
+			},
+		},
+	})
+	if err != nil {
+		return true
+	}
+
+	if len(describeSecurityGroupsOutput.SecurityGroups) > 0 {
+		return true
+	}
+	return false
+}
+
+func getDBParameters() (map[string]string, error) {
+	output := map[string]string{}
+	var dbParams []*rds.Parameter
+	err := rdssvc.DescribeDBParametersPages(&rds.DescribeDBParametersInput{
+		DBParameterGroupName: aws.String(rdsInstance.Name),
+	}, func(page *rds.DescribeDBParametersOutput, lastPage bool) bool {
+		dbParams = append(dbParams, page.Parameters...)
+		// if items returned < default MaxItems
+		return !(len(page.Parameters) < 100)
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "rds: failed to describe db parameters for controller_test")
+	}
+	for _, parameter := range dbParams {
+		output[aws.StringValue(parameter.ParameterName)] = aws.StringValue(parameter.ParameterValue)
+	}
+	return output, nil
+}

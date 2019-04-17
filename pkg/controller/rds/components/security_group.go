@@ -17,6 +17,9 @@ limitations under the License.
 package components
 
 import (
+	"time"
+
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -27,6 +30,8 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 )
+
+const rdsInstanceSecurityGroupFinalizer = "rdsinstance.securitygroup.finalizer"
 
 type dbSecurityGroupComponent struct {
 	ec2API ec2iface.EC2API
@@ -55,6 +60,37 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 
 	if instance.Spec.VPCID == "" {
 		return components.Result{}, errors.New("rds: vpc_id environment variable not set")
+	}
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !helpers.ContainsFinalizer(rdsInstanceSecurityGroupFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
+			}
+			return components.Result{Requeue: true}, nil
+		}
+	} else {
+		if helpers.ContainsFinalizer(rdsInstanceSecurityGroupFinalizer, instance) {
+			// If our database still exists we can't delete the security group
+			if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
+				return components.Result{RequeueAfter: time.Minute * 1}, nil
+			}
+			result, err := comp.deleteDependencies(ctx)
+			if err != nil {
+				return result, err
+			}
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
+			err = ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
+			}
+			return components.Result{}, nil
+		}
+		// If object is being deleted and has no finalizer exit.
+		return components.Result{}, nil
 	}
 
 	describeSecurityGroupsOutput, err := comp.ec2API.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
@@ -137,5 +173,31 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 		instance.Status.SecurityGroupID = aws.StringValue(securityGroup.GroupId)
 		return nil
 	}}, nil
+}
 
+func (comp *dbSecurityGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+	describeSecurityGroupsOutput, err := comp.ec2API.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-name"),
+				Values: []*string{aws.String(instance.Name)},
+			},
+		},
+	})
+
+	// This shouldn't happen but leaving it here for sanity
+	if len(describeSecurityGroupsOutput.SecurityGroups) < 1 {
+		// Our security group no longer exists
+		return components.Result{}, nil
+	}
+
+	_, err = comp.ec2API.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
+		GroupId: describeSecurityGroupsOutput.SecurityGroups[0].GroupId,
+	})
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to delete security group for finalizer")
+	}
+	// SecurityGroup in the process of being deleted
+	return components.Result{}, nil
 }

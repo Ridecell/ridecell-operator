@@ -18,7 +18,9 @@ package components
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,6 +32,8 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 )
+
+const rdsInstanceParameterGroupFinalizer = "rdsinstance.parametergroup.finalizer"
 
 type dbParameterGroupComponent struct {
 	rdsAPI rdsiface.RDSAPI
@@ -55,6 +59,37 @@ func (_ *dbParameterGroupComponent) IsReconcilable(_ *components.ComponentContex
 
 func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !helpers.ContainsFinalizer(rdsInstanceParameterGroupFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(rdsInstanceParameterGroupFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to update instance while adding finalizer")
+			}
+			return components.Result{Requeue: true}, nil
+		}
+	} else {
+		if helpers.ContainsFinalizer(rdsInstanceParameterGroupFinalizer, instance) {
+			// If our database still exists we can't delete the security group
+			if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
+				return components.Result{RequeueAfter: time.Minute * 1}, nil
+			}
+			result, err := comp.deleteDependencies(ctx)
+			if err != nil {
+				return result, err
+			}
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(rdsInstanceParameterGroupFinalizer, instance)
+			err = ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to update instance while removing finalizer")
+			}
+			return components.Result{}, nil
+		}
+		// If object is being deleted and has no finalizer just exit.
+		return components.Result{}, nil
+	}
 
 	_, err := comp.rdsAPI.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
 		DBParameterGroupName: aws.String(instance.Name),
@@ -107,6 +142,7 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 	}
 
 	var updateParameters []*rds.Parameter
+	var resetParameters []*rds.Parameter
 	// Compare current vs spec vs default, modify if needed
 	for _, parameter := range dbParams {
 		val, ok := instance.Spec.Parameters[aws.StringValue(parameter.ParameterName)]
@@ -117,6 +153,7 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 				newParam := &rds.Parameter{
 					ParameterName:  parameter.ParameterName,
 					ParameterValue: aws.String(val),
+					ApplyMethod:    parameter.ApplyMethod,
 				}
 				updateParameters = append(updateParameters, newParam)
 			}
@@ -126,7 +163,13 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 		for _, defaultParameter := range defaultDBParams {
 			if aws.StringValue(defaultParameter.ParameterName) == aws.StringValue(parameter.ParameterName) {
 				if aws.StringValue(defaultParameter.ParameterValue) != aws.StringValue(parameter.ParameterValue) {
-					updateParameters = append(updateParameters, defaultParameter)
+					// Can only reset 20 parameters at a time.
+					if len(resetParameters) < 20 {
+						resetParameters = append(resetParameters, defaultParameter)
+					} else {
+						// No point in continuing if we can't modify more
+						break
+					}
 				}
 				break
 			}
@@ -139,8 +182,29 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 			Parameters:           updateParameters,
 		})
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "rds: unable to modify db parameter group")
+			if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeInvalidDBParameterGroupStateFault {
+				// Not returning error to retain RequeueAfter behavior.
+				return components.Result{RequeueAfter: time.Second * 30}, nil
+			}
+			return components.Result{Requeue: true}, errors.Wrap(err, "rds: unable to modify db parameter group")
 		}
+		return components.Result{RequeueAfter: time.Second * 30}, nil
+	}
+
+	if len(resetParameters) > 0 {
+		_, err := comp.rdsAPI.ResetDBParameterGroup(&rds.ResetDBParameterGroupInput{
+			DBParameterGroupName: aws.String(instance.Name),
+			Parameters:           resetParameters,
+			ResetAllParameters:   aws.Bool(false),
+		})
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeInvalidDBParameterGroupStateFault {
+				// Not returning error to retain RequeueAfter behavior.
+				return components.Result{RequeueAfter: time.Second * 30}, nil
+			}
+			return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to reset db parameter group")
+		}
+		return components.Result{RequeueAfter: time.Second * 30}, nil
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
@@ -148,4 +212,27 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 		instance.Status.ParameterGroupStatus = dbv1beta1.StatusReady
 		return nil
 	}}, nil
+}
+
+func (comp *dbParameterGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+	describeDBParameterGroupsOutput, err := comp.rdsAPI.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
+		DBParameterGroupName: aws.String(instance.Name),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
+			return components.Result{}, nil
+		}
+		return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to describe parameter group for finalizer")
+	}
+
+	_, err = comp.rdsAPI.DeleteDBParameterGroup(&rds.DeleteDBParameterGroupInput{
+		DBParameterGroupName: describeDBParameterGroupsOutput.DBParameterGroups[0].DBParameterGroupName,
+	})
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to delete parameter group for finalizer")
+	}
+
+	// Our parameter group is in the process of being deleted
+	return components.Result{}, nil
 }

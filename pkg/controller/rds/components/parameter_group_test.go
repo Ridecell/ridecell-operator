@@ -17,6 +17,8 @@ limitations under the License.
 package components_test
 
 import (
+	"context"
+
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,8 +28,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	rdscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rds/components"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type mockRDSPGClient struct {
@@ -35,8 +40,9 @@ type mockRDSPGClient struct {
 
 	parameterGroupExists    bool
 	parameterGroupHasParams bool
-
-	modifiedParameters bool
+	modifiedParameters      bool
+	defaultedParameters     bool
+	deletedParameterGroup   bool
 
 	parameters        []*rds.Parameter
 	defaultParameters []*rds.Parameter
@@ -52,6 +58,7 @@ var _ = Describe("rds parameter group Component", func() {
 		comp.InjectRDSAPI(mockRDS)
 		instance.Spec.Engine = "postgres"
 		instance.Spec.EngineVersion = "11"
+		instance.ObjectMeta.Finalizers = []string{"rdsinstance.parametergroup.finalizer"}
 
 		mockRDS.defaultParameters = []*rds.Parameter{
 			&rds.Parameter{
@@ -82,6 +89,7 @@ var _ = Describe("rds parameter group Component", func() {
 	})
 
 	It("runs basic reconcile", func() {
+		// Run again for the actual component
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 
@@ -119,9 +127,32 @@ var _ = Describe("rds parameter group Component", func() {
 
 		instance.Spec.Parameters = map[string]string{}
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(mockRDS.modifiedParameters).To(BeTrue())
+		Expect(mockRDS.defaultedParameters).To(BeTrue())
 
 		Expect(parametersEquals(mockRDS.parameters, mockRDS.defaultParameters)).To(BeTrue())
+	})
+
+	It("tests adding the finalizer", func() {
+		instance.ObjectMeta.Finalizers = []string{}
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchDBInstance := &dbv1beta1.RDSInstance{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchDBInstance)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fetchDBInstance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.parametergroup.finalizer"))
+	})
+
+	It("tests finalizer behavior during deletion", func() {
+		mockRDS.parameterGroupExists = true
+		currentTime := metav1.Now()
+		instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
+
+		Expect(comp).To(ReconcileContext(ctx))
+		fetchDBInstance := &dbv1beta1.RDSInstance{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchDBInstance)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mockRDS.deletedParameterGroup).To(BeTrue())
+		Expect(fetchDBInstance.ObjectMeta.Finalizers).To(HaveLen(0))
 	})
 })
 
@@ -190,6 +221,44 @@ func (m *mockRDSPGClient) ModifyDBParameterGroup(input *rds.ModifyDBParameterGro
 
 	m.modifiedParameters = true
 	return nil, nil
+}
+
+func (m *mockRDSPGClient) ResetDBParameterGroup(input *rds.ResetDBParameterGroupInput) (*rds.DBParameterGroupNameMessage, error) {
+	if aws.StringValue(input.DBParameterGroupName) != instance.Name {
+		return nil, errors.New("mock_rds: input parameter group name did not match expected value")
+	}
+	if len(input.Parameters) > 20 {
+		return nil, errors.New("mock_rds: more than 20 parameters given")
+	}
+	if aws.BoolValue(input.ResetAllParameters) {
+		return nil, errors.New("mock_rds: resetallparameters should never be true")
+	}
+
+	// i hate everything about this
+	for _, inputParameter := range input.Parameters {
+		for _, parameter := range m.parameters {
+			if aws.StringValue(parameter.ParameterName) == aws.StringValue(inputParameter.ParameterName) {
+				for _, defaultParameter := range m.defaultParameters {
+					if aws.StringValue(defaultParameter.ParameterName) == aws.StringValue(inputParameter.ParameterName) {
+						defaultParameterValue := aws.StringValue(defaultParameter.ParameterValue)
+						parameter.ParameterValue = aws.String(defaultParameterValue)
+						break
+					}
+				}
+				break
+			}
+		}
+	}
+	m.defaultedParameters = true
+	return &rds.DBParameterGroupNameMessage{}, nil
+}
+
+func (m *mockRDSPGClient) DeleteDBParameterGroup(input *rds.DeleteDBParameterGroupInput) (*rds.DeleteDBParameterGroupOutput, error) {
+	if aws.StringValue(input.DBParameterGroupName) != instance.Name {
+		return nil, errors.New("mock_rds: input parameter group name did not match expected value")
+	}
+	m.deletedParameterGroup = true
+	return &rds.DeleteDBParameterGroupOutput{}, nil
 }
 
 func parametersEquals(listOne []*rds.Parameter, listTwo []*rds.Parameter) bool {

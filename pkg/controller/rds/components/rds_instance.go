@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
@@ -40,6 +41,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const RDSInstanceDatabaseFinalizer = "rdsinstance.database.finalizer"
+
 type rdsInstanceComponent struct {
 	rdsAPI rdsiface.RDSAPI
 }
@@ -55,7 +58,7 @@ func (comp *rdsInstanceComponent) InjectRDSAPI(rdsapi rdsiface.RDSAPI) {
 }
 
 func (_ *rdsInstanceComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{&corev1.Secret{}}
 }
 
 func (_ *rdsInstanceComponent) IsReconcilable(ctx *components.ComponentContext) bool {
@@ -72,10 +75,51 @@ func (_ *rdsInstanceComponent) IsReconcilable(ctx *components.ComponentContext) 
 func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RDSInstance)
 
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(RDSInstanceDatabaseFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
+			}
+			return components.Result{Requeue: true}, nil
+		}
+	} else {
+		if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
+			describeDBInstancesOutput, err := comp.rdsAPI.DescribeDBInstances(&rds.DescribeDBInstancesInput{
+				DBInstanceIdentifier: aws.String(instance.Name),
+			})
+			if err != nil {
+				if aerr, ok := err.(awserr.Error); ok && aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
+					return components.Result{}, errors.Wrapf(err, "rds: unable to describe db instance")
+				}
+			} else {
+				// If there was no error our instance exists
+				if aws.StringValue(describeDBInstancesOutput.DBInstances[0].DBInstanceStatus) == "deleting" {
+					return components.Result{RequeueAfter: time.Minute * 1}, nil
+				}
+				// if the instance is not currently being deleted, attempt a delete and exit accordingly.
+				result, err := comp.deleteDependencies(ctx)
+				return result, err
+			}
+
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(RDSInstanceDatabaseFinalizer, instance)
+			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
+			}
+			return components.Result{}, nil
+		}
+		// If object is being deleted and has no finalizer just exit.
+		return components.Result{}, nil
+	}
+
 	var databaseNotExist bool
 	var database *rds.DBInstance
-	var password []byte
-	databaseName := strings.Replace(instance.Name, "-", "_", -1)
+	var password string
+	databaseName := strings.Replace(instance.Spec.DatabaseName, "-", "_", -1)
+	databaseUsername := strings.Replace(instance.Spec.Username, "-", "_", -1)
 
 	if instance.Spec.SubnetGroupName == "" {
 		return components.Result{}, errors.New("rds: aws_subnet_group_name var not set")
@@ -89,16 +133,12 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			return components.Result{}, errors.Wrapf(err, "rds: unable to describe db instance")
 		}
 		databaseNotExist = true
-	} else {
-		// if we found the database use it
-		database = describeDBInstancesOutput.DBInstances[0]
 	}
 
 	if databaseNotExist {
 		password = createDBPassword()
-		// Create our database
 		createDBInstanceOutput, err := comp.rdsAPI.CreateDBInstance(&rds.CreateDBInstanceInput{
-			MasterUsername:             aws.String(instance.Spec.Username),
+			MasterUsername:             aws.String(databaseUsername),
 			DBInstanceIdentifier:       aws.String(instance.Name),
 			DBName:                     aws.String(databaseName),
 			MasterUserPassword:         aws.String(string(password)),
@@ -128,9 +168,26 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			return components.Result{}, errors.Wrapf(err, "rds: unable to create db instance")
 		}
 		database = createDBInstanceOutput.DBInstance
+	} else {
+		database = describeDBInstancesOutput.DBInstances[0]
 	}
 
-	// If we didn't create a new password get the password from the secret.
+	var needsUpdate bool
+	// For now we're only making changes that are safe to apply immediately
+	// This does exclude instance size for now
+	databaseModifyInput := &rds.ModifyDBInstanceInput{
+		DBInstanceIdentifier: aws.String(instance.Name),
+		ApplyImmediately:     aws.Bool(true),
+	}
+	// TODO: Things could get weird if allocated storage is increased by less than 10% as aws will automatically round up to the nearest 10% increase
+	// This is pretty unlikely to happen even at larger numbers.
+	if aws.Int64Value(database.AllocatedStorage) != instance.Spec.AllocatedStorage {
+		needsUpdate = true
+		databaseModifyInput.AllocatedStorage = aws.Int64(instance.Spec.AllocatedStorage)
+	}
+
+	// If a new password wasn't created we're going to try to get it from the secret
+	// If that secret does not exist we create a new password.
 	if len(password) == 0 {
 		fetchSecret := &corev1.Secret{}
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.rds.credentials", instance.Name), Namespace: instance.Namespace}, fetchSecret)
@@ -138,23 +195,20 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			if !kerrors.IsNotFound(err) {
 				return components.Result{}, errors.Wrap(err, "rds: unable to get database secret")
 			}
-			// Safety case, we don't have the password but we have the instance,
-			// overwrite the password as there's no api call to retrieve it.
-			// This is a no downtime update at least on the RDS side.
+			// Safety case, we don't have the secret but we have the instance, make a new one and update the instance.
+			needsUpdate = true
 			password = createDBPassword()
-			_, err := comp.rdsAPI.ModifyDBInstance(&rds.ModifyDBInstanceInput{
-				DBInstanceIdentifier: database.DBInstanceIdentifier,
-				MasterUserPassword:   aws.String(string(password)),
-				ApplyImmediately:     aws.Bool(true),
-			})
-			if err != nil {
-				return components.Result{}, errors.Wrap(err, "rds: failed to update rds instance with new password")
-			}
+			databaseModifyInput.MasterUserPassword = aws.String(password)
 		}
 
 		dbPassword, ok := fetchSecret.Data["password"]
 		if ok {
-			password = dbPassword
+			password = string(dbPassword)
+		}
+		// If the key didn't exist or the fetched password is blank
+		if !ok || len(dbPassword) == 0 {
+			password = createDBPassword()
+			databaseModifyInput.MasterUserPassword = aws.String(password)
 		}
 	}
 
@@ -167,7 +221,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	secretMap := map[string][]byte{
 		"username": []byte(aws.StringValue(database.MasterUsername)),
 		"endpoint": []byte(dbEndpoint),
-		"password": password,
+		"password": []byte(password),
 	}
 
 	// Deal with master password secret
@@ -186,53 +240,106 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	}
 
 	dbStatus := aws.StringValue(database.DBInstanceStatus)
-	if dbStatus != "available" && dbStatus != "pending-reboot" {
-		if dbStatus == "failed" || dbStatus == "incompatible-parameters" {
-			return components.Result{}, errors.New("rds: rds instance is in a failure state")
+	// Only try to update the database if the status is available, otherwise a change may already be in progress.
+	if (dbStatus == "available" || dbStatus == "pending-reboot") && needsUpdate {
+		err = comp.modifyRDSInstance(databaseModifyInput)
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "rds: failed to modify db instance")
 		}
+		return components.Result{RequeueAfter: time.Second * 30}, nil
+	}
 
-		if dbStatus == "modifying" {
-			return components.Result{StatusModifier: func(obj runtime.Object) error {
-				instance := obj.(*dbv1beta1.RDSInstance)
-				instance.Status.Status = dbv1beta1.StatusModifying
-				instance.Status.Message = "password is being updated"
-				return nil
-			}, Requeue: true}, nil
-		}
+	if dbStatus == "failed" || dbStatus == "incompatible-parameters" {
+		return components.Result{}, errors.New("rds: rds instance is in a failure state")
+	}
+
+	if dbStatus == "modifying" || dbStatus == "resetting-master-credentials" || dbStatus == "backing-up" {
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*dbv1beta1.RDSInstance)
+			instance.Status.Status = dbv1beta1.StatusModifying
+			instance.Status.Message = "password is being updated"
+			return nil
+		}, RequeueAfter: time.Second * 30}, nil
+	}
+
+	if dbStatus == "creating" {
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance := obj.(*dbv1beta1.RDSInstance)
 			instance.Status.InstanceID = aws.StringValue(database.DBInstanceIdentifier)
 			instance.Status.Status = dbv1beta1.StatusCreating
 			instance.Status.Message = fmt.Sprintf("RDS instance status: %s", dbStatus)
 			return nil
-		}, Requeue: true}, nil
+		}, RequeueAfter: time.Second * 30}, nil
 	}
 
+	if dbStatus == "available" || dbStatus == "pending-reboot" {
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*dbv1beta1.RDSInstance)
+			instance.Status.Status = dbv1beta1.StatusReady
+			instance.Status.Message = "RDS instance exists and is available"
+			instance.Status.InstanceID = aws.StringValue(database.DBInstanceIdentifier)
+			instance.Status.Connection = dbv1beta1.PostgresConnection{
+				Host:     aws.StringValue(database.Endpoint.Address),
+				Port:     int(5432),
+				Username: aws.StringValue(database.MasterUsername),
+				Database: databaseName,
+				PasswordSecretRef: helpers.SecretRef{
+					Name: fmt.Sprintf("%s.rds.credentials", instance.Name),
+					Key:  "password",
+				},
+			}
+			return nil
+		}}, nil
+	}
+
+	// catchall for i have no idea why this happened, retry every minute just in case it's weird
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.RDSInstance)
-		instance.Status.Status = dbv1beta1.StatusReady
-		instance.Status.Message = "RDS instance exists and is available"
-		instance.Status.InstanceID = aws.StringValue(database.DBInstanceIdentifier)
-		instance.Status.RDSConnection = dbv1beta1.PostgresConnection{
-			Host:     aws.StringValue(database.Endpoint.Address),
-			Port:     uint16(5432),
-			Username: aws.StringValue(database.MasterUsername),
-			Database: databaseName,
-			PasswordSecretRef: helpers.SecretRef{
-				Name: fmt.Sprintf("%s.rds.credentials", instance.Name),
-				Key:  "password",
-			},
-		}
+		instance.Status.Status = dbv1beta1.StatusUnknown
+		instance.Status.Message = fmt.Sprintf("RDS instance is in an unknown or unhandled state: %s", dbStatus)
 		return nil
-	}}, nil
+	}, RequeueAfter: time.Second * 30}, nil
 }
 
-func createDBPassword() []byte {
-	// Limit this to '/', '@', '"', ' ' | this isn't that big of a deal as it will just loop reconciles
-	// Create a password for our new database
+func (comp *rdsInstanceComponent) modifyRDSInstance(modifyInput *rds.ModifyDBInstanceInput) error {
+	_, err := comp.rdsAPI.ModifyDBInstance(modifyInput)
+	if err != nil {
+		return errors.Wrap(err, "rds: failed to update rds instance")
+	}
+	return nil
+}
+
+func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+
+	_, err := comp.rdsAPI.DeleteDBInstance(&rds.DeleteDBInstanceInput{
+		DBInstanceIdentifier:      aws.String(instance.Name),
+		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Name, time.Now().UTC().Format("2006-01-02-15-04"))),
+	})
+
+	if err != nil {
+		// This obnoxious block of error checking reduces api calls and error spam.
+		aerr, ok := err.(awserr.Error)
+		if ok {
+			if aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
+				// If the instance isn't ready to be deleted wait a minute and try again
+				if aerr.Code() == rds.ErrCodeInvalidDBInstanceStateFault {
+					return components.Result{RequeueAfter: time.Minute * 1}, nil
+				}
+				return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
+			}
+		} else {
+			return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
+		}
+	}
+	return components.Result{Requeue: true}, nil
+}
+
+func createDBPassword() string {
+	// Create a password for our database
 	rawPassword := make([]byte, 32)
 	rand.Read(rawPassword)
-	password := make([]byte, base64.RawStdEncoding.EncodedLen(32))
-	base64.RawStdEncoding.Encode(password, rawPassword)
-	return password
+	password := make([]byte, base64.RawURLEncoding.EncodedLen(32))
+	base64.RawURLEncoding.Encode(password, rawPassword)
+	return string(password)
 }
