@@ -107,7 +107,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	if len(describeSecurityGroupsOutput.SecurityGroups) < 1 {
 		_, err = comp.ec2API.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 			GroupName:   aws.String(instance.Name),
-			Description: aws.String(fmt.Sprintf("%s: Created by ridecell-operator")),
+			Description: aws.String(fmt.Sprintf("%s: Created by ridecell-operator", instance.Name)),
 			VpcId:       aws.String(instance.Spec.VPCID),
 		})
 		if err != nil {
