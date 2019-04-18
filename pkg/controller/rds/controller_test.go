@@ -133,7 +133,8 @@ var _ = Describe("rds controller", func() {
 
 		db, err := postgres.Open(testContext, &fetchRDS.Status.Connection)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(runTestQuery(db)).ToNot(HaveOccurred())
+		err = runTestQuery(db)
+		Expect(err).ToNot(HaveOccurred())
 
 		// Delete the password, make sure it re-creates it.
 		c.Delete(fetchSecret)
@@ -147,7 +148,8 @@ var _ = Describe("rds controller", func() {
 
 		db2, err := postgres.Open(testContext, &fetchRDS.Status.Connection)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(runTestQuery(db2)).ToNot(HaveOccurred())
+		err = runTestQuery(db2)
+		Expect(err).ToNot(HaveOccurred())
 		db.Close()
 		db2.Close()
 
