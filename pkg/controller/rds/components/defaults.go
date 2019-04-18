@@ -59,10 +59,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.EngineVersion = "11"
 	}
 
-	if instance.Spec.Username == "" {
-		instance.Spec.Username = instance.Name
-	}
-
 	if instance.Spec.InstanceClass == "" {
 		instance.Spec.InstanceClass = "db.t3.micro"
 	}
@@ -80,7 +76,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	if instance.Spec.DatabaseName == "" {
-		instance.Spec.DatabaseName = instance.Spec.Username
+		instance.Spec.DatabaseName = instance.Name
+	}
+
+	if instance.Spec.Username == "" {
+		instance.Spec.Username = instance.Spec.DatabaseName
 	}
 
 	return components.Result{}, nil
