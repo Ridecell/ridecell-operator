@@ -17,6 +17,7 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
@@ -108,7 +109,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	if len(describeSecurityGroupsOutput.SecurityGroups) < 1 {
 		_, err = comp.ec2API.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 			GroupName:   aws.String(instance.Name),
-			Description: aws.String("Created by ridecell-operator"),
+			Description: aws.String(fmt.Sprintf("%s: Created by ridecell-operator")),
 			VpcId:       aws.String(instance.Spec.VPCID),
 		})
 		if err != nil {
