@@ -262,6 +262,9 @@ func (m *mockRDSPGClient) DeleteDBParameterGroup(input *rds.DeleteDBParameterGro
 }
 
 func parametersEquals(listOne []*rds.Parameter, listTwo []*rds.Parameter) bool {
+	if len(listOne) != len(listTwo) {
+		return false
+	}
 	for _, i := range listOne {
 		var foundName bool
 		var valueMatched bool
