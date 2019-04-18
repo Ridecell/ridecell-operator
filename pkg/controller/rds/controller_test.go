@@ -18,6 +18,7 @@ package rds_test
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"time"
 
@@ -64,6 +65,11 @@ var _ = Describe("rds controller", func() {
 			panic("$VPC_ID not set, failing test")
 		}
 
+		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
+		if randOwnerPrefix == "" {
+			panic("$RAND_OWNER_PREFIX not set, failing test")
+		}
+
 		var err error
 		sess, err = session.NewSession(&aws.Config{
 			Region: aws.String("us-west-1"),
@@ -83,11 +89,10 @@ var _ = Describe("rds controller", func() {
 
 		rdsInstance = &dbv1beta1.RDSInstance{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-rds",
+				Name:      fmt.Sprintf("%s-test-rds", randOwnerPrefix),
 				Namespace: helpers.Namespace,
 			},
 		}
-		rdsInstance.Spec.Username = "test-rds"
 		// multiaz false should save some time in testing while being operationally similar to normal usage
 		rdsInstance.Spec.MultiAZ = aws.Bool(false)
 	})
@@ -111,16 +116,16 @@ var _ = Describe("rds controller", func() {
 		c.Create(rdsInstance)
 
 		fetchRDS := &dbv1beta1.RDSInstance{}
-		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating))
+		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating))
 
 		//c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
 
 		// This process should max out at roughly 10 minutes
-		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
+		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 
 		fetchSecret := &corev1.Secret{}
-		c.Get(helpers.Name("test-rds.rds.credentials"), fetchSecret)
-		Expect(string(fetchSecret.Data["username"])).To(Equal("test_rds"))
+		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds.credentials", randOwnerPrefix)), fetchSecret)
+		Expect(string(fetchSecret.Data["username"])).To(Equal(fmt.Sprintf("%s_test_rds", randOwnerPrefix)))
 		Expect(len(string(fetchSecret.Data["password"]))).To(BeNumerically(">", 0))
 		Expect(len(string(fetchSecret.Data["endpoint"]))).To(BeNumerically(">", 0))
 
@@ -132,11 +137,11 @@ var _ = Describe("rds controller", func() {
 
 		// Delete the password, make sure it re-creates it.
 		c.Delete(fetchSecret)
-		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
-		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*5))
+		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
+		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*5))
 
-		c.Get(helpers.Name("test-rds.rds.credentials"), fetchSecret)
-		Expect(string(fetchSecret.Data["username"])).To(Equal("test_rds"))
+		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds.credentials", randOwnerPrefix)), fetchSecret)
+		Expect(string(fetchSecret.Data["username"])).To(Equal(fmt.Sprintf("%s_test_rds", randOwnerPrefix)))
 		Expect(len(string(fetchSecret.Data["password"]))).To(BeNumerically(">", 0))
 		Expect(len(string(fetchSecret.Data["endpoint"]))).To(BeNumerically(">", 0))
 
@@ -168,8 +173,8 @@ var _ = Describe("rds controller", func() {
 		fetchRDS.Spec.Parameters = map[string]string{}
 		c.Update(fetchRDS)
 
-		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*3))
-		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*11))
+		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*3))
+		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*11))
 
 		params, err := getDBParameters()
 		Expect(err).ToNot(HaveOccurred())
