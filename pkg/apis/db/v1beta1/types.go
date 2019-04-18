@@ -22,7 +22,7 @@ import (
 
 const (
 	StatusReady     = "Ready"
-	StatusCreating  = "RDS Creating"
+	StatusCreating  = "Creating"
 	StatusModifying = "Modifying"
 	StatusError     = "Error"
 	StatusUnknown   = "Unknown"
