@@ -70,7 +70,6 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
 			}
-			return components.Result{Requeue: true}, nil
 		}
 	} else {
 		if helpers.ContainsFinalizer(rdsInstanceSecurityGroupFinalizer, instance) {
@@ -88,7 +87,6 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
 			}
-			return components.Result{}, nil
 		}
 		// If object is being deleted and has no finalizer exit.
 		return components.Result{}, nil

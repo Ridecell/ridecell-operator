@@ -82,7 +82,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
 			}
-			return components.Result{Requeue: true}, nil
 		}
 	} else {
 		if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
@@ -109,7 +108,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
 			}
-			return components.Result{}, nil
 		}
 		// If object is being deleted and has no finalizer just exit.
 		return components.Result{}, nil
