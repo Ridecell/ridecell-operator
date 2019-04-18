@@ -80,7 +80,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(RDSInstanceDatabaseFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
+				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
 			}
 			return components.Result{Requeue: true}, nil
 		}
@@ -107,7 +107,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(RDSInstanceDatabaseFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
+				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
 			}
 			return components.Result{}, nil
 		}
@@ -236,7 +236,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		return nil
 	})
 	if err != nil {
-		return components.Result{Requeue: true}, err
+		return components.Result{}, err
 	}
 
 	dbStatus := aws.StringValue(database.DBInstanceStatus)

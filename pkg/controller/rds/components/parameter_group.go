@@ -65,7 +65,7 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(rdsInstanceParameterGroupFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to update instance while adding finalizer")
+				return components.Result{}, errors.Wrap(err, "rds: failed to update instance while adding finalizer")
 			}
 			return components.Result{Requeue: true}, nil
 		}
@@ -83,7 +83,7 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(rdsInstanceParameterGroupFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to update instance while removing finalizer")
+				return components.Result{}, errors.Wrap(err, "rds: failed to update instance while removing finalizer")
 			}
 			return components.Result{}, nil
 		}
@@ -186,7 +186,7 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 				// Not returning error to retain RequeueAfter behavior.
 				return components.Result{RequeueAfter: time.Second * 30}, nil
 			}
-			return components.Result{Requeue: true}, errors.Wrap(err, "rds: unable to modify db parameter group")
+			return components.Result{}, errors.Wrap(err, "rds: unable to modify db parameter group")
 		}
 		return components.Result{RequeueAfter: time.Second * 30}, nil
 	}
@@ -202,7 +202,7 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 				// Not returning error to retain RequeueAfter behavior.
 				return components.Result{RequeueAfter: time.Second * 30}, nil
 			}
-			return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to reset db parameter group")
+			return components.Result{}, errors.Wrap(err, "rds: failed to reset db parameter group")
 		}
 		return components.Result{RequeueAfter: time.Second * 30}, nil
 	}
@@ -223,14 +223,14 @@ func (comp *dbParameterGroupComponent) deleteDependencies(ctx *components.Compon
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
 			return components.Result{}, nil
 		}
-		return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to describe parameter group for finalizer")
+		return components.Result{}, errors.Wrap(err, "rds: failed to describe parameter group for finalizer")
 	}
 
 	_, err = comp.rdsAPI.DeleteDBParameterGroup(&rds.DeleteDBParameterGroupInput{
 		DBParameterGroupName: describeDBParameterGroupsOutput.DBParameterGroups[0].DBParameterGroupName,
 	})
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to delete parameter group for finalizer")
+		return components.Result{}, errors.Wrap(err, "rds: failed to delete parameter group for finalizer")
 	}
 
 	// Our parameter group is in the process of being deleted

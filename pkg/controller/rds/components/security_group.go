@@ -67,7 +67,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
+				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
 			}
 			return components.Result{Requeue: true}, nil
 		}
@@ -85,7 +85,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
+				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
 			}
 			return components.Result{}, nil
 		}
@@ -196,7 +196,7 @@ func (comp *dbSecurityGroupComponent) deleteDependencies(ctx *components.Compone
 		GroupId: describeSecurityGroupsOutput.SecurityGroups[0].GroupId,
 	})
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrap(err, "rds: failed to delete security group for finalizer")
+		return components.Result{}, errors.Wrap(err, "rds: failed to delete security group for finalizer")
 	}
 	// SecurityGroup in the process of being deleted
 	return components.Result{}, nil
