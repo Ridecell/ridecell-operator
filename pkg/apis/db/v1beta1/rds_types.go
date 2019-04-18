@@ -22,19 +22,17 @@ import (
 
 // RDSInstanceSpec defines the desired state of RDS
 type RDSInstanceSpec struct {
-	Parameters        map[string]string `json:"parameterOverrides,omitempty"`
-	PostgresVersion   string            `json:"postgresVersion,omitempty"`
 	AllocatedStorage  int64             `json:"allocatedStorage,omitempty"`
-	InstanceID        string            `json:"instanceID,omitempty"`
-	InstanceClass     string            `json:"instanceClass,omitempty"`
+	DatabaseName      string            `json:"databaseName,omitempty"`
 	Engine            string            `json:"engine,omitempty"`
 	EngineVersion     string            `json:"engineVersion,omitempty"`
+	InstanceClass     string            `json:"instanceClass,omitempty"`
+	MultiAZ           *bool             `json:"multiAZ,omitempty"`
+	MaintenanceWindow string            `json:"maintenanceWindow,omitempty"`
+	Parameters        map[string]string `json:"parameterOverrides,omitempty"`
 	Username          string            `json:"username,omitempty"`
 	SubnetGroupName   string            `json:"subnetGroupName,omitempty"`
 	VPCID             string            `json:"vpcID,omitempty"`
-	MultiAZ           *bool             `json:"multiAZ,omitempty"`
-	MaintenanceWindow string            `json:"maintenanceWindow,omitempty"`
-	DatabaseName      string            `json:"databaseName,omitempty"`
 }
 
 // RDSInstanceStatus defines the observed state of RDSInstance
@@ -46,6 +44,7 @@ type RDSInstanceStatus struct {
 	SecurityGroupStatus  string             `json:"securityGroupStatus"`
 	SecurityGroupID      string             `json:"securityGroupID"`
 	ParameterGroupStatus string             `json:"parameterGroupStatus"`
+	SecretStatus         string             `json:"secretStatus"`
 }
 
 // +genclient

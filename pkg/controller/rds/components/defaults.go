@@ -50,13 +50,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.Engine = "postgres"
 	}
 
+	if instance.Spec.EngineVersion == "" {
+		instance.Spec.EngineVersion = "11"
+	}
+
 	if instance.Spec.MultiAZ == nil {
 		multiAZ := true
 		instance.Spec.MultiAZ = &multiAZ
-	}
-
-	if instance.Spec.EngineVersion == "" {
-		instance.Spec.EngineVersion = "11"
 	}
 
 	if instance.Spec.InstanceClass == "" {
