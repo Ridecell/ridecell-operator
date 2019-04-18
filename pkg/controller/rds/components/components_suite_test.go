@@ -27,6 +27,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/rds"
 )
 
 var instance *dbv1beta1.RDSInstance
@@ -43,5 +44,5 @@ var _ = ginkgo.BeforeEach(func() {
 	instance = &dbv1beta1.RDSInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
 	}
-	ctx = components.NewTestContext(instance, nil)
+	ctx = components.NewTestContext(instance, rds.Templates)
 })

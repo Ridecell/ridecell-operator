@@ -17,28 +17,25 @@ limitations under the License.
 package components
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const RDSInstanceDatabaseFinalizer = "rdsinstance.database.finalizer"
@@ -58,7 +55,7 @@ func (comp *rdsInstanceComponent) InjectRDSAPI(rdsapi rdsiface.RDSAPI) {
 }
 
 func (_ *rdsInstanceComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{&corev1.Secret{}}
+	return []runtime.Object{}
 }
 
 func (_ *rdsInstanceComponent) IsReconcilable(ctx *components.ComponentContext) bool {
@@ -67,6 +64,9 @@ func (_ *rdsInstanceComponent) IsReconcilable(ctx *components.ComponentContext) 
 		return false
 	}
 	if instance.Status.SecurityGroupStatus != dbv1beta1.StatusReady {
+		return false
+	}
+	if instance.Status.SecretStatus != dbv1beta1.StatusReady {
 		return false
 	}
 	return true
@@ -113,9 +113,20 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		return components.Result{}, nil
 	}
 
+	// Get our password secret
+	fetchSecret := &corev1.Secret{}
+	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.rds-user-password", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "rds: failed to get password secret")
+	}
+
+	password, ok := fetchSecret.Data["password"]
+	if !ok {
+		return components.Result{}, errors.New("rds: database password secret not found")
+	}
+
 	var databaseNotExist bool
 	var database *rds.DBInstance
-	var password string
 	databaseName := strings.Replace(instance.Spec.DatabaseName, "-", "_", -1)
 	databaseUsername := strings.Replace(instance.Spec.Username, "-", "_", -1)
 
@@ -134,7 +145,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	}
 
 	if databaseNotExist {
-		password = createDBPassword()
 		createDBInstanceOutput, err := comp.rdsAPI.CreateDBInstance(&rds.CreateDBInstanceInput{
 			MasterUsername:             aws.String(databaseUsername),
 			DBInstanceIdentifier:       aws.String(instance.Name),
@@ -153,7 +163,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			DBSubnetGroupName:          aws.String(instance.Spec.SubnetGroupName),
 			Tags: []*rds.Tag{
 				&rds.Tag{
-					Key:   aws.String("ridecell-operator"),
+					Key:   aws.String("Ridecell-Operator"),
 					Value: aws.String("true"),
 				},
 				&rds.Tag{
@@ -184,57 +194,24 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		databaseModifyInput.AllocatedStorage = aws.Int64(instance.Spec.AllocatedStorage)
 	}
 
-	// If a new password wasn't created we're going to try to get it from the secret
-	// If that secret does not exist we create a new password.
-	if len(password) == 0 {
-		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.rds.credentials", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+	// attempt a database query to test see if our password is correct.
+	// only attempt this when database is in ready state.
+	if instance.Status.Status == dbv1beta1.StatusReady {
+		db, err := postgres.Open(ctx, &instance.Status.Connection)
 		if err != nil {
-			if !kerrors.IsNotFound(err) {
-				return components.Result{}, errors.Wrap(err, "rds: unable to get database secret")
+			return components.Result{}, errors.Wrap(err, "rds: failed to open db connection")
+		}
+		_, err = db.Query(`SELECT 1;`)
+		if err != nil {
+			// If the error is invalid password update the database to reflect the expected password
+			// 28P01 == Invalid Password
+			if pqerr, ok := err.(*pq.Error); ok && pqerr.Code == "28P01" {
+				databaseModifyInput.MasterUserPassword = aws.String(string(password))
+				needsUpdate = true
+			} else {
+				return components.Result{}, errors.Wrap(err, "rds: failed to query database")
 			}
-			// Safety case, we don't have the secret but we have the instance, make a new one and update the instance.
-			needsUpdate = true
-			password = createDBPassword()
-			databaseModifyInput.MasterUserPassword = aws.String(password)
 		}
-
-		dbPassword, ok := fetchSecret.Data["password"]
-		if ok {
-			password = string(dbPassword)
-		}
-		// If the key didn't exist or the fetched password is blank
-		if !ok || len(dbPassword) == 0 {
-			password = createDBPassword()
-			databaseModifyInput.MasterUserPassword = aws.String(password)
-		}
-	}
-
-	var dbEndpoint string
-	if database.Endpoint != nil {
-		dbEndpoint = aws.StringValue(database.Endpoint.Address)
-	} else {
-		dbEndpoint = ""
-	}
-	secretMap := map[string][]byte{
-		"username": []byte(aws.StringValue(database.MasterUsername)),
-		"endpoint": []byte(dbEndpoint),
-		"password": []byte(password),
-	}
-
-	// Deal with master password secret
-	dbSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.rds.credentials", instance.Name), Namespace: instance.Namespace}}
-	dbSecret.Data = secretMap
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, dbSecret.DeepCopy(), func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
-		existing.ObjectMeta.Labels = dbSecret.ObjectMeta.Labels
-		existing.ObjectMeta.Annotations = dbSecret.ObjectMeta.Annotations
-		existing.Type = dbSecret.Type
-		existing.Data = dbSecret.Data
-		return nil
-	})
-	if err != nil {
-		return components.Result{}, err
 	}
 
 	dbStatus := aws.StringValue(database.DBInstanceStatus)
@@ -281,10 +258,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 				Port:     int(5432),
 				Username: aws.StringValue(database.MasterUsername),
 				Database: databaseName,
-				PasswordSecretRef: helpers.SecretRef{
-					Name: fmt.Sprintf("%s.rds.credentials", instance.Name),
-					Key:  "password",
-				},
 			}
 			return nil
 		}}, nil
@@ -331,13 +304,4 @@ func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentCo
 		}
 	}
 	return components.Result{Requeue: true}, nil
-}
-
-func createDBPassword() string {
-	// Create a password for our database
-	rawPassword := make([]byte, 32)
-	rand.Read(rawPassword)
-	password := make([]byte, base64.RawURLEncoding.EncodedLen(32))
-	base64.RawURLEncoding.Encode(password, rawPassword)
-	return string(password)
 }

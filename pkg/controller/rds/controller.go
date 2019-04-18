@@ -27,10 +27,11 @@ import (
 // Add creates a new rds Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("rds-controller", mgr, &dbv1beta1.RDSInstance{}, nil, []components.Component{
+	_, err := components.NewReconciler("rds-controller", mgr, &dbv1beta1.RDSInstance{}, Templates, []components.Component{
 		rdscomponents.NewDefaults(),
 		rdscomponents.NewDBParameterGroup(),
 		rdscomponents.NewDBSecurityGroup(),
+		rdscomponents.NewSecret(),
 		rdscomponents.NewRDSInstance(),
 	})
 	return err

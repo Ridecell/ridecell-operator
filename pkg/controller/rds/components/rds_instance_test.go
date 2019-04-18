@@ -18,19 +18,25 @@ package components_test
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	rdscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rds/components"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,18 +49,58 @@ type mockRDSDBClient struct {
 	createdDB         bool
 	modifiedDB        bool
 	deletedDBInstance bool
+	dbStatus          string
 }
+
+var passwordSecret *corev1.Secret
 
 var _ = Describe("rds aws Component", func() {
 	comp := rdscomponents.NewRDSInstance()
 	var mockRDS *mockRDSDBClient
+	var dbMock sqlmock.Sqlmock
+	var db *sql.DB
 
 	BeforeEach(func() {
+		var err error
 		comp = rdscomponents.NewRDSInstance()
 		mockRDS = &mockRDSDBClient{}
 		comp.InjectRDSAPI(mockRDS)
 		instance.Spec.SubnetGroupName = "test"
-		instance.ObjectMeta.Finalizers = []string{"rdsinstance.database.finalizer"}
+		instance.Status.Connection = dbv1beta1.PostgresConnection{
+			Host:     "test-database",
+			Port:     int(5432),
+			Username: "test",
+			Database: "test",
+			PasswordSecretRef: helpers.SecretRef{
+				Name: "test.rds-user-password",
+				Key:  "password",
+			},
+		}
+		passwordSecret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test.rds-user-password",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"password": []byte("test"),
+			},
+		}
+		ctx.Client.Create(context.TODO(), passwordSecret)
+
+		db, dbMock, err = sqlmock.New()
+		Expect(err).NotTo(HaveOccurred())
+		dbpool.Dbs.Store("postgres host=test-database port=5432 dbname=test user=test password='test' sslmode=require", db)
+	})
+
+	AfterEach(func() {
+		db.Close()
+		dbpool.Dbs.Delete("postgres host=test-database port=5432 dbname=test user=test password='test' sslmode=require")
+
+		// Check for any unmet expectations.
+		err := dbMock.ExpectationsWereMet()
+		if err != nil {
+			Fail(fmt.Sprintf("there were unfulfilled database expectations: %s", err))
+		}
 	})
 
 	Describe("isReconcilable", func() {
@@ -67,61 +113,87 @@ var _ = Describe("rds aws Component", func() {
 			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})
 
+		It("fails secret status check", func() {
+			instance.Status.ParameterGroupStatus = dbv1beta1.StatusReady
+			instance.Status.SecurityGroupStatus = dbv1beta1.StatusReady
+			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
+		})
+
 		It("returns true", func() {
 			instance.Status.SecurityGroupStatus = dbv1beta1.StatusReady
 			instance.Status.ParameterGroupStatus = dbv1beta1.StatusReady
+			instance.Status.SecretStatus = dbv1beta1.StatusReady
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
 	})
 
-	It("runs basic reconcile", func() {
+	It("creates a database", func() {
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
 		Expect(mockRDS.createdDB).To(BeTrue())
-
-		fetchCredentials := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test.rds.credentials", Namespace: "default"}, fetchCredentials)
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(string(fetchCredentials.Data["username"])).To(Equal("test-user"))
-		Expect(string(fetchCredentials.Data["password"])).To(HaveLen(43))
+		Expect(mockRDS.modifiedDB).To(BeFalse())
+		Expect(mockRDS.deletedDBInstance).To(BeFalse())
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 
-	It("already has a database and password", func() {
+	It("has a database in available state", func() {
+		instance.Status.Status = dbv1beta1.StatusReady
 		mockRDS.dbInstanceExists = true
-		instance.Status.InstanceID = "alreadyexists"
+		mockRDS.dbStatus = "available"
 
-		newSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "test.rds.credentials", Namespace: "default"},
-			Data: map[string][]byte{
-				"password": []byte("password"),
-			},
-		}
-		err := ctx.Client.Create(context.TODO(), newSecret)
-		Expect(err).ToNot(HaveOccurred())
+		dbMock.ExpectQuery("SELECT 1;").WillReturnRows()
 
 		Expect(comp).To(ReconcileContext(ctx))
+
+		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
+		Expect(mockRDS.modifiedDB).To(BeFalse())
+		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.deletedDBInstance).To(BeFalse())
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
 
-	It("has a database and no password", func() {
+	It("has a database in pending-reboot state", func() {
+		instance.Status.Status = dbv1beta1.StatusReady
 		mockRDS.dbInstanceExists = true
-		instance.Status.InstanceID = "alreadyexists"
+		mockRDS.dbStatus = "pending-reboot"
+
+		dbMock.ExpectQuery("SELECT 1;").WillReturnRows()
 
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(mockRDS.modifiedDB)
+		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
+		Expect(mockRDS.modifiedDB).To(BeFalse())
+		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 	})
 
-	It("tests adding the finalizer", func() {
-		instance.ObjectMeta.Finalizers = []string{}
+	It("has an incorrect password", func() {
+		instance.Status.Status = dbv1beta1.StatusReady
+
+		mockRDS.dbInstanceExists = true
+		mockRDS.dbStatus = "available"
+
+		dbMock.ExpectQuery("SELECT 1;").WillReturnError(&pq.Error{Code: "28P01"})
+
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
+		Expect(mockRDS.modifiedDB).To(BeTrue())
+		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.deletedDBInstance).To(BeFalse())
+	})
 
-		fetchRDSInstance := &dbv1beta1.RDSInstance{}
-		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchRDSInstance)
-		Expect(err).ToNot(HaveOccurred())
+	It("has a database in creating state", func() {
+		mockRDS.dbInstanceExists = true
+		mockRDS.dbStatus = "creating"
 
-		Expect(fetchRDSInstance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
+		Expect(mockRDS.modifiedDB).To(BeFalse())
+		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 	})
 
 	It("test finalizer behavior during deletion", func() {
+		instance.ObjectMeta.Finalizers = []string{"rdsinstance.database.finalizer"}
 		mockRDS.dbInstanceExists = true
 		currentTime := metav1.Now()
 		instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
@@ -131,6 +203,8 @@ var _ = Describe("rds aws Component", func() {
 		fetchRDSInstance := &dbv1beta1.RDSInstance{}
 		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchRDSInstance)
 		Expect(err).ToNot(HaveOccurred())
+		Expect(mockRDS.modifiedDB).To(BeFalse())
+		Expect(mockRDS.createdDB).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeTrue())
 		Expect(fetchRDSInstance.ObjectMeta.Finalizers).To(HaveLen(0))
 	})
@@ -144,10 +218,10 @@ func (m *mockRDSDBClient) DescribeDBInstances(input *rds.DescribeDBInstancesInpu
 			&rds.DBInstance{
 				Endpoint: &rds.Endpoint{
 					Address: aws.String("endpoint.test"),
-					Port:    aws.Int64(8675309),
+					Port:    aws.Int64(5432),
 				},
 				MasterUsername:   aws.String("test-user"),
-				DBInstanceStatus: aws.String("test"),
+				DBInstanceStatus: aws.String(m.dbStatus),
 			},
 		}
 		return &rds.DescribeDBInstancesOutput{DBInstances: dbInstances}, nil
@@ -159,16 +233,19 @@ func (m *mockRDSDBClient) CreateDBInstance(input *rds.CreateDBInstanceInput) (*r
 	dbInstance := &rds.DBInstance{
 		Endpoint: &rds.Endpoint{
 			Address: aws.String("endpoint.test"),
-			Port:    aws.Int64(8675309),
+			Port:    aws.Int64(5432),
 		},
 		MasterUsername:   aws.String("test-user"),
-		DBInstanceStatus: aws.String("test"),
+		DBInstanceStatus: aws.String("creating"),
 	}
 	m.createdDB = true
 	return &rds.CreateDBInstanceOutput{DBInstance: dbInstance}, nil
 }
 
 func (m *mockRDSDBClient) ModifyDBInstance(input *rds.ModifyDBInstanceInput) (*rds.ModifyDBInstanceOutput, error) {
+	if input.MasterUserPassword != nil && aws.StringValue(input.MasterUserPassword) != string(passwordSecret.Data["password"]) {
+		return nil, errors.New("mock_rds: received incorrect password in modify")
+	}
 	m.modifiedDB = true
 	return &rds.ModifyDBInstanceOutput{}, nil
 }

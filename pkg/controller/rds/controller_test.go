@@ -124,10 +124,8 @@ var _ = Describe("rds controller", func() {
 		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 
 		fetchSecret := &corev1.Secret{}
-		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds.credentials", randOwnerPrefix)), fetchSecret)
-		Expect(string(fetchSecret.Data["username"])).To(Equal(fmt.Sprintf("%s_test_rds", randOwnerPrefix)))
-		Expect(len(string(fetchSecret.Data["password"]))).To(BeNumerically(">", 0))
-		Expect(len(string(fetchSecret.Data["endpoint"]))).To(BeNumerically(">", 0))
+		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds-user-password", randOwnerPrefix)), fetchSecret)
+		Expect(string(fetchSecret.Data["password"])).To(HaveLen(43))
 
 		testContext := components.NewTestContext(fetchSecret, nil)
 
@@ -136,15 +134,13 @@ var _ = Describe("rds controller", func() {
 		err = runTestQuery(db)
 		Expect(err).ToNot(HaveOccurred())
 
-		// Delete the password, make sure it re-creates it.
+		// Test password recreation via deletion
 		c.Delete(fetchSecret)
 		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
 		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*5))
 
-		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds.credentials", randOwnerPrefix)), fetchSecret)
-		Expect(string(fetchSecret.Data["username"])).To(Equal(fmt.Sprintf("%s_test_rds", randOwnerPrefix)))
-		Expect(len(string(fetchSecret.Data["password"]))).To(BeNumerically(">", 0))
-		Expect(len(string(fetchSecret.Data["endpoint"]))).To(BeNumerically(">", 0))
+		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds-user-password", randOwnerPrefix)), fetchSecret)
+		Expect(string(fetchSecret.Data["password"])).To(HaveLen(43))
 
 		db2, err := postgres.Open(testContext, &fetchRDS.Status.Connection)
 		Expect(err).ToNot(HaveOccurred())
