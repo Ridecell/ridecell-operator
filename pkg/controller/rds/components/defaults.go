@@ -71,10 +71,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.VPCID = os.Getenv("VPC_ID")
 	}
 
-	if instance.Spec.MaintenanceWindow == "" {
-		instance.Spec.MaintenanceWindow = "Sun:07:00-Sun:08:00"
-	}
-
 	if instance.Spec.DatabaseName == "" {
 		instance.Spec.DatabaseName = instance.Name
 	}

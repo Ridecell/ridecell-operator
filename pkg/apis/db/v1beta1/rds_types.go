@@ -28,7 +28,7 @@ type RDSInstanceSpec struct {
 	EngineVersion     string            `json:"engineVersion,omitempty"`
 	InstanceClass     string            `json:"instanceClass,omitempty"`
 	MultiAZ           *bool             `json:"multiAZ,omitempty"`
-	MaintenanceWindow string            `json:"maintenanceWindow,omitempty"`
+	MaintenanceWindow string            `json:"maintenanceWindow"`
 	Parameters        map[string]string `json:"parameterOverrides,omitempty"`
 	Username          string            `json:"username,omitempty"`
 	SubnetGroupName   string            `json:"subnetGroupName,omitempty"`
