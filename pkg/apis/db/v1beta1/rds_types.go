@@ -22,12 +22,13 @@ import (
 
 // RDSInstanceSpec defines the desired state of RDS
 type RDSInstanceSpec struct {
-	AllocatedStorage  int64             `json:"allocatedStorage,omitempty"`
-	DatabaseName      string            `json:"databaseName,omitempty"`
-	Engine            string            `json:"engine,omitempty"`
-	EngineVersion     string            `json:"engineVersion,omitempty"`
-	InstanceClass     string            `json:"instanceClass,omitempty"`
-	MultiAZ           *bool             `json:"multiAZ,omitempty"`
+	AllocatedStorage int64  `json:"allocatedStorage,omitempty"`
+	DatabaseName     string `json:"databaseName,omitempty"`
+	Engine           string `json:"engine,omitempty"`
+	EngineVersion    string `json:"engineVersion,omitempty"`
+	InstanceClass    string `json:"instanceClass,omitempty"`
+	MultiAZ          *bool  `json:"multiAZ,omitempty"`
+	//+kubebuilder:validation:Pattern=\D*:\d{2}:\d{2}-\D*:\d{2}:\d{2}
 	MaintenanceWindow string            `json:"maintenanceWindow"`
 	Parameters        map[string]string `json:"parameterOverrides,omitempty"`
 	Username          string            `json:"username,omitempty"`
