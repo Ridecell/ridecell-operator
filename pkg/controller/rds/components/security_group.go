@@ -66,7 +66,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !helpers.ContainsFinalizer(rdsInstanceSecurityGroupFinalizer, instance) {
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
-			err := ctx.Update(ctx.Context, instance)
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
 			}
@@ -83,7 +83,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			}
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
-			err = ctx.Update(ctx.Context, instance)
+			err = ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
 			}
