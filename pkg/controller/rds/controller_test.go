@@ -95,6 +95,7 @@ var _ = Describe("rds controller", func() {
 		}
 		// multiaz false should save some time in testing while being operationally similar to normal usage
 		rdsInstance.Spec.MultiAZ = aws.Bool(false)
+		rdsInstance.Spec.MaintenanceWindow = "Mon:00:00-Mon:01:00"
 	})
 
 	AfterEach(func() {
