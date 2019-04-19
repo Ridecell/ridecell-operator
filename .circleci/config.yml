@@ -21,6 +21,7 @@ jobs:
     - run:
         command: go run scripts/aws_cleanup/delete_operator_resources.go
         when: always
+        no_output_timeout: 15m
     - run: mkdir workspace && cp -r config/crds workspace/crds
     - persist_to_workspace:
         root: workspace
