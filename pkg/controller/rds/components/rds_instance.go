@@ -180,6 +180,41 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		database = describeDBInstancesOutput.DBInstances[0]
 	}
 
+	// Handle tagging
+	listTagsForResourceOutput, err := comp.rdsAPI.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: database.DBInstanceArn,
+	})
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "rds: failed to list database tags")
+	}
+	var foundOperatorTag bool
+	var foundTenantTag bool
+	for _, tag := range listTagsForResourceOutput.TagList {
+		if aws.StringValue(tag.Key) == "Ridecell-Operator" && aws.StringValue(tag.Value) == "true" {
+			foundOperatorTag = true
+		}
+		if aws.StringValue(tag.Key) == "tenant" && aws.StringValue(tag.Value) == instance.Name {
+			foundTenantTag = true
+		}
+	}
+
+	var tagsToAdd []*rds.Tag
+	if !foundOperatorTag {
+		tagsToAdd = append(tagsToAdd, &rds.Tag{Key: aws.String("Ridecell-Operator"), Value: aws.String("true")})
+	}
+	if !foundTenantTag {
+		tagsToAdd = append(tagsToAdd, &rds.Tag{Key: aws.String("tentant"), Value: aws.String(instance.Name)})
+	}
+	if len(tagsToAdd) > 0 {
+		_, err = comp.rdsAPI.AddTagsToResource(&rds.AddTagsToResourceInput{
+			ResourceName: database.DBInstanceArn,
+			Tags:         tagsToAdd,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "rds: failed to add tags to database")
+		}
+	}
+
 	var needsUpdate bool
 	// For now we're only making changes that are safe to apply immediately
 	// This does exclude instance size for now
