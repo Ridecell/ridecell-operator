@@ -46,9 +46,11 @@ type mockRDSDBClient struct {
 	rdsiface.RDSAPI
 
 	dbInstanceExists  bool
+	hasTags           bool
 	createdDB         bool
 	modifiedDB        bool
 	deletedDBInstance bool
+	addedTags         bool
 	dbStatus          string
 }
 
@@ -133,12 +135,14 @@ var _ = Describe("rds aws Component", func() {
 		Expect(mockRDS.createdDB).To(BeTrue())
 		Expect(mockRDS.modifiedDB).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
+		Expect(mockRDS.addedTags).To(BeFalse())
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 
 	It("has a database in available state", func() {
 		instance.Status.Status = dbv1beta1.StatusReady
 		mockRDS.dbInstanceExists = true
+		mockRDS.hasTags = true
 		mockRDS.dbStatus = "available"
 
 		dbMock.ExpectQuery("SELECT 1;").WillReturnRows()
@@ -149,12 +153,14 @@ var _ = Describe("rds aws Component", func() {
 		Expect(mockRDS.modifiedDB).To(BeFalse())
 		Expect(mockRDS.createdDB).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
+		Expect(mockRDS.addedTags).To(BeFalse())
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
 
 	It("has a database in pending-reboot state", func() {
 		instance.Status.Status = dbv1beta1.StatusReady
 		mockRDS.dbInstanceExists = true
+		mockRDS.hasTags = true
 		mockRDS.dbStatus = "pending-reboot"
 
 		dbMock.ExpectQuery("SELECT 1;").WillReturnRows()
@@ -163,13 +169,14 @@ var _ = Describe("rds aws Component", func() {
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
 		Expect(mockRDS.modifiedDB).To(BeFalse())
 		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.addedTags).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 	})
 
 	It("has an incorrect password", func() {
 		instance.Status.Status = dbv1beta1.StatusReady
-
 		mockRDS.dbInstanceExists = true
+		mockRDS.hasTags = true
 		mockRDS.dbStatus = "available"
 
 		dbMock.ExpectQuery("SELECT 1;").WillReturnError(&pq.Error{Code: "28P01"})
@@ -178,17 +185,32 @@ var _ = Describe("rds aws Component", func() {
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
 		Expect(mockRDS.modifiedDB).To(BeTrue())
 		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.addedTags).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 	})
 
 	It("has a database in creating state", func() {
 		mockRDS.dbInstanceExists = true
+		mockRDS.hasTags = true
 		mockRDS.dbStatus = "creating"
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
 		Expect(mockRDS.modifiedDB).To(BeFalse())
 		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.addedTags).To(BeFalse())
+		Expect(mockRDS.deletedDBInstance).To(BeFalse())
+	})
+
+	It("has a database with no tags", func() {
+		mockRDS.dbInstanceExists = true
+		mockRDS.dbStatus = "available"
+
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
+		Expect(mockRDS.modifiedDB).To(BeFalse())
+		Expect(mockRDS.createdDB).To(BeFalse())
+		Expect(mockRDS.addedTags).To(BeTrue())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 	})
 
@@ -239,6 +261,7 @@ func (m *mockRDSDBClient) CreateDBInstance(input *rds.CreateDBInstanceInput) (*r
 		DBInstanceStatus: aws.String("creating"),
 	}
 	m.createdDB = true
+	m.hasTags = true
 	return &rds.CreateDBInstanceOutput{DBInstance: dbInstance}, nil
 }
 
@@ -256,4 +279,26 @@ func (m *mockRDSDBClient) DeleteDBInstance(input *rds.DeleteDBInstanceInput) (*r
 	}
 	m.deletedDBInstance = true
 	return &rds.DeleteDBInstanceOutput{}, nil
+}
+
+func (m *mockRDSDBClient) ListTagsForResource(input *rds.ListTagsForResourceInput) (*rds.ListTagsForResourceOutput, error) {
+	if m.hasTags {
+		tags := []*rds.Tag{
+			&rds.Tag{
+				Key:   aws.String("Ridecell-Operator"),
+				Value: aws.String("true"),
+			},
+			&rds.Tag{
+				Key:   aws.String("tenant"),
+				Value: aws.String("test"),
+			},
+		}
+		return &rds.ListTagsForResourceOutput{TagList: tags}, nil
+	}
+	return &rds.ListTagsForResourceOutput{}, nil
+}
+
+func (m *mockRDSDBClient) AddTagsToResource(input *rds.AddTagsToResourceInput) (*rds.AddTagsToResourceOutput, error) {
+	m.addedTags = true
+	return &rds.AddTagsToResourceOutput{}, nil
 }
