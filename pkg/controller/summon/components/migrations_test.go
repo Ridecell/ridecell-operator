@@ -43,6 +43,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 		comp = summoncomponents.NewMigrations("migrations.yml.tpl")
 		os.Setenv("AWS_ACCESS_KEY_ID", "garbage")
 		os.Setenv("AWS_SECRET_ACCESS_KEY", "garbage")
+		os.Setenv("AWS_REGION", "us-west-2")
 	})
 
 	Describe(".IsReconcilable()", func() {
