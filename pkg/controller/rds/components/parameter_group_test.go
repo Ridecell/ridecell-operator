@@ -43,6 +43,8 @@ type mockRDSPGClient struct {
 	modifiedParameters      bool
 	defaultedParameters     bool
 	deletedParameterGroup   bool
+	hasTags                 bool
+	addedTags               bool
 
 	parameters        []*rds.Parameter
 	defaultParameters []*rds.Parameter
@@ -166,6 +168,7 @@ func (m *mockRDSPGClient) DescribeDBParameterGroups(input *rds.DescribeDBParamet
 		parameterGroups = []*rds.DBParameterGroup{
 			&rds.DBParameterGroup{
 				DBParameterGroupName: input.DBParameterGroupName,
+				DBParameterGroupArn:  aws.String("arn"),
 			},
 		}
 		return &rds.DescribeDBParameterGroupsOutput{DBParameterGroups: parameterGroups}, nil
@@ -180,7 +183,11 @@ func (m *mockRDSPGClient) CreateDBParameterGroup(input *rds.CreateDBParameterGro
 	if aws.StringValue(input.DBParameterGroupFamily) != "postgres11" {
 		return nil, errors.New("mock_rds: input parameter group family did not match expected default")
 	}
-	return &rds.CreateDBParameterGroupOutput{}, nil
+	return &rds.CreateDBParameterGroupOutput{
+		DBParameterGroup: &rds.DBParameterGroup{
+			DBParameterGroupArn: aws.String("arn"),
+		},
+	}, nil
 }
 
 func (m *mockRDSPGClient) DescribeDBParametersPages(input *rds.DescribeDBParametersInput, fn func(*rds.DescribeDBParametersOutput, bool) bool) error {
@@ -259,6 +266,28 @@ func (m *mockRDSPGClient) DeleteDBParameterGroup(input *rds.DeleteDBParameterGro
 	}
 	m.deletedParameterGroup = true
 	return &rds.DeleteDBParameterGroupOutput{}, nil
+}
+
+func (m *mockRDSPGClient) ListTagsForResource(input *rds.ListTagsForResourceInput) (*rds.ListTagsForResourceOutput, error) {
+	if m.hasTags {
+		tags := []*rds.Tag{
+			&rds.Tag{
+				Key:   aws.String("Ridecell-Operator"),
+				Value: aws.String("true"),
+			},
+			&rds.Tag{
+				Key:   aws.String("tenant"),
+				Value: aws.String("test"),
+			},
+		}
+		return &rds.ListTagsForResourceOutput{TagList: tags}, nil
+	}
+	return &rds.ListTagsForResourceOutput{}, nil
+}
+
+func (m *mockRDSPGClient) AddTagsToResource(input *rds.AddTagsToResourceInput) (*rds.AddTagsToResourceOutput, error) {
+	m.addedTags = true
+	return &rds.AddTagsToResourceOutput{}, nil
 }
 
 func parametersEquals(listOne []*rds.Parameter, listTwo []*rds.Parameter) bool {

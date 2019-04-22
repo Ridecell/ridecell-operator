@@ -144,20 +144,28 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	}
 
 	// welcome to fun mit tags
-	var hasTag bool
+	var foundOperatorTag bool
+	var foundTenantTag bool
 	for _, tagSet := range securityGroup.Tags {
 		if aws.StringValue(tagSet.Key) == "Ridecell-Operator" && aws.StringValue(tagSet.Value) == "true" {
-			hasTag = true
+			foundOperatorTag = true
+		}
+		if aws.StringValue(tagSet.Key) == "tenant" && aws.StringValue(tagSet.Value) == instance.Name {
+			foundTenantTag = true
 		}
 	}
 
-	if !hasTag {
+	if !foundOperatorTag || !foundTenantTag {
 		_, err := comp.ec2API.CreateTags(&ec2.CreateTagsInput{
 			Resources: []*string{securityGroup.GroupId},
 			Tags: []*ec2.Tag{
 				&ec2.Tag{
 					Key:   aws.String("Ridecell-Operator"),
 					Value: aws.String("true"),
+				},
+				&ec2.Tag{
+					Key:   aws.String("tenant"),
+					Value: aws.String(instance.Name),
 				},
 			},
 		})

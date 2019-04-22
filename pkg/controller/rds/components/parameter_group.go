@@ -89,12 +89,13 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 		return components.Result{}, nil
 	}
 
-	_, err := comp.rdsAPI.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
+	var parameterGroup *rds.DBParameterGroup
+	describeDBParameterGroupsOutput, err := comp.rdsAPI.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
 		DBParameterGroupName: aws.String(instance.Name),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
-			_, err = comp.rdsAPI.CreateDBParameterGroup(&rds.CreateDBParameterGroupInput{
+			createDBParameterGroupOutput, err := comp.rdsAPI.CreateDBParameterGroup(&rds.CreateDBParameterGroupInput{
 				DBParameterGroupName:   aws.String(instance.Name),
 				DBParameterGroupFamily: aws.String(fmt.Sprintf("%s%s", instance.Spec.Engine, instance.Spec.EngineVersion)),
 				Description:            aws.String("Created by ridecell-operator"),
@@ -103,13 +104,56 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 						Key:   aws.String("Ridecell-Operator"),
 						Value: aws.String("true"),
 					},
+					&rds.Tag{
+						Key:   aws.String("tenant"),
+						Value: aws.String(instance.Name),
+					},
 				},
 			})
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to create parameter group")
 			}
+			parameterGroup = createDBParameterGroupOutput.DBParameterGroup
 		} else {
 			return components.Result{}, errors.Wrapf(aerr, "rds: failed to describe parameter group")
+		}
+	} else {
+		parameterGroup = describeDBParameterGroupsOutput.DBParameterGroups[0]
+	}
+
+	// handle tagging
+	listTagsForResourceOutput, err := comp.rdsAPI.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: parameterGroup.DBParameterGroupArn,
+	})
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "rds: failed to list parameter group tags")
+	}
+
+	var foundOperatorTag bool
+	var foundTenantTag bool
+	for _, tag := range listTagsForResourceOutput.TagList {
+		if aws.StringValue(tag.Key) == "Ridecell-Operator" && aws.StringValue(tag.Value) == "true" {
+			foundOperatorTag = true
+		}
+		if aws.StringValue(tag.Key) == "tenant" && aws.StringValue(tag.Value) == instance.Name {
+			foundTenantTag = true
+		}
+	}
+
+	var tagsToAdd []*rds.Tag
+	if !foundOperatorTag {
+		tagsToAdd = append(tagsToAdd, &rds.Tag{Key: aws.String("Ridecell-Operator"), Value: aws.String("true")})
+	}
+	if !foundTenantTag {
+		tagsToAdd = append(tagsToAdd, &rds.Tag{Key: aws.String("tentant"), Value: aws.String(instance.Name)})
+	}
+	if len(tagsToAdd) > 0 {
+		_, err = comp.rdsAPI.AddTagsToResource(&rds.AddTagsToResourceInput{
+			ResourceName: parameterGroup.DBParameterGroupArn,
+			Tags:         tagsToAdd,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "rds: failed to add tags to parameter group")
 		}
 	}
 

@@ -156,6 +156,10 @@ func (m *mockEC2SGClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGrou
 					Key:   aws.String("Ridecell-Operator"),
 					Value: aws.String("true"),
 				},
+				&ec2.Tag{
+					Key:   aws.String("tenant"),
+					Value: aws.String(instance.Name),
+				},
 			}
 		}
 		return &ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{securityGroup}}, nil
