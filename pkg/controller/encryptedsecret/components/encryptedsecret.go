@@ -43,7 +43,12 @@ func (comp *EncryptedSecretComponent) InjectKMSAPI(kmsapi kmsiface.KMSAPI) {
 }
 
 func NewEncryptedSecret() *EncryptedSecretComponent {
-	sess := session.Must(session.NewSession())
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Region: aws.String("us-west-1"),
+		},
+	}))
 	kmsService := kms.New(sess)
 	return &EncryptedSecretComponent{kmsAPI: kmsService}
 }
