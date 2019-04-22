@@ -132,7 +132,7 @@ var _ = Describe("rds security group Component", func() {
 
 // Mock aws functions below
 func (m *mockEC2SGClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error) {
-	if aws.StringValue(input.Filters[0].Values[0]) != instance.Name {
+	if aws.StringValue(input.Filters[0].Values[0]) != "ridecell-operator-rds-test" {
 		return nil, errors.New("mock_ec2: input security group name did not match expected value")
 	}
 	if m.securityGroupExists {
@@ -168,7 +168,7 @@ func (m *mockEC2SGClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGrou
 }
 
 func (m *mockEC2SGClient) CreateSecurityGroup(input *ec2.CreateSecurityGroupInput) (*ec2.CreateSecurityGroupOutput, error) {
-	if aws.StringValue(input.GroupName) != instance.Name {
+	if aws.StringValue(input.GroupName) != "ridecell-operator-rds-test" {
 		return nil, errors.New("mock_ec2: input security group name did not match expected value")
 	}
 	if aws.StringValue(input.VpcId) != "test" {

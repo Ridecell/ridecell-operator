@@ -63,6 +63,8 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 		return components.Result{}, errors.New("rds: vpc_id environment variable not set")
 	}
 
+	securityGroupName := fmt.Sprintf("ridecell-operator-rds-%s", instance.Name)
+
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !helpers.ContainsFinalizer(rdsInstanceSecurityGroupFinalizer, instance) {
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
@@ -96,7 +98,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("group-name"),
-				Values: []*string{aws.String(instance.Name)},
+				Values: []*string{aws.String(securityGroupName)},
 			},
 		},
 	})
@@ -106,8 +108,8 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 
 	if len(describeSecurityGroupsOutput.SecurityGroups) < 1 {
 		_, err = comp.ec2API.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
-			GroupName:   aws.String(instance.Name),
-			Description: aws.String(fmt.Sprintf("%s: Created by ridecell-operator", instance.Name)),
+			GroupName:   aws.String(securityGroupName),
+			Description: aws.String(fmt.Sprintf("%s: Created by ridecell-operator", securityGroupName)),
 			VpcId:       aws.String(instance.Spec.VPCID),
 		})
 		if err != nil {
@@ -188,7 +190,7 @@ func (comp *dbSecurityGroupComponent) deleteDependencies(ctx *components.Compone
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("group-name"),
-				Values: []*string{aws.String(instance.Name)},
+				Values: []*string{aws.String(fmt.Sprintf("ridecell-operator-rds-%s", instance.Name))},
 			},
 		},
 	})
