@@ -81,13 +81,36 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 		}
 	}
 
+	// policies
+	// 1. Get policies and compare patterns, if found update, else create.
+	// 2. Remove patterns that are not found
+
+	policiesList, err := rmqc.ListPoliciesIn(instance.Spec.VhostName)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "error fetching policies for vhost %s", instance.Spec.VhostName)
+	}
+	for policyName := range instance.Spec.Policies {
+		var pFound bool
+		for i := 0; i < len(policiesList); i++ {
+			if instance.Spec.Policies[policyName].Pattern == policiesList[i].Pattern {
+				pFound = true
+				// Update existing policy
+				policy := Policy{}
+				rmqc.PutPolicy(instance.Spec.VhostName, policyName, policy)
+			}
+		}
+		if !pFound {
+			// Create new Policy
+		}
+	}
+
 	// Unless we aren't making a user, wait for it to be ready.
 	var user *dbv1beta1.RabbitmqUser
 	if !instance.Spec.SkipUser {
 		user = &dbv1beta1.RabbitmqUser{}
 		err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, user)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "error fetching RabbitmeUser %s/%s", instance.Namespace, instance.Name)
+			return components.Result{}, errors.Wrapf(err, "error fetching RabbitmqUser %s/%s", instance.Namespace, instance.Name)
 		}
 		if user.Status.Status != dbv1beta1.StatusReady {
 			// Could make a specific status for this, but it shouldn't take long.

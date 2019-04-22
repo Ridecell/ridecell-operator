@@ -25,8 +25,9 @@ import (
 )
 
 type FakeRabbitClient struct {
-	Users  []rabbithole.UserInfo
-	Vhosts []rabbithole.VhostInfo
+	Users    []rabbithole.UserInfo
+	Vhosts   []rabbithole.VhostInfo
+	Policies []rabbithole.Policy
 }
 
 func New() *FakeRabbitClient {
@@ -63,5 +64,20 @@ func (frc *FakeRabbitClient) PutVhost(vhost string, _settings rabbithole.VhostSe
 		}
 	}
 	frc.Vhosts = append(frc.Vhosts, rabbithole.VhostInfo{Name: vhost})
+	return &http.Response{StatusCode: 201}, nil
+}
+
+func (frc *FakeRabbitClient) ListPoliciesIn(vhost string) (rec []rabbithole.Policy, err error) {
+	return frc.Policies, nil
+}
+
+func (frc *FakeRabbitClient) PutPolicy(vhost string, name string, policy rabbithole.Policy) (res *http.Response, err error) {
+	for key, policie := range frc.Policies {
+		if policie.Name == policy.Name {
+			frc.Policies[key] = policy
+			return &http.Response{StatusCode: 200}, nil
+		}
+	}
+	frc.Policies = append(frc.Policies, policy)
 	return &http.Response{StatusCode: 201}, nil
 }
