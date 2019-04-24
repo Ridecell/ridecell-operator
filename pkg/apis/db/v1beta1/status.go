@@ -58,3 +58,16 @@ func (rds *RDSInstance) SetErrorStatus(errorMsg string) {
 	rds.Status.Status = StatusError
 	rds.Status.Message = errorMsg
 }
+
+func (pgu *PostgresUser) GetStatus() components.Status {
+	return pgu.Status
+}
+
+func (pgu *PostgresUser) SetStatus(status components.Status) {
+	pgu.Status = status.(PostgresUserStatus)
+}
+
+func (pgu *PostgresUser) SetErrorStatus(errorMsg string) {
+	pgu.Status.Status = StatusError
+	pgu.Status.Message = errorMsg
+}
