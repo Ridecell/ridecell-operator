@@ -72,6 +72,7 @@ spec:
       - name: default
         image: us.gcr.io/ridecell-1/ridecell-operator:{{ .Values.tag | required "tag is required" }}
         imagePullPolicy: Always
+        command: [/ridecell-operator, -v, "4", -logtostderr]
         resources:
           limits:
             cpu: 100m
