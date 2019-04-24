@@ -45,3 +45,16 @@ func (po *PostgresOperatorDatabase) SetErrorStatus(errorMsg string) {
 	po.Status.Status = StatusError
 	po.Status.Message = errorMsg
 }
+
+func (rds *RDSInstance) GetStatus() components.Status {
+	return rds.Status
+}
+
+func (rds *RDSInstance) SetStatus(status components.Status) {
+	rds.Status = status.(RDSInstanceStatus)
+}
+
+func (rds *RDSInstance) SetErrorStatus(errorMsg string) {
+	rds.Status.Status = StatusError
+	rds.Status.Message = errorMsg
+}

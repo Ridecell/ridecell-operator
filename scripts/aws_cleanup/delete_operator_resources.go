@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
@@ -30,7 +33,7 @@ func main() {
 	}
 
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-west-2"),
+		Region: aws.String("us-west-1"),
 	})
 
 	// Check if this being run on the sandbox account
@@ -77,6 +80,81 @@ func main() {
 
 	for _, iamUserToDelete := range iamUsersToDeleteOutput {
 		err = deleteIamUser(iamsvc, iamUserToDelete)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	rdssvc := rds.New(sess)
+	rdsInstancesToDeleteOutput, err := getRDSInstancesToDelete(rdssvc, namePrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	// This may need to change later but for now we only make one test database
+	if len(rdsInstancesToDeleteOutput) > 1 {
+		fmt.Printf("more than one rds instance to delete, aborting\n")
+		os.Exit(1)
+	}
+
+	for _, rdsInstanceToDelete := range rdsInstancesToDeleteOutput {
+		err := deleteRDSInstance(rdssvc, rdsInstanceToDelete)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	parameterGroupsToDeleteOutput, err := getParameterGroupsToDelete(rdssvc, namePrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	// This may need to change later but for now we only make one test database
+	if len(parameterGroupsToDeleteOutput) > 1 {
+		fmt.Printf("more than one parameter group to delete, aborting\n")
+		os.Exit(1)
+	}
+
+	for _, parameterGroupToDelete := range parameterGroupsToDeleteOutput {
+		err := deleteParameterGroup(rdssvc, parameterGroupToDelete)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	ec2svc := ec2.New(sess)
+
+	securityGroupsToDeleteOutput, err := getSecurityGroupsToDelete(ec2svc, namePrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	// This may need to change later but for now we only make one test database
+	if len(securityGroupsToDeleteOutput) > 1 {
+		fmt.Printf("more than one security group to delete, aborting\n")
+		os.Exit(1)
+	}
+
+	for _, securityGroupToDelete := range securityGroupsToDeleteOutput {
+		err := deleteSecurityGroup(ec2svc, securityGroupToDelete)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	snapshotsToDeleteOutput, err := getSnapshotsToDelete(rdssvc, namePrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	// This may need to change later but for now we only make one test database
+	if len(snapshotsToDeleteOutput) > 1 {
+		fmt.Printf("more than one db snapshot to delete, aborting\n")
+		os.Exit(1)
+	}
+
+	for _, snapshotToDelete := range snapshotsToDeleteOutput {
+		err := deleteSnapshot(rdssvc, snapshotToDelete)
 		if err != nil {
 			panic(err)
 		}
@@ -195,6 +273,155 @@ func deleteIamUser(iamsvc *iam.IAM, username *string) error {
 	fmt.Printf("- Deleting User\n")
 	//Now that other resources tied to user are deleted we can delete the user itself
 	_, err = iamsvc.DeleteUser(&iam.DeleteUserInput{UserName: username})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getRDSInstancesToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) {
+	regexString := fmt.Sprintf(`^%s-test-rds$`, prefix)
+	var dbInstancesToDelete []*string
+	describeDBInstancesOutput, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
+	if err != nil {
+		return nil, err
+	}
+	for _, instance := range describeDBInstancesOutput.DBInstances {
+		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(instance.DBInstanceIdentifier)))
+		if match {
+			dbInstancesToDelete = append(dbInstancesToDelete, instance.DBInstanceIdentifier)
+		} else {
+			fmt.Printf("wat: %s\n", aws.StringValue(instance.DBInstanceIdentifier))
+		}
+	}
+	return dbInstancesToDelete, nil
+}
+
+func deleteRDSInstance(rdssvc *rds.RDS, instanceIdentifier *string) error {
+	fmt.Printf("Starting RDS Instance deletion for %s:\n", aws.StringValue(instanceIdentifier))
+	//TODO:	ew
+	for true {
+		describeDBInstancesOutput, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
+			DBInstanceIdentifier: instanceIdentifier,
+		})
+		if err != nil {
+			aerr, ok := err.(awserr.Error)
+			if ok && aerr.Code() == rds.ErrCodeDBInstanceNotFoundFault {
+				fmt.Printf("- RDS Instance deleted\n")
+				return nil
+			}
+			return err
+		}
+
+		if aws.StringValue(describeDBInstancesOutput.DBInstances[0].DBInstanceStatus) == "deleting" {
+			time.Sleep(time.Second * 30)
+			continue
+		}
+
+		_, err = rdssvc.DeleteDBInstance(&rds.DeleteDBInstanceInput{
+			DBInstanceIdentifier:   instanceIdentifier,
+			DeleteAutomatedBackups: aws.Bool(true),
+			SkipFinalSnapshot:      aws.Bool(true),
+		})
+		if err != nil {
+			aerr, ok := err.(awserr.Error)
+			if ok && aerr.Code() == rds.ErrCodeInvalidDBInstanceStateFault {
+				time.Sleep(time.Second * 30)
+				continue
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func getSecurityGroupsToDelete(ec2svc *ec2.EC2, prefix string) ([]*string, error) {
+	regexString := fmt.Sprintf(`^%s-test-rds$`, prefix)
+	var securityGroupsToDelete []*string
+	describeSecurityGroupsOutput, err := ec2svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String(os.Getenv("VPC_ID"))},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, securityGroup := range describeSecurityGroupsOutput.SecurityGroups {
+		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(securityGroup.GroupName)))
+		if match {
+			securityGroupsToDelete = append(securityGroupsToDelete, securityGroup.GroupId)
+		}
+	}
+	return securityGroupsToDelete, nil
+}
+
+func deleteSecurityGroup(ec2svc *ec2.EC2, securityGroupID *string) error {
+	fmt.Printf("- Deleting Security Group: %s\n", aws.StringValue(securityGroupID))
+	_, err := ec2svc.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
+		GroupId: securityGroupID,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getParameterGroupsToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) {
+	regexString := fmt.Sprintf(`^%s-test-rds$`, prefix)
+	var parameterGroupsToDelete []*string
+	describeParameterGroupsOutput, err := rdssvc.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, parameterGroup := range describeParameterGroupsOutput.DBParameterGroups {
+		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(parameterGroup.DBParameterGroupName)))
+		if match {
+			parameterGroupsToDelete = append(parameterGroupsToDelete, parameterGroup.DBParameterGroupName)
+		}
+	}
+	return parameterGroupsToDelete, nil
+}
+
+func deleteParameterGroup(rdssvc *rds.RDS, parameterGroupName *string) error {
+	fmt.Printf("- Deleting Parameter Group: %s\n", aws.StringValue(parameterGroupName))
+	_, err := rdssvc.DeleteDBParameterGroup(&rds.DeleteDBParameterGroupInput{
+		DBParameterGroupName: parameterGroupName,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getSnapshotsToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) {
+	regexString := fmt.Sprintf(`^%s-test-rds-.*`, prefix)
+	var snapshotsToDelete []*string
+	err := rdssvc.DescribeDBSnapshotsPages(&rds.DescribeDBSnapshotsInput{}, func(page *rds.DescribeDBSnapshotsOutput, lastPage bool) bool {
+		for _, snapshot := range page.DBSnapshots {
+			match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(snapshot.DBSnapshotIdentifier)))
+			if match {
+				snapshotsToDelete = append(snapshotsToDelete, snapshot.DBSnapshotIdentifier)
+			}
+		}
+		// if we get less than 100 results we hit the last page
+		return !(len(page.DBSnapshots) < 100)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return snapshotsToDelete, nil
+}
+
+func deleteSnapshot(rdssvc *rds.RDS, snapshotIdentifier *string) error {
+	fmt.Printf("- Deleting Snapshot: %s\n", aws.StringValue(snapshotIdentifier))
+	_, err := rdssvc.DeleteDBSnapshot(&rds.DeleteDBSnapshotInput{
+		DBSnapshotIdentifier: snapshotIdentifier,
+	})
 	if err != nil {
 		return err
 	}

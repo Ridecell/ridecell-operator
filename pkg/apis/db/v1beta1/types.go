@@ -21,14 +21,17 @@ import (
 )
 
 const (
-	StatusReady = "Ready"
-	StatusError = "Error"
+	StatusReady     = "Ready"
+	StatusCreating  = "Creating"
+	StatusModifying = "Modifying"
+	StatusError     = "Error"
+	StatusUnknown   = "Unknown"
 )
 
 // Connection details for a Postgres database.
 type PostgresConnection struct {
 	Host              string            `json:"host"`
-	Port              uint16            `json:"port,omitempty"`
+	Port              int               `json:"port,omitempty"`
 	Username          string            `json:"username"`
 	PasswordSecretRef helpers.SecretRef `json:"passwordSecretRef"`
 	Database          string            `json:"database,omitempty"`
