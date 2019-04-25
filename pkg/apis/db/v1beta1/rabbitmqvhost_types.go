@@ -30,7 +30,7 @@ type RabbitmqPolicy struct {
 	Priority int `json:"priority,omitempty"`
 	// Additional arguments added to the entities (queues,
 	// exchanges or both) that match a policy
-	Definition string `json:"definition"`
+	PolicyDefinition map[string]interface{} `json:"policydefinition"`
 }
 
 // RabbitmqVhostSpec defines the desired state of RabbitmqVhost

@@ -19,7 +19,7 @@ package components
 import (
 	"fmt"
 
-	"github.com/michaelklishin/rabbit-hole"
+	rabbithole "github.com/michaelklishin/rabbit-hole"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -81,26 +81,43 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 		}
 	}
 
-	// policies
-	// 1. Get policies and compare patterns, if found update, else create.
-	// 2. Remove patterns that are not found
-
+	// Policies
 	policiesList, err := rmqc.ListPoliciesIn(instance.Spec.VhostName)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error fetching policies for vhost %s", instance.Spec.VhostName)
 	}
 	for policyName := range instance.Spec.Policies {
 		var pFound bool
-		for i := 0; i < len(policiesList); i++ {
-			if instance.Spec.Policies[policyName].Pattern == policiesList[i].Pattern {
+		var index int
+		policyName = fmt.Sprintf("%s-%s", instance.Spec.VhostName, policyName)
+		for i := range policiesList {
+			if policyName == policiesList[i].Name {
 				pFound = true
-				// Update existing policy
-				policy := Policy{}
-				rmqc.PutPolicy(instance.Spec.VhostName, policyName, policy)
+				index = i
+				break
 			}
 		}
-		if !pFound {
-			// Create new Policy
+		if pFound {
+			// Remove policy that was found from the list
+			policiesList[index] = policiesList[len(policiesList)-1]
+			policiesList = policiesList[:len(policiesList)-1]
+		}
+		// Create/Update policy
+		policy := rabbithole.Policy{}
+		policy.Pattern = instance.Spec.Policies[policyName].Pattern
+		policy.ApplyTo = instance.Spec.Policies[policyName].ApplyTo
+		policy.Priority = instance.Spec.Policies[policyName].Priority
+		policy.Definition = instance.Spec.Policies[policyName].PolicyDefinition
+		_, err = rmqc.PutPolicy(instance.Spec.VhostName, policyName, policy)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "error updating policy for vhost %s", instance.Spec.VhostName)
+		}
+	}
+	// Remove policies for a vhost which are not in the Spec
+	for i := range policiesList {
+		_, err = rmqc.DeletePolicy(instance.Spec.VhostName, policiesList[i].Name)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "error deleting policy %s for vhost %s", policiesList[i].Name, instance.Spec.VhostName)
 		}
 	}
 

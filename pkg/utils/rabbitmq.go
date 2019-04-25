@@ -37,6 +37,7 @@ type RabbitMQManager interface {
 	PutUser(string, rabbithole.UserSettings) (*http.Response, error)
 	ListPoliciesIn(vhost string) (rec []rabbithole.Policy, err error)
 	PutPolicy(vhost string, name string, policy rabbithole.Policy) (res *http.Response, err error)
+	DeletePolicy(vhost string, name string) (res *http.Response, err error)
 }
 
 type RabbitMQClientFactory func(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error)

@@ -81,3 +81,15 @@ func (frc *FakeRabbitClient) PutPolicy(vhost string, name string, policy rabbith
 	frc.Policies = append(frc.Policies, policy)
 	return &http.Response{StatusCode: 201}, nil
 }
+
+func (frc *FakeRabbitClient) DeletePolicy(vhost string, name string) (res *http.Response, err error) {
+	// If the policy exists or not both api calls returns 204
+	for key, policie := range frc.Policies {
+		if policie.Name == name {
+			frc.Policies[key] = frc.Policies[len(frc.Policies)-1]
+			frc.Policies = frc.Policies[:len(frc.Policies)-1]
+			return &http.Response{StatusCode: 204}, nil
+		}
+	}
+	return &http.Response{StatusCode: 204}, nil
+}
