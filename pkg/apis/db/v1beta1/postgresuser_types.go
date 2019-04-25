@@ -28,10 +28,9 @@ type PostgresUserSpec struct {
 
 // PostgresUserStatus defines the observed state of PostgresUser
 type PostgresUserStatus struct {
-	Status       string             `json:"status"`
-	Message      string             `json:"message"`
-	Connection   PostgresConnection `json:"connection"`
-	SecretStatus string             `json:"secretStatus"`
+	Status     string             `json:"status"`
+	Message    string             `json:"message"`
+	Connection PostgresConnection `json:"connection"`
 }
 
 // +genclient
