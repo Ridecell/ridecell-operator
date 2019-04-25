@@ -89,9 +89,9 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	for policyName := range instance.Spec.Policies {
 		var pFound bool
 		var index int
-		policyName = fmt.Sprintf("%s-%s", instance.Spec.VhostName, policyName)
+		actualPolicyName := fmt.Sprintf("%s-%s", instance.Spec.VhostName, policyName)
 		for i := range policiesList {
-			if policyName == policiesList[i].Name {
+			if actualPolicyName == policiesList[i].Name {
 				pFound = true
 				index = i
 				break
@@ -108,7 +108,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 		policy.ApplyTo = instance.Spec.Policies[policyName].ApplyTo
 		policy.Priority = instance.Spec.Policies[policyName].Priority
 		policy.Definition = instance.Spec.Policies[policyName].PolicyDefinition
-		_, err = rmqc.PutPolicy(instance.Spec.VhostName, policyName, policy)
+		_, err = rmqc.PutPolicy(instance.Spec.VhostName, actualPolicyName, policy)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "error updating policy for vhost %s", instance.Spec.VhostName)
 		}

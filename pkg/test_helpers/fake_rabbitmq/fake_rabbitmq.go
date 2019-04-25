@@ -19,19 +19,18 @@ package fake_rabbitmq
 import (
 	"net/http"
 
-	rabbithole "github.com/michaelklishin/rabbit-hole"
-
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
+	rabbithole "github.com/michaelklishin/rabbit-hole"
 )
 
 type FakeRabbitClient struct {
 	Users    []rabbithole.UserInfo
 	Vhosts   []rabbithole.VhostInfo
-	Policies []rabbithole.Policy
+	Policies map[string][]rabbithole.Policy
 }
 
 func New() *FakeRabbitClient {
-	return &FakeRabbitClient{Users: []rabbithole.UserInfo{}, Vhosts: []rabbithole.VhostInfo{}}
+	return &FakeRabbitClient{Users: []rabbithole.UserInfo{}, Vhosts: []rabbithole.VhostInfo{}, Policies: make(map[string][]rabbithole.Policy)}
 }
 
 func (frc *FakeRabbitClient) Factory(_uri, _user, _pass string, _t *http.Transport) (utils.RabbitMQManager, error) {
@@ -68,26 +67,26 @@ func (frc *FakeRabbitClient) PutVhost(vhost string, _settings rabbithole.VhostSe
 }
 
 func (frc *FakeRabbitClient) ListPoliciesIn(vhost string) (rec []rabbithole.Policy, err error) {
-	return frc.Policies, nil
+	return frc.Policies[vhost], nil
 }
 
 func (frc *FakeRabbitClient) PutPolicy(vhost string, name string, policy rabbithole.Policy) (res *http.Response, err error) {
-	for key, policie := range frc.Policies {
+	for key, policie := range frc.Policies[vhost] {
 		if policie.Name == policy.Name {
-			frc.Policies[key] = policy
+			frc.Policies[vhost][key] = policy
 			return &http.Response{StatusCode: 200}, nil
 		}
 	}
-	frc.Policies = append(frc.Policies, policy)
+	frc.Policies[vhost] = append(frc.Policies[vhost], policy)
 	return &http.Response{StatusCode: 201}, nil
 }
 
 func (frc *FakeRabbitClient) DeletePolicy(vhost string, name string) (res *http.Response, err error) {
 	// If the policy exists or not both api calls returns 204
-	for key, policie := range frc.Policies {
+	for key, policie := range frc.Policies[vhost] {
 		if policie.Name == name {
-			frc.Policies[key] = frc.Policies[len(frc.Policies)-1]
-			frc.Policies = frc.Policies[:len(frc.Policies)-1]
+			frc.Policies[vhost][key] = frc.Policies[vhost][len(frc.Policies[vhost])-1]
+			frc.Policies[vhost] = frc.Policies[vhost][:len(frc.Policies[vhost])-1]
 			return &http.Response{StatusCode: 204}, nil
 		}
 	}
