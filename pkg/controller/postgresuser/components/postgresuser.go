@@ -48,8 +48,6 @@ func (_ *PostgresUserComponent) IsReconcilable(ctx *components.ComponentContext)
 func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresUser)
 
-	fmt.Printf("Spec: %#v\n", instance.Spec.Connection)
-
 	fetchSecret := corev1.Secret{}
 	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Status.Connection.PasswordSecretRef.Name, Namespace: instance.Namespace}, &fetchSecret)
 	if err != nil {
@@ -92,7 +90,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	safeUsername := pq.QuoteIdentifier(instance.Spec.Username)
 	// Create the user if it doesn't exist
 	if !userExists {
-		_, err = db.Exec(fmt.Sprintf("CREATE USER %s WITH PASSWORD ?", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
+		_, err = db.Exec(fmt.Sprintf("CREATE USER %s WITH PASSWORD $1", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to create database user")
 		}
@@ -103,8 +101,6 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	newConnection.Database = "postgres"
 	newConnection.Username = instance.Spec.Username
 	newConnection.PasswordSecretRef = instance.Status.Connection.PasswordSecretRef
-
-	fmt.Printf("NewConnection: %#v\n", newConnection)
 
 	testdb, err := postgres.Open(ctx, &newConnection)
 	if err != nil {
@@ -123,7 +119,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 
 	if invalidPassword {
-		_, err = db.Exec(fmt.Sprintf("ALTER USER %s WITH PASSWORD ?", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
+		_, err = db.Exec(fmt.Sprintf("ALTER USER %s WITH PASSWORD $1", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to update user password")
 		}
@@ -135,7 +131,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		instance.Status.Message = "User Created"
 		instance.Status.Connection.Host = instance.Spec.Connection.Host
 		instance.Status.Connection.Port = instance.Spec.Connection.Port
-		instance.Status.Connection.Username = instance.Spec.Connection.Username
+		instance.Status.Connection.Username = instance.Spec.Username
 		return nil
 	}}, nil
 }
