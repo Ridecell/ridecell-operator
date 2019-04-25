@@ -29,7 +29,7 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("dbconfig-controller", mgr, &dbv1beta1.DbConfig{}, Templates, []components.Component{
 		dbccomponents.NewDefaults(),
-		dbccomponents.NewSharedPostgres(),
+		dbccomponents.NewPostgres(),
 		dbccomponents.NewStatus(),
 	})
 	return err
