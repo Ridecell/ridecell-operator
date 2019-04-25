@@ -28,6 +28,7 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("postgresuser-controller", mgr, &dbv1beta1.PostgresUser{}, Templates, []components.Component{
+		postgresusercomponents.NewDefaults(),
 		postgresusercomponents.NewSecret(),
 		postgresusercomponents.NewPostgresUser(),
 	})
