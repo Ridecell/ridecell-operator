@@ -4,6 +4,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon"
 	"github.com/shurcooL/vfsgen"
@@ -11,7 +12,7 @@ import (
 
 func main() {
 	err := vfsgen.Generate(summon.Templates, vfsgen.Options{
-		PackageName:  "summon",
+		PackageName:  os.Args[1],
 		BuildTags:    "release",
 		VariableName: "Templates",
 		Filename:     "zz_generated.templates.go",
