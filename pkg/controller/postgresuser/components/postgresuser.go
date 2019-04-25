@@ -38,20 +38,23 @@ func NewPostgresUser() *PostgresUserComponent {
 }
 
 func (_ *PostgresUserComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{&corev1.Secret{}}
 }
 
 func (_ *PostgresUserComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*dbv1beta1.PostgresUser)
-
-	if instance.Status.SecretStatus != dbv1beta1.StatusReady {
-		return false
-	}
 	return true
 }
 
 func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresUser)
+
+	fmt.Printf("Spec: %#v\n", instance.Spec.Connection)
+
+	fetchSecret := corev1.Secret{}
+	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Status.Connection.PasswordSecretRef.Name, Namespace: instance.Namespace}, &fetchSecret)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "postgres_user: failed to fetch password secret")
+	}
 
 	db, err := postgres.Open(ctx, &instance.Spec.Connection)
 	if err != nil {
@@ -59,7 +62,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 
 	// Check if user exists
-	userRows, err := db.Query(`SELECT usename FROM pg_user;`)
+	userRows, err := db.Query("SELECT usename FROM pg_user")
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "postgres_user: failed to query users")
 	}
@@ -86,16 +89,10 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		return components.Result{}, errors.Wrap(err, "postgres_user: row error")
 	}
 
-	fetchSecret := corev1.Secret{}
-	err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Status.PasswordSecretRef.Name, Namespace: instance.Namespace}, &fetchSecret)
-	if err != nil {
-		return components.Result{}, errors.Wrap(err, "postgres_user: failed to fetch password secret")
-	}
-
+	safeUsername := pq.QuoteIdentifier(instance.Spec.Username)
 	// Create the user if it doesn't exist
 	if !userExists {
-		query := fmt.Sprintf(`CREATE USER %s WITH PASSWORD %s;`, instance.Spec.Username, fetchSecret.Data[instance.Status.PasswordSecretRef.Key])
-		_, err = db.Exec(query)
+		_, err = db.Exec(fmt.Sprintf("CREATE USER %s WITH PASSWORD ?", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to create database user")
 		}
@@ -105,7 +102,9 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	newConnection := instance.Spec.Connection
 	newConnection.Database = "postgres"
 	newConnection.Username = instance.Spec.Username
-	newConnection.PasswordSecretRef = instance.Status.PasswordSecretRef
+	newConnection.PasswordSecretRef = instance.Status.Connection.PasswordSecretRef
+
+	fmt.Printf("NewConnection: %#v\n", newConnection)
 
 	testdb, err := postgres.Open(ctx, &newConnection)
 	if err != nil {
@@ -113,7 +112,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 
 	var invalidPassword bool
-	_, err = testdb.Query(`SELECT 1;`)
+	_, err = testdb.Query(`SELECT 1`)
 	if err != nil {
 		// 28P01 == invalid password
 		if pqerr, ok := err.(*pq.Error); ok && pqerr.Code == "28P01" {
@@ -124,8 +123,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 
 	if invalidPassword {
-		query := fmt.Sprintf(`ALTER USER %s WITH PASSWORD %s;`, instance.Spec.Username, fetchSecret.Data[instance.Status.PasswordSecretRef.Key])
-		_, err = db.Exec(query)
+		_, err = db.Exec(fmt.Sprintf("ALTER USER %s WITH PASSWORD ?", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to update user password")
 		}
@@ -135,6 +133,9 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		instance := obj.(*dbv1beta1.PostgresUser)
 		instance.Status.Status = dbv1beta1.StatusReady
 		instance.Status.Message = "User Created"
+		instance.Status.Connection.Host = instance.Spec.Connection.Host
+		instance.Status.Connection.Port = instance.Spec.Connection.Port
+		instance.Status.Connection.Username = instance.Spec.Connection.Username
 		return nil
 	}}, nil
 }

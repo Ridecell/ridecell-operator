@@ -79,9 +79,11 @@ var _ = Describe("postgresuser controller", func() {
 				Username: "newuser",
 			},
 			Status: dbv1beta1.PostgresUserStatus{
-				PasswordSecretRef: helpers.SecretRef{
-					Name: "test.postgres-user-password",
-					Key:  "password",
+				Connection: dbv1beta1.PostgresConnection{
+					PasswordSecretRef: helpers.SecretRef{
+						Name: "test.postgres-user-password",
+						Key:  "password",
+					},
 				},
 			},
 		}
@@ -99,7 +101,8 @@ var _ = Describe("postgresuser controller", func() {
 
 		fetchInstance := &dbv1beta1.PostgresUser{}
 		c.EventuallyGet(perTestHelper.Name("test"), fetchInstance, c.EventuallyStatus(dbv1beta1.StatusReady))
-
-		Expect(fetchInstance.Status.SecretStatus).To(Equal(dbv1beta1.StatusReady))
+		Expect(fetchInstance.Status.Connection.Host).To(Equal("test-database"))
+		Expect(fetchInstance.Status.Connection.Username).To(Equal("newuser"))
+		Expect(fetchInstance.Status.Connection.Port).To(Equal(5432))
 	})
 })

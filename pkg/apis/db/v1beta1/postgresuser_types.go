@@ -17,22 +17,21 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PostgresUserSpec defines the desired state of PostgresUser
 type PostgresUserSpec struct {
 	Connection PostgresConnection `json:"database"`
-	Username   string             `json:"username"`
+	Username   string             `json:"username,omitempty"`
 }
 
 // PostgresUserStatus defines the observed state of PostgresUser
 type PostgresUserStatus struct {
-	Status            string            `json:"status"`
-	Message           string            `json:"message"`
-	PasswordSecretRef helpers.SecretRef `json:"passwordSecretRef"`
-	SecretStatus      string            `json:"secretStatus"`
+	Status       string             `json:"status"`
+	Message      string             `json:"message"`
+	Connection   PostgresConnection `json:"connection"`
+	SecretStatus string             `json:"secretStatus"`
 }
 
 // +genclient

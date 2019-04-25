@@ -70,7 +70,7 @@ var _ = Describe("PostgresUser Secret Component", func() {
 
 	It("fills in the secret info in the status", func() {
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Status.PasswordSecretRef.Name).To(Equal("foo.postgres-user-password"))
-		Expect(instance.Status.PasswordSecretRef.Key).To(Equal("password"))
+		Expect(instance.Status.Connection.PasswordSecretRef.Name).To(Equal("foo.postgres-user-password"))
+		Expect(instance.Status.Connection.PasswordSecretRef.Key).To(Equal("password"))
 	})
 })
