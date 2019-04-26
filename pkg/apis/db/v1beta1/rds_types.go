@@ -45,7 +45,6 @@ type RDSInstanceStatus struct {
 	SecurityGroupStatus  string             `json:"securityGroupStatus"`
 	SecurityGroupID      string             `json:"securityGroupID"`
 	ParameterGroupStatus string             `json:"parameterGroupStatus"`
-	SecretStatus         string             `json:"secretStatus"`
 }
 
 // +genclient

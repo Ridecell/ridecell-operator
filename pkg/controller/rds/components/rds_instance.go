@@ -66,9 +66,6 @@ func (_ *rdsInstanceComponent) IsReconcilable(ctx *components.ComponentContext) 
 	if instance.Status.SecurityGroupStatus != dbv1beta1.StatusReady {
 		return false
 	}
-	if instance.Status.SecretStatus != dbv1beta1.StatusReady {
-		return false
-	}
 	return true
 }
 
