@@ -26,7 +26,7 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("DbConfig Status Component @unit", func() {
+var _ = Describe("DbConfig Status Component", func() {
 	var comp components.Component
 
 	BeforeEach(func() {

@@ -17,6 +17,8 @@ limitations under the License.
 package components
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -41,7 +43,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
 
 	if instance.Spec.DatabaseName == "" {
-		instance.Spec.DatabaseName = instance.Name
+		instance.Spec.DatabaseName = strings.ReplaceAll(instance.Name, "-", "_")
 	}
 	if instance.Spec.Owner == "" {
 		instance.Spec.Owner = instance.Spec.DatabaseName

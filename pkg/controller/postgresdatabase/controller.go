@@ -30,7 +30,9 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("postgresdatabase-controller", mgr, &dbv1beta1.PostgresDatabase{}, Templates, []components.Component{
 		pdcomponents.NewDefaults(),
-		dbccomponents.NewPostgres(),
+		dbccomponents.NewPostgres("Exclusive"),
+		pdcomponents.NewUser(),
+		pdcomponents.NewDatabase(),
 	})
 	return err
 }

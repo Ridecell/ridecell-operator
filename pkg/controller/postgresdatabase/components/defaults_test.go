@@ -19,38 +19,26 @@ package components_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	dbccomponents "github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig/components"
+	pdcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("DbConfig Defaults Component", func() {
+var _ = Describe("PostgresDatabase Defaults Component", func() {
 	var comp components.Component
 
 	BeforeEach(func() {
-		comp = dbccomponents.NewDefaults()
+		comp = pdcomponents.NewDefaults()
 	})
 
-	It("does nothing with just an RDS config", func() {
-		instance.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{}
+	It("sets a default database name", func() {
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.DatabaseName).To(Equal("foo_dev"))
 	})
 
-	It("does nothing with just a Local config", func() {
-		instance.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
+	It("sets a default owner", func() {
 		Expect(comp).To(ReconcileContext(ctx))
-	})
-
-	It("fails with neither postgres config", func() {
-		Expect(comp).ToNot(ReconcileContext(ctx))
-	})
-
-	It("fails with both postgres configs", func() {
-		instance.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{}
-		instance.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
-		Expect(comp).ToNot(ReconcileContext(ctx))
+		Expect(instance.Spec.Owner).To(Equal("foo_dev"))
 	})
 })

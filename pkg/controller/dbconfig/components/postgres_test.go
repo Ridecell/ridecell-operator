@@ -34,13 +34,13 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("DbConfig Postgres Component @unit", func() {
+var _ = Describe("DbConfig Postgres Component", func() {
 	var comp components.Component
 	var dbconfig *dbv1beta1.DbConfig
 	var pqdb *dbv1beta1.PostgresDatabase
 
 	BeforeEach(func() {
-		comp = dbccomponents.NewPostgres()
+		comp = dbccomponents.NewPostgres("Shared")
 		dbconfig = instance
 		pqdb = &dbv1beta1.PostgresDatabase{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
@@ -89,6 +89,7 @@ var _ = Describe("DbConfig Postgres Component @unit", func() {
 
 	Context("with top being PostgresDatabase", func() {
 		BeforeEach(func() {
+			comp = dbccomponents.NewPostgres("Exclusive")
 			ctx = components.NewTestContext(pqdb, dbconfig_controller.Templates)
 			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
 		})

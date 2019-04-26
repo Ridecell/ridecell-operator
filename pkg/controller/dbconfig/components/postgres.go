@@ -32,14 +32,19 @@ import (
 
 // THIS COMPONENT IS WEIRD BECAUSE IT IS USED IN BOTH THE DBCONFIG AND POSTGRESDATABASE CONTROLLERS.
 
-type postgresComponent struct{}
+type postgresComponent struct {
+	mode string
+}
 
-func NewPostgres() *postgresComponent {
-	return &postgresComponent{}
+func NewPostgres(mode string) *postgresComponent {
+	return &postgresComponent{mode: mode}
 }
 
 func (_ *postgresComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&dbv1beta1.RDSInstance{},
+		&postgresv1.Postgresql{},
+	}
 }
 
 func (_ *postgresComponent) IsReconcilable(ctx *components.ComponentContext) bool {
@@ -48,9 +53,9 @@ func (_ *postgresComponent) IsReconcilable(ctx *components.ComponentContext) boo
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	var dbconfig *dbv1beta1.DbConfig
-	pqdb, ok := ctx.Top.(*dbv1beta1.PostgresDatabase)
-	if ok {
+	if comp.mode == "Exclusive" {
 		// This is a PostgresDatabase so try to load the relevant DbConfig.
+		pqdb := ctx.Top.(*dbv1beta1.PostgresDatabase)
 		dbconfig = &dbv1beta1.DbConfig{}
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: pqdb.Spec.DbConfig, Namespace: pqdb.Namespace}, dbconfig)
 		if err != nil {
@@ -58,7 +63,12 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 		// Do nothing in shared mode, DB is already provisioned.
 		if dbconfig.Spec.Postgres.Mode == "Shared" {
-			return components.Result{}, nil
+			return components.Result{StatusModifier: func(obj runtime.Object) error {
+				pqdb := obj.(*dbv1beta1.PostgresDatabase)
+				pqdb.Status.DatabaseStatus = dbconfig.Status.Postgres.Status
+				pqdb.Status.Connection = dbconfig.Status.Postgres.Connection
+				return nil
+			}}, nil
 		}
 	} else {
 		dbconfig = ctx.Top.(*dbv1beta1.DbConfig)
@@ -83,7 +93,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return res, err
 	}
 
-	if ok {
+	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
 		res.StatusModifier = func(obj runtime.Object) error {
 			instance := obj.(*dbv1beta1.PostgresDatabase)

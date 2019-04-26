@@ -41,6 +41,7 @@ type PostgresDatabaseStatus struct {
 	Status         string             `json:"status"`
 	Message        string             `json:"message"`
 	DatabaseStatus string             `json:"databaseStatus"`
+	UserStatus     string             `json:"userStatus"`
 	Connection     PostgresConnection `json:"connection"`
 }
 

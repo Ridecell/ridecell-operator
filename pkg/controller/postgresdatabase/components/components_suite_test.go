@@ -27,22 +27,22 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase"
 )
 
-var instance *dbv1beta1.DbConfig
+var instance *dbv1beta1.PostgresDatabase
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "DbConfig Components Suite @unit")
+	ginkgo.RunSpecs(t, "PostgresDatabase Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
-	instance = &dbv1beta1.DbConfig{
-		ObjectMeta: metav1.ObjectMeta{Name: "summon-dev", Namespace: "summon-dev"},
+	instance = &dbv1beta1.PostgresDatabase{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
 	}
-	ctx = components.NewTestContext(instance, dbconfig.Templates)
+	ctx = components.NewTestContext(instance, postgresdatabase.Templates)
 })
