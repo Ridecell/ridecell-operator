@@ -59,13 +59,6 @@ func (_ *rdsInstanceComponent) WatchTypes() []runtime.Object {
 }
 
 func (_ *rdsInstanceComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*dbv1beta1.RDSInstance)
-	if instance.Status.ParameterGroupStatus != dbv1beta1.StatusReady {
-		return false
-	}
-	if instance.Status.SecurityGroupStatus != dbv1beta1.StatusReady {
-		return false
-	}
 	return true
 }
 

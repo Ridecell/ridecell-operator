@@ -176,12 +176,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 		}
 	}
 
-	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*dbv1beta1.RDSInstance)
-		instance.Status.SecurityGroupStatus = dbv1beta1.StatusReady
-		instance.Status.SecurityGroupID = aws.StringValue(securityGroup.GroupId)
-		return nil
-	}}, nil
+	return components.Result{}, nil
 }
 
 func (comp *dbSecurityGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
