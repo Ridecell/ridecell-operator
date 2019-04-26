@@ -18,11 +18,11 @@ package components
 
 import (
 	"fmt"
-
 	rabbithole "github.com/michaelklishin/rabbit-hole"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"strings"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -107,7 +107,12 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 		policy.Pattern = instance.Spec.Policies[policyName].Pattern
 		policy.ApplyTo = instance.Spec.Policies[policyName].ApplyTo
 		policy.Priority = instance.Spec.Policies[policyName].Priority
-		policy.Definition = instance.Spec.Policies[policyName].PolicyDefinition
+		definitionList := strings.Split(instance.Spec.Policies[policyName].Definition, ";")
+		policy.Definition = make(rabbithole.PolicyDefinition)
+		for _, v := range definitionList {
+			definition := strings.Split(v, ":")
+			policy.Definition[definition[0]] = definition[1]
+		}
 		_, err = rmqc.PutPolicy(instance.Spec.VhostName, actualPolicyName, policy)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "error updating policy for vhost %s", instance.Spec.VhostName)

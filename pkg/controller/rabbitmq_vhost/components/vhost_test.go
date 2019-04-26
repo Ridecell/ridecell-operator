@@ -38,13 +38,10 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		SkipUser:  false,
 		Policies: map[string]dbv1beta1.RabbitmqPolicy{
 			"rabbitmq-test-p1": dbv1beta1.RabbitmqPolicy{
-				Pattern:  "^amq\\.",
-				ApplyTo:  "queues",
-				Priority: 1,
-				PolicyDefinition: map[string]interface{}{
-					"federation-upstream-set": "all",
-					"ha-mode":                 "all",
-				},
+				Pattern:    "^amq\\.",
+				ApplyTo:    "queues",
+				Priority:   1,
+				Definition: "federation-upstream-set:all;ha-mode:all",
 			},
 		},
 	}
