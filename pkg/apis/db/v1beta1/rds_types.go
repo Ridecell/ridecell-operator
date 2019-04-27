@@ -38,14 +38,11 @@ type RDSInstanceSpec struct {
 
 // RDSInstanceStatus defines the observed state of RDSInstance
 type RDSInstanceStatus struct {
-	Status               string             `json:"status"`
-	Message              string             `json:"message"`
-	Connection           PostgresConnection `json:"rdsConnection"`
-	InstanceID           string             `json:"instanceID"`
-	SecurityGroupStatus  string             `json:"securityGroupStatus"`
-	SecurityGroupID      string             `json:"securityGroupID"`
-	ParameterGroupStatus string             `json:"parameterGroupStatus"`
-	SecretStatus         string             `json:"secretStatus"`
+	Status          string             `json:"status"`
+	Message         string             `json:"message"`
+	Connection      PostgresConnection `json:"rdsConnection"`
+	InstanceID      string             `json:"instanceID"`
+	SecurityGroupID string             `json:"securityGroupID"`
 }
 
 // +genclient
