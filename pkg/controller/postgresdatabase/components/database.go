@@ -26,6 +26,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
 type databaseComponent struct{}
@@ -46,9 +47,7 @@ func (_ *databaseComponent) IsReconcilable(ctx *components.ComponentContext) boo
 func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
 
-	conn := instance.Status.Connection.DeepCopy()
-	conn.Database = "postgres"
-	db, err := postgres.Open(ctx, conn)
+	db, err := postgres.Open(ctx, &instance.Status.AdminConnection)
 	if err != nil {
 		return components.Result{}, err
 	}
@@ -62,7 +61,7 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	if count == 0 {
 		// Got to make the database.
-		_, err := db.Exec(fmt.Sprintf(`CREATE DATABASE %s WITH OWNER = $1`, pq.QuoteIdentifier(instance.Spec.DatabaseName)), instance.Spec.Owner)
+		_, err := db.Exec(fmt.Sprintf(`CREATE DATABASE %s WITH OWNER = %s`, pq.QuoteIdentifier(instance.Spec.DatabaseName), utils.QuoteLiteral(instance.Spec.Owner)))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "database: error creating database")
 		}
@@ -73,6 +72,10 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance := obj.(*dbv1beta1.PostgresDatabase)
 		instance.Status.Status = dbv1beta1.StatusReady
 		instance.Status.Message = fmt.Sprintf("Created database %s", dbName)
+		instance.Status.Connection.Host = instance.Status.AdminConnection.Host
+		instance.Status.Connection.Port = instance.Status.AdminConnection.Port
+		instance.Status.Connection.SSLMode = instance.Status.AdminConnection.SSLMode
+		instance.Status.Connection.Database = dbName
 		return nil
 	}}, nil
 }

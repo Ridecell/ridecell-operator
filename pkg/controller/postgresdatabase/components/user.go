@@ -50,7 +50,14 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	})
 	res.StatusModifier = func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.PostgresDatabase)
-		instance.Status.UserStatus = existing.Status.Status
+		if existing != nil {
+			instance.Status.UserStatus = existing.Status.Status
+			instance.Status.Connection.Host = instance.Status.AdminConnection.Host
+			instance.Status.Connection.Port = instance.Status.AdminConnection.Port
+			instance.Status.Connection.SSLMode = instance.Status.AdminConnection.SSLMode
+			instance.Status.Connection.Username = existing.Status.Connection.Username
+			instance.Status.Connection.PasswordSecretRef = existing.Status.Connection.PasswordSecretRef
+		}
 		return nil
 	}
 	return res, err

@@ -5,4 +5,4 @@ metadata:
   namespace: {{ .Instance.Namespace }}
 spec:
   username: {{ .Instance.Spec.Owner | quote }}
-  connection: {{ .Instance.Status.Connection | toJson }}
+  connection: {{ .Instance.Status.AdminConnection | toJson }}

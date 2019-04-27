@@ -95,7 +95,7 @@ var _ = Describe("PostgresDatabase Database Component", func() {
 	It("creates a database", func() {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
 		dbMock.ExpectQuery(`SELECT COUNT`).WithArgs("foo_dev").WillReturnRows(rows)
-		dbMock.ExpectExec(`CREATE DATABASE "foo_dev" WITH OWNER = \$1`).WithArgs("foo").WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectExec(`CREATE DATABASE "foo_dev" WITH OWNER = 'foo'`).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		Expect(comp).To(ReconcileContext(ctx))
 
