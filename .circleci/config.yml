@@ -54,6 +54,7 @@ jobs:
     - run: sudo mkdir /usr/local/kubebuilder/
     - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
     - run: make dep test
+    - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
   build:
     docker:
