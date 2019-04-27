@@ -35,6 +35,7 @@ type PostgresConnection struct {
 	Username          string            `json:"username"`
 	PasswordSecretRef helpers.SecretRef `json:"passwordSecretRef"`
 	Database          string            `json:"database,omitempty"`
+	SSLMode           string            `json:"sslmode,omitempty"`
 }
 
 type RabbitmqConnection struct {
