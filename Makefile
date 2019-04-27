@@ -6,7 +6,7 @@ all: test manager
 
 # Run tests
 test: generate fmt vet manifests
-	ginkgo --randomizeAllSpecs --randomizeSuites --cover --trace --progress ./pkg/... ./cmd/...
+	ginkgo --randomizeAllSpecs --randomizeSuites --cover --trace --progress ${GINKGO_ARGS} ./pkg/... ./cmd/...
 	gover
 
 # Build manager binary
