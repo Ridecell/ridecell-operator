@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	dbccomponents "github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig/components"
 	pdcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase/components"
+	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/shared_components/postgres"
 )
 
 // Add creates a new decryptsecrets Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
@@ -30,7 +30,7 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("postgresdatabase-controller", mgr, &dbv1beta1.PostgresDatabase{}, Templates, []components.Component{
 		pdcomponents.NewDefaults(),
-		dbccomponents.NewPostgres("Exclusive"),
+		spcomponents.NewPostgres("Exclusive"),
 		pdcomponents.NewUser(),
 		pdcomponents.NewDatabase(),
 	})

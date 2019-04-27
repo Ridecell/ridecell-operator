@@ -22,6 +22,7 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	dbccomponents "github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig/components"
+	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/shared_components/postgres"
 )
 
 // Add creates a new decryptsecrets Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
@@ -29,7 +30,7 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("dbconfig-controller", mgr, &dbv1beta1.DbConfig{}, Templates, []components.Component{
 		dbccomponents.NewDefaults(),
-		dbccomponents.NewPostgres("Shared"),
+		spcomponents.NewPostgres("Shared"),
 		dbccomponents.NewStatus(),
 	})
 	return err

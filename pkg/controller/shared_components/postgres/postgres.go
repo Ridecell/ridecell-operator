@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package components
+package postgres
 
 import (
 	"fmt"
@@ -66,7 +66,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			return components.Result{StatusModifier: func(obj runtime.Object) error {
 				pqdb := obj.(*dbv1beta1.PostgresDatabase)
 				pqdb.Status.DatabaseStatus = dbconfig.Status.Postgres.Status
-				pqdb.Status.Connection = dbconfig.Status.Postgres.Connection
+				pqdb.Status.AdminConnection = dbconfig.Status.Postgres.Connection
 				return nil
 			}}, nil
 		}
@@ -98,7 +98,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		res.StatusModifier = func(obj runtime.Object) error {
 			instance := obj.(*dbv1beta1.PostgresDatabase)
 			instance.Status.DatabaseStatus = status
-			instance.Status.Connection = *conn
+			instance.Status.AdminConnection = *conn
 			return nil
 		}
 	} else {
@@ -113,11 +113,11 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	return res, nil
 }
 
-func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {
+func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {
 	var existing *dbv1beta1.RDSInstance
-	res, _, err := ctx.CreateOrUpdate("rds.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("rds.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
 		existing = existingObj.(*dbv1beta1.RDSInstance)
-		existing.Spec = *dbconfig.Spec.Postgres.RDS
+		existing.Spec = *config.Spec.Postgres.RDS
 		return nil
 	})
 	if err != nil {
@@ -128,7 +128,7 @@ func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, db
 
 func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {
 	var existing *postgresv1.Postgresql
-	res, _, err := ctx.CreateOrUpdate("local.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("local.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
 		existing = existingObj.(*postgresv1.Postgresql)
 		existing.Spec = *dbconfig.Spec.Postgres.Local.DeepCopy()
 		if existing.Spec.TeamID == "" {

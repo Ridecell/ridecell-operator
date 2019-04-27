@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package components_test
+package postgres_test
 
 import (
 	"context"
@@ -34,7 +34,7 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("DbConfig Postgres Component", func() {
+var _ = Describe("Postgres Shared Component", func() {
 	var comp components.Component
 	var dbconfig *dbv1beta1.DbConfig
 	var pqdb *dbv1beta1.PostgresDatabase
