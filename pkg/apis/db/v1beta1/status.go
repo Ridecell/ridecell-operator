@@ -71,3 +71,29 @@ func (pgu *PostgresUser) SetErrorStatus(errorMsg string) {
 	pgu.Status.Status = StatusError
 	pgu.Status.Message = errorMsg
 }
+
+func (pgu *PostgresDatabase) GetStatus() components.Status {
+	return pgu.Status
+}
+
+func (pgu *PostgresDatabase) SetStatus(status components.Status) {
+	pgu.Status = status.(PostgresDatabaseStatus)
+}
+
+func (pgu *PostgresDatabase) SetErrorStatus(errorMsg string) {
+	pgu.Status.Status = StatusError
+	pgu.Status.Message = errorMsg
+}
+
+func (pgu *DbConfig) GetStatus() components.Status {
+	return pgu.Status
+}
+
+func (pgu *DbConfig) SetStatus(status components.Status) {
+	pgu.Status = status.(DbConfigStatus)
+}
+
+func (pgu *DbConfig) SetErrorStatus(errorMsg string) {
+	pgu.Status.Status = StatusError
+	pgu.Status.Message = errorMsg
+}
