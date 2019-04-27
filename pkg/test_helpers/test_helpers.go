@@ -30,6 +30,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -153,4 +155,31 @@ func createRandomNamespace(client client.Client) string {
 // Helper method to make a types.NamespacedName in the correct namespace.
 func (h *PerTestHelpers) Name(objName string) types.NamespacedName {
 	return types.NamespacedName{Name: objName, Namespace: h.Namespace}
+}
+
+// Helper method to show a list of objects, used in AfterEach helpers.
+func (h *PerTestHelpers) DebugList(listType kruntime.Object) {
+	gvks, unversioned, err := h.Manager.GetScheme().ObjectKinds(listType)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	if unversioned || len(gvks) == 0 {
+		fmt.Println("error getting gvks")
+		panic("Error getting GVKs")
+	}
+	list := &unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(gvks[0])
+
+	h.TestClient.List(nil, list)
+	fmt.Print(gvks[0].Kind[:len(gvks[0].Kind)-4] + ":\n")
+	for _, item := range list.Items {
+		meta := item.Object["metadata"].(map[string]interface{})
+		if meta["namespace"].(string) == h.Namespace {
+			fmt.Printf("  %s:\n", meta["name"])
+			for key, value := range item.Object["status"].(map[string]interface{}) {
+				fmt.Printf("    %s %v\n", key, value)
+			}
+		}
+	}
 }
