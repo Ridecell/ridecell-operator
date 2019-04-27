@@ -117,7 +117,7 @@ var _ = Describe("rds controller", func() {
 		c.Create(rdsInstance)
 
 		fetchRDS := &dbv1beta1.RDSInstance{}
-		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating))
+		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating), c.EventuallyTimeout(time.Minute*2))
 
 		//c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
 
