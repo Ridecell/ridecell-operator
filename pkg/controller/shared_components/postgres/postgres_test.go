@@ -29,8 +29,7 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	dbconfig_controller "github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig"
-	dbccomponents "github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig/components"
+	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/shared_components/postgres"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
@@ -40,7 +39,7 @@ var _ = Describe("Postgres Shared Component", func() {
 	var pqdb *dbv1beta1.PostgresDatabase
 
 	BeforeEach(func() {
-		comp = dbccomponents.NewPostgres("Shared")
+		comp = spcomponents.NewPostgres("Shared")
 		dbconfig = instance
 		pqdb = &dbv1beta1.PostgresDatabase{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
@@ -89,8 +88,8 @@ var _ = Describe("Postgres Shared Component", func() {
 
 	Context("with top being PostgresDatabase", func() {
 		BeforeEach(func() {
-			comp = dbccomponents.NewPostgres("Exclusive")
-			ctx = components.NewTestContext(pqdb, dbconfig_controller.Templates)
+			comp = spcomponents.NewPostgres("Exclusive")
+			ctx.Top = pqdb
 			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
 		})
 
