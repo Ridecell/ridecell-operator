@@ -115,7 +115,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-database", Namespace: "summon-dev"}, postgres)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Spec.TeamID).To(Equal("foo-dev"))
-			Expect(pqdb.Status.Connection.Host).To(Equal("foo-dev-database"))
+			Expect(pqdb.Status.AdminConnection.Host).To(Equal("foo-dev-database"))
 		})
 
 		It("creates an RDS database", func() {

@@ -48,7 +48,7 @@ var _ = Describe("PostgresDatabase Database Component", func() {
 		comp = pdcomponents.NewDatabase()
 		instance.Spec.DatabaseName = "foo_dev"
 		instance.Spec.Owner = "foo"
-		instance.Status.Connection = dbv1beta1.PostgresConnection{
+		instance.Status.AdminConnection = dbv1beta1.PostgresConnection{
 			Host:     "mydb",
 			Port:     5432,
 			Username: "myuser",

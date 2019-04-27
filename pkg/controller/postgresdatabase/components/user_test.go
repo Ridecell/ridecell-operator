@@ -36,7 +36,7 @@ var _ = Describe("PostgresDatabase User Component", func() {
 	BeforeEach(func() {
 		comp = pdcomponents.NewUser()
 		instance.Spec.Owner = "foo"
-		instance.Status.Connection = dbv1beta1.PostgresConnection{
+		instance.Status.AdminConnection = dbv1beta1.PostgresConnection{
 			Host:     "mydb",
 			Username: "myuser",
 			PasswordSecretRef: helpers.SecretRef{
