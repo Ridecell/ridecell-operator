@@ -57,7 +57,7 @@ var _ = Describe("PostgresDatabase User Component", func() {
 
 		It("does not create a user if skipuser is on", func() {
 			instance.Spec.SkipUser = true
-      instance.Status.DatabaseStatus = dbv1beta1.StatusReady
+			instance.Status.DatabaseStatus = dbv1beta1.StatusReady
 			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})
 	})
@@ -67,9 +67,9 @@ var _ = Describe("PostgresDatabase User Component", func() {
 		user := &dbv1beta1.PostgresUser{}
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, user)
 		Expect(err).ToNot(HaveOccurred())
-    Expect(user.Spec.Username).To(Equal("foo"))
-    Expect(user.Spec.Connection.Host).To(Equal("mydb"))
-    Expect(user.Spec.Connection.Username).To(Equal("myuser"))
-    Expect(user.Spec.Connection.PasswordSecretRef.Name).To(Equal("mysecret"))
+		Expect(user.Spec.Username).To(Equal("foo"))
+		Expect(user.Spec.Connection.Host).To(Equal("mydb"))
+		Expect(user.Spec.Connection.Username).To(Equal("myuser"))
+		Expect(user.Spec.Connection.PasswordSecretRef.Name).To(Equal("mysecret"))
 	})
 })
