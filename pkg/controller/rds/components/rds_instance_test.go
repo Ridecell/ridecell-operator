@@ -106,25 +106,7 @@ var _ = Describe("rds aws Component", func() {
 	})
 
 	Describe("isReconcilable", func() {
-		It("returns false", func() {
-			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
-		})
-
-		It("fails sg status check", func() {
-			instance.Status.ParameterGroupStatus = dbv1beta1.StatusReady
-			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
-		})
-
-		It("fails secret status check", func() {
-			instance.Status.ParameterGroupStatus = dbv1beta1.StatusReady
-			instance.Status.SecurityGroupStatus = dbv1beta1.StatusReady
-			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
-		})
-
 		It("returns true", func() {
-			instance.Status.SecurityGroupStatus = dbv1beta1.StatusReady
-			instance.Status.ParameterGroupStatus = dbv1beta1.StatusReady
-			instance.Status.SecretStatus = dbv1beta1.StatusReady
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
 	})
