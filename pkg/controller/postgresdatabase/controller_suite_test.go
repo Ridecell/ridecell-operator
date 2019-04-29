@@ -23,6 +23,7 @@ import (
 	"github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/postgresuser"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -36,7 +37,11 @@ func TestTemplates(t *testing.T) {
 }
 
 func Add(mgr manager.Manager) error {
-	err := postgresdatabase.Add(mgr)
+	err := dbconfig.Add(mgr)
+	if err != nil {
+		return err
+	}
+	err = postgresdatabase.Add(mgr)
 	if err != nil {
 		return err
 	}

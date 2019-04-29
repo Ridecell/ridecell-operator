@@ -184,13 +184,19 @@ func (h *PerTestHelpers) DebugList(listType kruntime.Object) {
 	list.SetGroupVersionKind(gvks[0])
 
 	h.TestClient.List(nil, list)
+	// TODO Probably replace this whole thing with building maps and yaml.Marshal.
 	fmt.Print(gvks[0].Kind[:len(gvks[0].Kind)-4] + ":\n")
 	for _, item := range list.Items {
 		meta := item.Object["metadata"].(map[string]interface{})
 		if meta["namespace"].(string) == h.Namespace {
-			fmt.Printf("  %s:\n", meta["name"])
-			for key, value := range item.Object["status"].(map[string]interface{}) {
-				fmt.Printf("    %s %v\n", key, value)
+			status, ok := item.Object["status"].(map[string]interface{})
+			if ok {
+				fmt.Printf("  %s:\n", meta["name"])
+				for key, value := range status {
+					fmt.Printf("    %s: %v\n", key, value)
+				}
+			} else {
+				fmt.Printf("  %s: %v\n", meta["name"], item.Object["status"])
 			}
 		}
 	}

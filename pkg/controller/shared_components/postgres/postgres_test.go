@@ -52,7 +52,7 @@ var _ = Describe("Postgres Shared Component", func() {
 	Context("with top being DbConfig", func() {
 		It("does not try to reconcile on an exclusive database", func() {
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
-			dbconfig.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			Expect(comp).To(ReconcileContext(ctx))
 
 			postgres := &postgresv1.PostgresqlList{}
@@ -63,7 +63,7 @@ var _ = Describe("Postgres Shared Component", func() {
 
 		It("creates a local database", func() {
 			dbconfig.Spec.Postgres.Mode = "Shared"
-			dbconfig.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			Expect(comp).To(ReconcileContext(ctx))
 
 			postgres := &postgresv1.Postgresql{}
@@ -95,7 +95,7 @@ var _ = Describe("Postgres Shared Component", func() {
 
 		It("does not try to reconcile on an shared database", func() {
 			dbconfig.Spec.Postgres.Mode = "Shared"
-			dbconfig.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
 			Expect(comp).To(ReconcileContext(ctx))
 
@@ -107,7 +107,7 @@ var _ = Describe("Postgres Shared Component", func() {
 
 		It("creates a local database", func() {
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
-			dbconfig.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
 			Expect(comp).To(ReconcileContext(ctx))
 

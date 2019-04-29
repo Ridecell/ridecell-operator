@@ -17,6 +17,7 @@ limitations under the License.
 package postgres
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -24,6 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
@@ -44,7 +48,49 @@ func (_ *postgresComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&dbv1beta1.RDSInstance{},
 		&postgresv1.Postgresql{},
+		&dbv1beta1.DbConfig{},
 	}
+}
+
+func (comp *postgresComponent) WatchMap(obj handler.MapObject, c client.Client) ([]reconcile.Request, error) {
+	// First check if this is an owned object, if so, short circuit.
+	owner := metav1.GetControllerOf(obj.Meta)
+	var relevantOwner string
+	if comp.mode == "Exclusive" {
+		relevantOwner = "PostgresDatabase"
+	} else {
+		relevantOwner = "DbConfig"
+	}
+	if owner != nil && owner.Kind == relevantOwner {
+		return []reconcile.Request{
+			reconcile.Request{NamespacedName: types.NamespacedName{Name: owner.Name, Namespace: obj.Meta.GetNamespace()}},
+		}, nil
+	}
+
+	requests := []reconcile.Request{}
+	// If we are in exclusive mode, check if the change is a linked DbConfig.
+	_, isDbConfig := obj.Object.(*dbv1beta1.DbConfig)
+	if comp.mode == "Exclusive" && isDbConfig {
+		dbs := &dbv1beta1.PostgresDatabaseList{}
+		err := c.List(context.Background(), nil, dbs)
+		if err != nil {
+			return nil, errors.Wrap(err, "error listing postgresdatabases")
+		}
+
+		for _, db := range dbs.Items {
+			// TODO Can do this with a list option once that API stabilizes
+			if db.Namespace != obj.Meta.GetNamespace() {
+				continue
+			}
+
+			// Check the DbConfig field.
+			if (db.Spec.DbConfig == "" && obj.Meta.GetName() == db.Namespace) || db.Spec.DbConfig == obj.Meta.GetName() {
+				requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: db.Name, Namespace: db.Namespace}})
+			}
+		}
+	}
+
+	return requests, nil
 }
 
 func (_ *postgresComponent) IsReconcilable(ctx *components.ComponentContext) bool {
@@ -130,11 +176,29 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 	var existing *postgresv1.Postgresql
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("local.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
 		existing = existingObj.(*postgresv1.Postgresql)
-		existing.Spec = *dbconfig.Spec.Postgres.Local.DeepCopy()
-		if existing.Spec.TeamID == "" {
-			instanceMeta := ctx.Top.(metav1.Object)
-			existing.Spec.TeamID = instanceMeta.GetName()
-		}
+		// Copy over fields.
+		local := dbconfig.Spec.Postgres.Local
+		// existing.Spec.PostgresqlParam = local.PostgresqlParam
+		existing.Spec.Volume = local.Volume
+		// existing.Spec.Patroni = local.Patroni
+		existing.Spec.Resources = local.Resources
+		existing.Spec.DockerImage = local.DockerImage
+		existing.Spec.EnableMasterLoadBalancer = local.EnableMasterLoadBalancer
+		existing.Spec.EnableReplicaLoadBalancer = local.EnableReplicaLoadBalancer
+		existing.Spec.AllowedSourceRanges = local.AllowedSourceRanges
+		existing.Spec.NumberOfInstances = local.NumberOfInstances
+		existing.Spec.Users = local.Users
+		existing.Spec.MaintenanceWindows = local.MaintenanceWindows
+		existing.Spec.Clone = local.Clone
+		existing.Spec.Databases = local.Databases
+		existing.Spec.Tolerations = local.Tolerations
+		existing.Spec.Sidecars = local.Sidecars
+		existing.Spec.PodPriorityClassName = local.PodPriorityClassName
+		// existing.Spec.InitContainers = local.InitContainers // Newer version of postgres-operator?
+		// existing.Spec.ShmVolume = local.ShmVolume
+		// Standard fields
+		instanceMeta := ctx.Top.(metav1.Object)
+		existing.Spec.TeamID = instanceMeta.GetName()
 		if existing.Spec.NumberOfInstances == 0 {
 			existing.Spec.NumberOfInstances = 2
 		}
@@ -155,6 +219,7 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 			Name: fmt.Sprintf("ridecell-admin.%s.credentials", existing.Name),
 			Key:  "password",
 		},
+		Database: "postgres",
 	}
 	return res, existing.Status.String(), conn, nil
 }

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/lib/pq"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -41,7 +42,7 @@ func (_ *databaseComponent) WatchTypes() []runtime.Object {
 
 func (_ *databaseComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
-	return instance.Status.DatabaseStatus == dbv1beta1.StatusReady && (instance.Spec.SkipUser || instance.Status.UserStatus == dbv1beta1.StatusReady)
+	return (instance.Status.DatabaseStatus == dbv1beta1.StatusReady || instance.Status.DatabaseStatus == postgresv1.ClusterStatusRunning.String()) && (instance.Spec.SkipUser || instance.Status.UserStatus == dbv1beta1.StatusReady)
 }
 
 func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {

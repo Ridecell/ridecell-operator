@@ -19,7 +19,6 @@ package components_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -40,7 +39,7 @@ var _ = Describe("DbConfig Defaults Component", func() {
 	})
 
 	It("does nothing with just a Local config", func() {
-		instance.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
+		instance.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 
@@ -50,7 +49,7 @@ var _ = Describe("DbConfig Defaults Component", func() {
 
 	It("fails with both postgres configs", func() {
 		instance.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{}
-		instance.Spec.Postgres.Local = &postgresv1.PostgresSpec{}
+		instance.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 })
