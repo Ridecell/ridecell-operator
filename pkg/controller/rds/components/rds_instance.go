@@ -127,7 +127,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 
 	var databaseNotExist bool
 	var database *rds.DBInstance
-	databaseName := strings.Replace(instance.Spec.DatabaseName, "-", "_", -1)
 	databaseUsername := strings.Replace(instance.Spec.Username, "-", "_", -1)
 
 	if instance.Spec.SubnetGroupName == "" {
@@ -148,7 +147,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		createDBInstanceOutput, err := comp.rdsAPI.CreateDBInstance(&rds.CreateDBInstanceInput{
 			MasterUsername:             aws.String(databaseUsername),
 			DBInstanceIdentifier:       aws.String(instance.Name),
-			DBName:                     aws.String(databaseName),
 			MasterUserPassword:         aws.String(string(password)),
 			StorageType:                aws.String("gp2"),
 			AllocatedStorage:           aws.Int64(instance.Spec.AllocatedStorage),
@@ -292,7 +290,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 				Host:     aws.StringValue(database.Endpoint.Address),
 				Port:     int(5432),
 				Username: aws.StringValue(database.MasterUsername),
-				Database: databaseName,
+				Database: "postgres",
 			}
 			return nil
 		}}, nil

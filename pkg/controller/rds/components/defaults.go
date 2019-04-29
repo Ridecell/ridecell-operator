@@ -17,8 +17,9 @@ limitations under the License.
 package components
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -71,12 +72,8 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.VPCID = os.Getenv("VPC_ID")
 	}
 
-	if instance.Spec.DatabaseName == "" {
-		instance.Spec.DatabaseName = instance.Name
-	}
-
 	if instance.Spec.Username == "" {
-		instance.Spec.Username = instance.Spec.DatabaseName
+		instance.Spec.Username = "ridecell-admin"
 	}
 
 	return components.Result{}, nil
