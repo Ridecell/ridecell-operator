@@ -249,11 +249,7 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 		return components.Result{RequeueAfter: time.Second * 30}, nil
 	}
 
-	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*dbv1beta1.RDSInstance)
-		instance.Status.ParameterGroupStatus = dbv1beta1.StatusReady
-		return nil
-	}}, nil
+	return components.Result{}, nil
 }
 
 func (comp *dbParameterGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {

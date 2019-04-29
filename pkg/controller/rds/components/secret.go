@@ -57,7 +57,6 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (compon
 	})
 	res.StatusModifier = func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.RDSInstance)
-		instance.Status.SecretStatus = dbv1beta1.StatusReady
 		instance.Status.Connection.PasswordSecretRef.Name = secretName
 		instance.Status.Connection.PasswordSecretRef.Key = "password"
 		return nil

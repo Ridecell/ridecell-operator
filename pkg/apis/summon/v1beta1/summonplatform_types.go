@@ -107,6 +107,9 @@ type SummonPlatformSpec struct {
 	// Manual Identity Verification settings.
 	// +optional
 	MIV MIVSpec `json:"miv,omitempty"`
+	// Environment setting.
+	// +optional
+	Environment string `json:"environment,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications
