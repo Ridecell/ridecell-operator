@@ -36,7 +36,7 @@ var ctx *components.ComponentContext
 func TestComponents(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "rds Components Suite")
+	ginkgo.RunSpecs(t, "rds Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {

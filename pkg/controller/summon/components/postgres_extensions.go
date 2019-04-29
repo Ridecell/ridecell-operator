@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -41,7 +40,7 @@ func (comp *postgresExtensionsComponent) WatchTypes() []runtime.Object {
 
 func (_ *postgresExtensionsComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
 		// Database not ready yet.
 		return false
 	}

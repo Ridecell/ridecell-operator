@@ -18,8 +18,8 @@ package components_test
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,18 +29,18 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("SummonPlatform Postgres Component", func() {
+	var comp components.Component
 
 	BeforeEach(func() {
+		comp = summoncomponents.NewPostgres()
 	})
 
 	Describe("IsReconcilable", func() {
 		It("should always be true", func() {
-			comp := summoncomponents.NewPostgres("postgres.yml.tpl", "postgres_operator/postgresoperator.yml.tpl")
 			ok := comp.IsReconcilable(ctx)
 			Expect(ok).To(BeTrue())
 		})
@@ -48,38 +48,25 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 	})
 
 	Describe("Reconcile", func() {
-		It("creates a postgres object by default", func() {
-			comp := summoncomponents.NewPostgres("postgres.yml.tpl", "postgres_operator/postgresoperator.yml.tpl")
-			instance.Spec.Database.ExclusiveDatabase = true
+		It("creates a PostgresDatabase", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
-			fetchPostgres := &postgresv1.Postgresql{}
-			err := ctx.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-database", instance.Name), Namespace: instance.Namespace}, fetchPostgres)
+			db := &dbv1beta1.PostgresDatabase{}
+			err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("creates a postgresoperator object if shareddatabase is true", func() {
-			comp := summoncomponents.NewPostgres("postgres.yml.tpl", "postgres_operator/postgresoperator.yml.tpl")
-			instance.Spec.Database.SharedDatabaseName = "foobar"
-			instance.Spec.Database.ExclusiveDatabase = false
-
-			fakePostgresql := &postgresv1.Postgresql{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foobar-database",
-					Namespace: instance.Namespace,
-				},
-				Spec: postgresv1.PostgresSpec{
-					TeamID: "foobar",
+		It("sets PostgresStatus", func() {
+			db := &dbv1beta1.PostgresDatabase{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+				Status: dbv1beta1.PostgresDatabaseStatus{
+					Status: dbv1beta1.StatusReady,
 				},
 			}
-
-			ctx.Client = fake.NewFakeClient(fakePostgresql)
+			ctx.Client = fake.NewFakeClient(db)
 
 			Expect(comp).To(ReconcileContext(ctx))
-
-			fetchOperator := &dbv1beta1.PostgresOperatorDatabase{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, fetchOperator)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(instance.Status.PostgresStatus).To(Equal(dbv1beta1.StatusReady))
 		})
 	})
 })

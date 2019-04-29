@@ -25,10 +25,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -58,7 +58,7 @@ var _ = Describe("SummonPlatform statefulset Component", func() {
 
 		It("passes all checks", func() {
 			instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
-			instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+			instance.Status.PostgresStatus = dbv1beta1.StatusReady
 			instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
 			instance.Status.MigrateVersion = instance.Spec.Version
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())

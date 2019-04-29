@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
@@ -109,7 +109,7 @@ func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client)
 func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
 		return false
 	}
 

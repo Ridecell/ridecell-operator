@@ -17,10 +17,10 @@ limitations under the License.
 package components
 
 import (
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -52,7 +52,7 @@ func (comp *statefulsetComponent) IsReconcilable(ctx *components.ComponentContex
 		return true
 	}
 	// We do want the database, so check all the database statuses.
-	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
 		return false
 	}
 	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {

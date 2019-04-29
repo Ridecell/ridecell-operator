@@ -19,6 +19,7 @@ package components_test
 import (
 	"time"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -29,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -40,7 +40,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	BeforeEach(func() {
 		instance.Spec.Database.ExclusiveDatabase = true
-		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		instance.Status.PostgresStatus = dbv1beta1.StatusReady
 
 		inSecret = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: "default"},
@@ -84,7 +84,7 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("Unreconcilable when db not ready", func() {
-		instance.Status.PostgresStatus = postgresv1.ClusterStatusUnknown
+		instance.Status.PostgresStatus = ""
 		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
 	})
 

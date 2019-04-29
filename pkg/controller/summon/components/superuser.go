@@ -21,10 +21,10 @@ package components
 import (
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
@@ -44,7 +44,7 @@ func (comp *superuserComponent) WatchTypes() []runtime.Object {
 func (comp *superuserComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Wait for the database to be up and migrated.
-	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
 		return false
 	}
 	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {

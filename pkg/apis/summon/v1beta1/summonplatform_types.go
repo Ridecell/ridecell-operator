@@ -19,7 +19,6 @@ package v1beta1
 import (
 	"time"
 
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -136,8 +135,8 @@ type SummonPlatformStatus struct {
 	// Status of the pull secret.
 	PullSecretStatus string `json:"pullSecretStatus,omitempty"`
 
-	// Current Postgresql status if one exists.
-	PostgresStatus postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`
+	// Current PostgresDatabase status if one exists.
+	PostgresStatus string `json:"postgresStatus,omitempty"`
 
 	// Status of the required Postgres extensions (collectively).
 	PostgresExtensionStatus string `json:"postgresExtensionStatus,omitempty"`
