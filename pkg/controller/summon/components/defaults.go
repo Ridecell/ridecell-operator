@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,6 +56,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Hostname == "" {
 		instance.Spec.Hostname = instance.Name + ".ridecell.us"
 	}
+	if instance.Spec.Environment == "" {
+		x := instance.Namespace
+		if strings.HasPrefix(x, "summon-") {
+			x = x[7:]
+		}
+		instance.Spec.Environment = x
+	}
 	defaultReplicas := int32(1)
 	if instance.Spec.WebReplicas == nil {
 		instance.Spec.WebReplicas = &defaultReplicas
@@ -72,7 +80,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.StaticReplicas = &defaultReplicas
 	}
 	if len(instance.Spec.Secrets) == 0 {
-		if instance.Namespace == "dev" || instance.Namespace == "qa" {
+		if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 			instance.Spec.Secrets = []string{instance.Namespace, instance.Name}
 		} else {
 			instance.Spec.Secrets = []string{instance.Name}
@@ -90,7 +98,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.AwsRegion = "us-west-2"
 	}
 	if instance.Spec.SQSQueue == "" {
-		if instance.Namespace == "prod" || instance.Namespace == "uat" {
+		if instance.Spec.Environment == "prod" || instance.Spec.Environment == "uat" {
 			instance.Spec.SQSQueue = "prod-data-pipeline"
 		} else {
 			instance.Spec.SQSQueue = "master-data-pipeline"
@@ -99,6 +107,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Database.SharedDatabaseName == "" {
 		instance.Spec.Database.SharedDatabaseName = instance.Namespace
 	}
+
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
@@ -128,7 +137,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 
 	// Enable DEBUG automatically for dev/qa.
-	if instance.Namespace == "dev" || instance.Namespace == "qa" {
+	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		val := true
 		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
 	}
