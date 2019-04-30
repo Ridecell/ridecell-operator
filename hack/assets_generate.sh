@@ -2,9 +2,8 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-prefix="$(mktemp "${TMPDIR:-/tmp}/assets_generate_XXXXXX")"
-tmp="$(mktemp "$prefix.go")"
-trap "rm $prefix $tmp" EXIT
+tmp="assets_generate.$$.go"
+trap "rm $tmp" EXIT
 cat <<EOH > "$tmp"
 // +build ignore
 
