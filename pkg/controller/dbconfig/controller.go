@@ -28,7 +28,7 @@ import (
 // Add creates a new decryptsecrets Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("dbconfig-controller", mgr, &dbv1beta1.DbConfig{}, Templates, []components.Component{
+	_, err := components.NewReconciler("dbconfig-controller", mgr, &dbv1beta1.DbConfig{}, nil, []components.Component{
 		dbccomponents.NewDefaults(),
 		spcomponents.NewPostgres("Shared"),
 		dbccomponents.NewStatus(),
