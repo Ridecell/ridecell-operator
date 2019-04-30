@@ -40,13 +40,13 @@ jobs:
     - setup_remote_docker
     - attach_workspace:
         at: workspace
-    - run: docker build -t us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH} .
+    - run: docker build -t us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH:0:42} .
     - run: echo ${GCP_SERVICE_ACCOUNT} > gcp-key.json
     - run: gcloud auth activate-service-account --key-file gcp-key.json
     - run: gcloud --quiet config set project ridecell-1
     - run: gcloud auth configure-docker
-    - run: docker push us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH}
-    - run: echo ${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH} > workspace/tag
+    - run: docker push us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH:0:42}
+    - run: echo ${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH:0:42} > workspace/tag
     - persist_to_workspace:
         root: workspace
         paths:
