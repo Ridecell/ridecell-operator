@@ -5,9 +5,9 @@ IMG ?= controller:latest
 all: test manager
 
 ifdef CI
-	CI_GINKGO_ARGS="--v -compilers 4"
+CI_GINKGO_ARGS=--v -compilers 4
 else
-	CI_GINKGO_ARGS=""
+CI_GINKGO_ARGS=
 endif
 
 # Run tests
