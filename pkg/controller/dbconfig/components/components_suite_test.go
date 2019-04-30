@@ -27,7 +27,6 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/dbconfig"
 )
 
 var instance *dbv1beta1.DbConfig
@@ -44,5 +43,5 @@ var _ = ginkgo.BeforeEach(func() {
 	instance = &dbv1beta1.DbConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "summon-dev", Namespace: "summon-dev"},
 	}
-	ctx = components.NewTestContext(instance, dbconfig.Templates)
+	ctx = components.NewTestContext(instance, nil)
 })
