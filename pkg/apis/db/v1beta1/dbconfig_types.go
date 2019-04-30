@@ -22,12 +22,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// A copy of postgresv1.PostgresParam, see below for why. This time it's the
+// Parameters field that is incorrectly required.
+type LocalPostgresqlParam struct {
+	PgVersion  string            `json:"version"`
+	Parameters map[string]string `json:"parameters,omitempty"`
+}
+
 // This is basically a subset of the fields of postgresv1.PostgresSpec which we care about.
 // We cannot use PostgresSpec directly because it doesn't use the same validation tagging
 // as controller-tools expects and c-t automatically picks it up as a substruct.
 type LocalPostgresSpec struct {
-	// PostgresqlParam postgresv1.PostgresqlParam `json:"postgresql,omitempty"`
-	Volume postgresv1.Volume `json:"volume,omitempty"`
+	PostgresqlParam LocalPostgresqlParam `json:"postgresql,omitempty"`
+	Volume          postgresv1.Volume    `json:"volume,omitempty"`
 	// Patroni         postgresv1.Patroni         `json:"patroni,omitempty"`
 	Resources postgresv1.Resources `json:"resources,omitempty"`
 

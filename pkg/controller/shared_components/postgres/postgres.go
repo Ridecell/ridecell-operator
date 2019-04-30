@@ -178,7 +178,8 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 		existing = existingObj.(*postgresv1.Postgresql)
 		// Copy over fields.
 		local := dbconfig.Spec.Postgres.Local
-		// existing.Spec.PostgresqlParam = local.PostgresqlParam
+		existing.Spec.PostgresqlParam.PgVersion = local.PostgresqlParam.PgVersion
+		existing.Spec.PostgresqlParam.Parameters = local.PostgresqlParam.Parameters
 		existing.Spec.Volume = local.Volume
 		// existing.Spec.Patroni = local.Patroni
 		existing.Spec.Resources = local.Resources
