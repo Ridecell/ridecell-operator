@@ -4,7 +4,7 @@ IMG ?= controller:latest
 
 all: test manager
 
-ifdef $(CI)
+ifdef CI
 	CI_GINKGO_ARGS="--v"
 else
 	CI_GINKGO_ARGS=""
@@ -12,7 +12,7 @@ endif
 
 # Run tests
 test: generate fmt vet manifests
-ifdef $(CI)
+ifdef CI
 	ginkgo build -r ./pkg ./cmd
 endif
 	ginkgo --randomizeAllSpecs --randomizeSuites --cover --trace --progress ${GINKGO_ARGS} ${CI_GINKGO_ARGS} -r ./pkg ./cmd
