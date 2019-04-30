@@ -61,8 +61,13 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	if count == 0 {
-		// Got to make the database.
-		_, err := db.Exec(fmt.Sprintf(`CREATE DATABASE %s WITH OWNER = %s`, pq.QuoteIdentifier(instance.Spec.DatabaseName), utils.QuoteLiteral(instance.Spec.Owner)))
+		// Grant our admin user access to the owner role. This matters on RDS where the admin user is not a true superuser.
+		_, err := db.Exec(fmt.Sprintf(`GRANT %s TO %s`, pq.QuoteIdentifier(instance.Spec.Owner), pq.QuoteIdentifier(instance.Status.AdminConnection.Username)))
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "database: error granting role")
+		}
+		// Time to make the database.
+		_, err = db.Exec(fmt.Sprintf(`CREATE DATABASE %s WITH OWNER = %s`, pq.QuoteIdentifier(instance.Spec.DatabaseName), utils.QuoteLiteral(instance.Spec.Owner)))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "database: error creating database")
 		}
