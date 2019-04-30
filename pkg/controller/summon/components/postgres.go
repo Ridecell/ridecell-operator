@@ -22,6 +22,7 @@ import (
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
 )
 
 type postgresComponent struct{}
@@ -50,10 +51,17 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return nil
 	})
 	if existing != nil {
+		// If the database is in an error state, mark this summon as error'd too.
+		if existing.Status.Status == dbv1beta1.StatusError {
+			return res, errors.Errorf("postgres: %s", existing.Status.Message)
+		}
 		res.StatusModifier = func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)
 			instance.Status.PostgresStatus = existing.Status.Status
 			instance.Status.PostgresConnection = existing.Status.Connection
+			if existing.Status.Status != "" {
+				instance.Status.Status = summonv1beta1.StatusInitializing
+			}
 			return nil
 		}
 	}
