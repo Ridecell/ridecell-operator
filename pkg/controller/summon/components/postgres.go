@@ -53,6 +53,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		res.StatusModifier = func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)
 			instance.Status.PostgresStatus = existing.Status.Status
+			instance.Status.PostgresConnection = existing.Status.Connection
 			return nil
 		}
 	}

@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"time"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -136,7 +137,8 @@ type SummonPlatformStatus struct {
 	PullSecretStatus string `json:"pullSecretStatus,omitempty"`
 
 	// Current PostgresDatabase status if one exists.
-	PostgresStatus string `json:"postgresStatus,omitempty"`
+	PostgresStatus     string                       `json:"postgresStatus,omitempty"`
+	PostgresConnection dbv1beta1.PostgresConnection `json:"postgresConnection,omitempty"`
 
 	// Status of the required Postgres extensions (collectively).
 	PostgresExtensionStatus string `json:"postgresExtensionStatus,omitempty"`
