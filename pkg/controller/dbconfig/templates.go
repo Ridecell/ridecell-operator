@@ -21,7 +21,7 @@ import (
 	"runtime"
 )
 
-//go:generate go run ../../../hack/assets_generate.go dbconfig
+//go:generate bash ../../../hack/assets_generate.sh controller/dbconfig dbconfig
 var Templates http.FileSystem
 
 func init() {

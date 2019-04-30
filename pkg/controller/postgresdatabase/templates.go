@@ -21,7 +21,7 @@ import (
 	"runtime"
 )
 
-//go:generate go run ../../../hack/assets_generate.go postgresdatabase
+//go:generate bash ../../../hack/assets_generate.sh controller/postgresdatabase postgresdatabase
 var Templates http.FileSystem
 
 func init() {
