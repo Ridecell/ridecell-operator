@@ -33,6 +33,7 @@ func Add(mgr manager.Manager) error {
 		spcomponents.NewPostgres("Exclusive"),
 		pdcomponents.NewUser(),
 		pdcomponents.NewDatabase(),
+		pdcomponents.NewExtensions(),
 	})
 	return err
 }
