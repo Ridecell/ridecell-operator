@@ -58,9 +58,9 @@ var _ = Describe("RabbitmqVhost types", func() {
 						ApplyTo:  "queues",
 						Priority: 1,
 						Definition: `
-            federation-upstream-set: all
-            ha-mode: all
-            `,
+                          federation-upstream-set: all
+                          ha-mode: all
+                          `,
 					},
 				},
 			},
