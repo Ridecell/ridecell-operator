@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -139,8 +140,17 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		Expect(instance.Status.PostgresExtensionStatus).To(Equal(summonv1beta1.StatusReady))
 	})
 
-	It("handles an exclusive database", func() {
-		instance.Spec.Database.ExclusiveDatabase = true
+	It("copies over the database info", func() {
+		instance.Status.PostgresConnection = dbv1beta1.PostgresConnection{
+			Host:     "foo-database.default",
+			Port:     5432,
+			Username: "ridecell-admin",
+			Database: "summon",
+			PasswordSecretRef: helpers.SecretRef{
+				Name: "foo.postgres-user-password",
+				Key:  "password",
+			},
+		}
 
 		comp := summoncomponents.NewPostgresExtensions()
 		Expect(comp).To(ReconcileContext(ctx))
@@ -150,23 +160,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ext.Spec.Database.Host).To(Equal("foo-database.default"))
 		Expect(ext.Spec.Database.Username).To(Equal("ridecell-admin"))
-		Expect(ext.Spec.Database.PasswordSecretRef.Name).To(Equal("ridecell-admin.foo-database.credentials"))
+		Expect(ext.Spec.Database.PasswordSecretRef.Name).To(Equal("foo.postgres-user-password"))
 		Expect(ext.Spec.Database.Database).To(Equal("summon"))
-	})
-
-	It("handles a shared database", func() {
-		instance.Spec.Database.ExclusiveDatabase = false
-		instance.Spec.Database.SharedDatabaseName = "dev"
-
-		comp := summoncomponents.NewPostgresExtensions()
-		Expect(comp).To(ReconcileContext(ctx))
-
-		ext := &dbv1beta1.PostgresExtension{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: "default"}, ext)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ext.Spec.Database.Host).To(Equal("dev-database.default"))
-		Expect(ext.Spec.Database.Username).To(Equal("ridecell-admin"))
-		Expect(ext.Spec.Database.PasswordSecretRef.Name).To(Equal("ridecell-admin.dev-database.credentials"))
-		Expect(ext.Spec.Database.Database).To(Equal("foo"))
 	})
 })
