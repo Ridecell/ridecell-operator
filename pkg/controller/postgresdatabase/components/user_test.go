@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	pdcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -36,13 +35,6 @@ var _ = Describe("PostgresDatabase User Component", func() {
 	BeforeEach(func() {
 		comp = pdcomponents.NewUser()
 		instance.Spec.Owner = "foo"
-		instance.Status.AdminConnection = dbv1beta1.PostgresConnection{
-			Host:     "mydb",
-			Username: "myuser",
-			PasswordSecretRef: helpers.SecretRef{
-				Name: "mysecret",
-			},
-		}
 	})
 
 	Describe("IsReconcilable", func() {

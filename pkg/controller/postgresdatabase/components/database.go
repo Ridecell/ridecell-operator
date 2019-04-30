@@ -76,7 +76,7 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 	dbName := instance.Spec.DatabaseName
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.PostgresDatabase)
-		instance.Status.Status = dbv1beta1.StatusReady
+		instance.Status.Status = dbv1beta1.StatusCreating
 		instance.Status.Message = fmt.Sprintf("Created database %s", dbName)
 		instance.Status.Connection.Host = instance.Status.AdminConnection.Host
 		instance.Status.Connection.Port = instance.Status.AdminConnection.Port

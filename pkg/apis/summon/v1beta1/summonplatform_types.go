@@ -140,9 +140,6 @@ type SummonPlatformStatus struct {
 	PostgresStatus     string                       `json:"postgresStatus,omitempty"`
 	PostgresConnection dbv1beta1.PostgresConnection `json:"postgresConnection,omitempty"`
 
-	// Status of the required Postgres extensions (collectively).
-	PostgresExtensionStatus string `json:"postgresExtensionStatus,omitempty"`
-
 	// Previous version for which migrations ran successfully.
 	// +optional
 	MigrateVersion string `json:"migrateVersion,omitempty"`

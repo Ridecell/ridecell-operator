@@ -26,6 +26,7 @@ import (
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase"
 )
@@ -43,6 +44,18 @@ var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &dbv1beta1.PostgresDatabase{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
+		Status: dbv1beta1.PostgresDatabaseStatus{
+			AdminConnection: dbv1beta1.PostgresConnection{
+				Host:     "mydb",
+				Port:     5432,
+				Username: "myuser",
+				PasswordSecretRef: helpers.SecretRef{
+					Name: "mysecret",
+					Key:  "password",
+				},
+				Database: "postgres",
+			},
+		},
 	}
 	ctx = components.NewTestContext(instance, postgresdatabase.Templates)
 })

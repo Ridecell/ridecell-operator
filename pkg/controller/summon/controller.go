@@ -34,7 +34,6 @@ func Add(mgr manager.Manager) error {
 		// Top-level components.
 		summoncomponents.NewPullSecret("pullsecret/pullsecret.yml.tpl"),
 		summoncomponents.NewPostgres(),
-		summoncomponents.NewPostgresExtensions(),
 
 		// aws stuff
 		summoncomponents.NewIAMUser("aws/iamuser.yml.tpl"),

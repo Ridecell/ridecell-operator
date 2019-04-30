@@ -17,6 +17,8 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -51,6 +53,8 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	})
 	res.StatusModifier = func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.PostgresDatabase)
+		instance.Status.Status = dbv1beta1.StatusCreating
+		instance.Status.Message = fmt.Sprintf("User %s created", existing.Spec.Username)
 		if existing != nil {
 			instance.Status.UserStatus = existing.Status.Status
 			instance.Status.Connection.Host = instance.Status.AdminConnection.Host

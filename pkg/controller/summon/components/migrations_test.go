@@ -31,7 +31,6 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
@@ -78,7 +77,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 		Context("with Postgres and pull secret ready", func() {
 			BeforeEach(func() {
 				instance.Status.PostgresStatus = dbv1beta1.StatusReady
-				instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
 				instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
 			})
 
@@ -91,7 +89,6 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 		Context("with migrations already applied", func() {
 			BeforeEach(func() {
 				instance.Status.PostgresStatus = dbv1beta1.StatusReady
-				instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
 				instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
 				instance.Status.MigrateVersion = "1.2.3"
 			})

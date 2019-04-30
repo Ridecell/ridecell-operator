@@ -34,6 +34,9 @@ type PostgresDatabaseSpec struct {
 	// An optional name of a DbConfig object in this namespace to use for configuration. Defaults to the name of the namespace.
 	// +optional
 	DbConfig string `json:"dbConfig,omitempty"`
+	// A map of extensions to versions to install. If the version is "" then the latest version will be used.
+	// +optional
+	Extensions map[string]string `json:"extensions,omitempty"`
 }
 
 // PostgresDatabaseStatus defines the observed state of PostgresDatabase
@@ -41,6 +44,7 @@ type PostgresDatabaseStatus struct {
 	Status          string             `json:"status"`
 	Message         string             `json:"message"`
 	DatabaseStatus  string             `json:"databaseStatus"`
+	ExtensionStatus map[string]string  `json:"extensionStatus"`
 	UserStatus      string             `json:"userStatus"`
 	Connection      PostgresConnection `json:"connection"`
 	AdminConnection PostgresConnection `json:"adminConnection"`

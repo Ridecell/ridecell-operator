@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	pdcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
@@ -48,16 +47,6 @@ var _ = Describe("PostgresDatabase Database Component", func() {
 		comp = pdcomponents.NewDatabase()
 		instance.Spec.DatabaseName = "foo_dev"
 		instance.Spec.Owner = "foo"
-		instance.Status.AdminConnection = dbv1beta1.PostgresConnection{
-			Host:     "mydb",
-			Port:     5432,
-			Username: "myuser",
-			PasswordSecretRef: helpers.SecretRef{
-				Name: "mysecret",
-				Key:  "password",
-			},
-			Database: "postgres",
-		}
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "mysecret", Namespace: "summon-dev"},
 			Data: map[string][]byte{
@@ -85,7 +74,7 @@ var _ = Describe("PostgresDatabase Database Component", func() {
 			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})
 
-		It("does not create a database if the iser is not ready", func() {
+		It("does not create a database if the user is not ready", func() {
 			instance.Status.DatabaseStatus = dbv1beta1.StatusReady
 			instance.Status.UserStatus = ""
 			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
@@ -100,6 +89,6 @@ var _ = Describe("PostgresDatabase Database Component", func() {
 
 		Expect(comp).To(ReconcileContext(ctx))
 
-		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 })

@@ -58,9 +58,6 @@ func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext
 	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
 		return false
 	}
-	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {
-		return false
-	}
 	if instance.Status.MigrateVersion != instance.Spec.Version {
 		return false
 	}

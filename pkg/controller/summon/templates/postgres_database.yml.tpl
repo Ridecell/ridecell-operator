@@ -10,3 +10,7 @@ metadata:
     app.kubernetes.io/component: database
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
+spec:
+  extensions:
+    postgis: ""
+    postgis_topology: ""
