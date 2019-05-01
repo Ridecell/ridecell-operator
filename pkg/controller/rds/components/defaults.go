@@ -71,10 +71,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.SubnetGroupName = os.Getenv("AWS_SUBNET_GROUP_NAME")
 	}
 
-	if instance.Spec.VPCID == "" {
-		instance.Spec.VPCID = os.Getenv("VPC_ID")
-	}
-
 	if instance.Spec.DatabaseName == "" {
 		instance.Spec.DatabaseName = instance.Name
 	}

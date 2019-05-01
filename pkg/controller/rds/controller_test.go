@@ -61,10 +61,6 @@ var _ = Describe("rds controller", func() {
 			panic("$AWS_SUBNET_GROUP_NAME not set, failing test")
 		}
 
-		if os.Getenv("VPC_ID") == "" {
-			panic("$VPC_ID not set, failing test")
-		}
-
 		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
 		if randOwnerPrefix == "" {
 			panic("$RAND_OWNER_PREFIX not set, failing test")

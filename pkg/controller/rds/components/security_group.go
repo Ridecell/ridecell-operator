@@ -26,6 +26,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -36,16 +38,22 @@ const rdsInstanceSecurityGroupFinalizer = "rdsinstance.securitygroup.finalizer"
 
 type dbSecurityGroupComponent struct {
 	ec2API ec2iface.EC2API
+	rdsAPI rdsiface.RDSAPI
 }
 
 func NewDBSecurityGroup() *dbSecurityGroupComponent {
 	sess := session.Must(session.NewSession())
 	ec2Service := ec2.New(sess)
-	return &dbSecurityGroupComponent{ec2API: ec2Service}
+	rdsService := rds.New(sess)
+	return &dbSecurityGroupComponent{
+		ec2API: ec2Service,
+		rdsAPI: rdsService,
+	}
 }
 
-func (comp *dbSecurityGroupComponent) InjectEC2API(ec2api ec2iface.EC2API) {
+func (comp *dbSecurityGroupComponent) InjectAWSAPIs(ec2api ec2iface.EC2API, rdsapi rdsiface.RDSAPI) {
 	comp.ec2API = ec2api
+	comp.rdsAPI = rdsapi
 }
 
 func (_ *dbSecurityGroupComponent) WatchTypes() []runtime.Object {
@@ -58,10 +66,6 @@ func (_ *dbSecurityGroupComponent) IsReconcilable(_ *components.ComponentContext
 
 func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RDSInstance)
-
-	if instance.Spec.VPCID == "" {
-		return components.Result{}, errors.New("rds: vpc_id environment variable not set")
-	}
 
 	securityGroupName := fmt.Sprintf("ridecell-operator-rds-%s", instance.Name)
 
@@ -107,10 +111,14 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	}
 
 	if len(describeSecurityGroupsOutput.SecurityGroups) < 1 {
+		vpcID, err := comp.getVPCID(ctx)
+		if err != nil {
+			return components.Result{}, err
+		}
 		_, err = comp.ec2API.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 			GroupName:   aws.String(securityGroupName),
 			Description: aws.String(fmt.Sprintf("%s: Created by ridecell-operator", securityGroupName)),
-			VpcId:       aws.String(instance.Spec.VPCID),
+			VpcId:       vpcID,
 		})
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "rds: failed to create security group")
@@ -208,4 +216,15 @@ func (comp *dbSecurityGroupComponent) deleteDependencies(ctx *components.Compone
 	}
 	// SecurityGroup in the process of being deleted
 	return components.Result{}, nil
+}
+
+func (comp *dbSecurityGroupComponent) getVPCID(ctx *components.ComponentContext) (*string, error) {
+	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+	describeDBSubnetGroups, err := comp.rdsAPI.DescribeDBSubnetGroups(&rds.DescribeDBSubnetGroupsInput{
+		DBSubnetGroupName: aws.String(instance.Spec.SubnetGroupName),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "rds: failed to describe subnet group")
+	}
+	return describeDBSubnetGroups.DBSubnetGroups[0].VpcId, nil
 }
