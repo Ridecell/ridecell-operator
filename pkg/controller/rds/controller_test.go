@@ -122,7 +122,7 @@ var _ = Describe("rds controller", func() {
 		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 
 		fetchSecret := &corev1.Secret{}
-		c.Get(helpers.Name("test-rds.rds-user-password"), fetchSecret)
+		c.Get(helpers.Name(fmt.Sprintf("%s.rds-user-password", rdsInstanceName)), fetchSecret)
 		Expect(string(fetchSecret.Data["password"])).To(HaveLen(43))
 
 		testContext := components.NewTestContext(fetchSecret, nil)
@@ -137,7 +137,7 @@ var _ = Describe("rds controller", func() {
 		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
 		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*5))
 
-		c.Get(helpers.Name("test-rds.rds-user-password"), fetchSecret)
+		c.Get(helpers.Name(fmt.Sprintf("%s.rds-user-password", rdsInstanceName)), fetchSecret)
 		Expect(string(fetchSecret.Data["password"])).To(HaveLen(43))
 
 		db2, err := postgres.Open(testContext, &fetchRDS.Status.Connection)
