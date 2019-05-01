@@ -116,9 +116,7 @@ var _ = Describe("rds controller", func() {
 		c.Create(rdsInstance)
 
 		fetchRDS := &dbv1beta1.RDSInstance{}
-		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating), c.EventuallyTimeout(time.Minute*2))
-
-		//c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
+		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating), c.EventuallyTimeout(time.Minute*3))
 
 		// This process should max out at roughly 10 minutes
 		c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
