@@ -46,6 +46,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.AllocatedStorage = 100
 	}
 
+	if instance.Spec.InstanceID == "" {
+		instance.Spec.InstanceID = instance.Name
+	}
+
 	if instance.Spec.Engine == "" {
 		instance.Spec.Engine = "postgres"
 	}
