@@ -201,7 +201,7 @@ func runTestQuery(db *sql.DB) error {
 
 func dbInstanceExists() bool {
 	_, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(rdsInstance.Spec.InstanceID),
+		DBInstanceIdentifier: aws.String(rdsInstanceName),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBInstanceNotFoundFault {
