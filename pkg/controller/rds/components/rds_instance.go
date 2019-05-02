@@ -151,6 +151,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			DBParameterGroupName:       aws.String(instance.Name),
 			VpcSecurityGroupIds:        []*string{aws.String(instance.Status.SecurityGroupID)},
 			DBSubnetGroupName:          aws.String(instance.Spec.SubnetGroupName),
+			StorageEncrypted:           aws.Bool(true),
 			Tags: []*rds.Tag{
 				&rds.Tag{
 					Key:   aws.String("Ridecell-Operator"),
