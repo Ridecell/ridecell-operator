@@ -24,9 +24,10 @@ import (
 )
 
 type FakeRabbitClient struct {
-	Users    []rabbithole.UserInfo
-	Vhosts   []rabbithole.VhostInfo
-	Policies map[string][]rabbithole.Policy
+	Users       []rabbithole.UserInfo
+	Vhosts      []rabbithole.VhostInfo
+	Policies    map[string][]rabbithole.Policy
+	Permissions map[string][]rabbithole.PermissionInfo
 }
 
 func New() *FakeRabbitClient {
@@ -87,6 +88,40 @@ func (frc *FakeRabbitClient) DeletePolicy(vhost string, name string) (res *http.
 		if policie.Name == name {
 			frc.Policies[vhost][key] = frc.Policies[vhost][len(frc.Policies[vhost])-1]
 			frc.Policies[vhost] = frc.Policies[vhost][:len(frc.Policies[vhost])-1]
+			return &http.Response{StatusCode: 204}, nil
+		}
+	}
+	return &http.Response{StatusCode: 204}, nil
+}
+
+func (frc *FakeRabbitClient) ListPermissionsOf(username string) (rec []rabbithole.PermissionInfo, err error) {
+	return frc.Permissions[username], nil
+}
+func (frc *FakeRabbitClient) UpdatePermissionsIn(vhost, username string, permissions rabbithole.Permissions) (res *http.Response, err error) {
+	for key := range frc.Permissions[username] {
+		//Update
+		if frc.Permissions[username][key].Vhost == vhost {
+			frc.Permissions[username][key].Configure = permissions.Configure
+			frc.Permissions[username][key].Read = permissions.Read
+			frc.Permissions[username][key].Write = permissions.Write
+			return &http.Response{StatusCode: 204}, nil
+		}
+	}
+	//Create
+	frc.Permissions[username] = append(frc.Permissions[username], rabbithole.PermissionInfo{
+		Vhost:     vhost,
+		User:      username,
+		Configure: permissions.Configure,
+		Read:      permissions.Read,
+		Write:     permissions.Write,
+	})
+	return &http.Response{StatusCode: 201}, nil
+}
+func (frc *FakeRabbitClient) ClearPermissionsIn(vhost, username string) (res *http.Response, err error) {
+	for key := range frc.Permissions[username] {
+		if frc.Permissions[username][key].Vhost == vhost {
+			frc.Permissions[username][key] = frc.Permissions[username][len(frc.Permissions[username])-1]
+			frc.Permissions[username] = frc.Permissions[username][:len(frc.Permissions[username])-1]
 			return &http.Response{StatusCode: 204}, nil
 		}
 	}
