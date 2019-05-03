@@ -31,7 +31,12 @@ type FakeRabbitClient struct {
 }
 
 func New() *FakeRabbitClient {
-	return &FakeRabbitClient{Users: []rabbithole.UserInfo{}, Vhosts: []rabbithole.VhostInfo{}, Policies: make(map[string][]rabbithole.Policy)}
+	return &FakeRabbitClient{
+		Users:       []rabbithole.UserInfo{},
+		Vhosts:      []rabbithole.VhostInfo{},
+		Policies:    make(map[string][]rabbithole.Policy),
+		Permissions: make(map[string][]rabbithole.PermissionInfo),
+	}
 }
 
 func (frc *FakeRabbitClient) Factory(_uri, _user, _pass string, _t *http.Transport) (utils.RabbitMQManager, error) {
