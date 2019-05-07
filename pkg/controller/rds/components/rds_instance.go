@@ -76,7 +76,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	} else {
 		if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
 			describeDBInstancesOutput, err := comp.rdsAPI.DescribeDBInstances(&rds.DescribeDBInstancesInput{
-				DBInstanceIdentifier: aws.String(instance.Name),
+				DBInstanceIdentifier: aws.String(instance.Spec.InstanceID),
 			})
 			if err != nil {
 				if aerr, ok := err.(awserr.Error); ok && aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
@@ -124,7 +124,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	}
 
 	describeDBInstancesOutput, err := comp.rdsAPI.DescribeDBInstances(&rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(instance.Name),
+		DBInstanceIdentifier: aws.String(instance.Spec.InstanceID),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
@@ -136,7 +136,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	if databaseNotExist {
 		createDBInstanceOutput, err := comp.rdsAPI.CreateDBInstance(&rds.CreateDBInstanceInput{
 			MasterUsername:             aws.String(databaseUsername),
-			DBInstanceIdentifier:       aws.String(instance.Name),
+			DBInstanceIdentifier:       aws.String(instance.Spec.InstanceID),
 			MasterUserPassword:         aws.String(string(password)),
 			StorageType:                aws.String("gp2"),
 			AllocatedStorage:           aws.Int64(instance.Spec.AllocatedStorage),
@@ -149,6 +149,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			DBParameterGroupName:       aws.String(instance.Name),
 			VpcSecurityGroupIds:        []*string{aws.String(instance.Status.SecurityGroupID)},
 			DBSubnetGroupName:          aws.String(instance.Spec.SubnetGroupName),
+			StorageEncrypted:           aws.Bool(true),
 			Tags: []*rds.Tag{
 				&rds.Tag{
 					Key:   aws.String("Ridecell-Operator"),
@@ -207,7 +208,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	// For now we're only making changes that are safe to apply immediately
 	// This does exclude instance size for now
 	databaseModifyInput := &rds.ModifyDBInstanceInput{
-		DBInstanceIdentifier: aws.String(instance.Name),
+		DBInstanceIdentifier: database.DBInstanceIdentifier,
 		ApplyImmediately:     aws.Bool(true),
 	}
 	// TODO: Things could get weird if allocated storage is increased by less than 10% as aws will automatically round up to the nearest 10% increase
@@ -305,8 +306,8 @@ func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentCo
 	instance := ctx.Top.(*dbv1beta1.RDSInstance)
 
 	_, err := comp.rdsAPI.DeleteDBInstance(&rds.DeleteDBInstanceInput{
-		DBInstanceIdentifier:      aws.String(instance.Name),
-		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Name, time.Now().UTC().Format("2006-01-02-15-04"))),
+		DBInstanceIdentifier:      aws.String(instance.Spec.InstanceID),
+		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Spec.InstanceID, time.Now().UTC().Format("2006-01-02-15-04"))),
 	})
 
 	if err != nil {

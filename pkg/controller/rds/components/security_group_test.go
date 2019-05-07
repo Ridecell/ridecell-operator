@@ -26,6 +26,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -45,14 +47,20 @@ type mockEC2SGClient struct {
 	deletedSecurityGroup bool
 }
 
+type mockRDSSGClient struct {
+	rdsiface.RDSAPI
+}
+
 var _ = Describe("rds security group Component", func() {
 	comp := rdscomponents.NewDBSecurityGroup()
 	var mockEC2 *mockEC2SGClient
+	var mockRDS *mockRDSSGClient
 
 	BeforeEach(func() {
 		comp = rdscomponents.NewDBSecurityGroup()
 		mockEC2 = &mockEC2SGClient{}
-		comp.InjectEC2API(mockEC2)
+		mockRDS = &mockRDSSGClient{}
+		comp.InjectAWSAPIs(mockEC2, mockRDS)
 		instance.Spec.VPCID = "test"
 		instance.ObjectMeta.Finalizers = []string{"rdsinstance.securitygroup.finalizer"}
 	})
@@ -197,4 +205,12 @@ func (m *mockEC2SGClient) CreateTags(input *ec2.CreateTagsInput) (*ec2.CreateTag
 func (m *mockEC2SGClient) DeleteSecurityGroup(input *ec2.DeleteSecurityGroupInput) (*ec2.DeleteSecurityGroupOutput, error) {
 	m.deletedSecurityGroup = true
 	return &ec2.DeleteSecurityGroupOutput{}, nil
+}
+
+func (m *mockRDSSGClient) DescribeDBSubnetGroups(input *rds.DescribeDBSubnetGroupsInput) (*rds.DescribeDBSubnetGroupsOutput, error) {
+	return &rds.DescribeDBSubnetGroupsOutput{
+		DBSubnetGroups: []*rds.DBSubnetGroup{
+			&rds.DBSubnetGroup{VpcId: aws.String("test")},
+		},
+	}, nil
 }

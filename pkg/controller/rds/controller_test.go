@@ -46,6 +46,7 @@ var rdssvc *rds.RDS
 var ec2svc *ec2.EC2
 var rdsInstance *dbv1beta1.RDSInstance
 var randOwnerPrefix string
+var rdsInstanceName string
 
 var _ = Describe("rds controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -61,14 +62,12 @@ var _ = Describe("rds controller", func() {
 			panic("$AWS_SUBNET_GROUP_NAME not set, failing test")
 		}
 
-		if os.Getenv("VPC_ID") == "" {
-			panic("$VPC_ID not set, failing test")
-		}
-
 		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
 		if randOwnerPrefix == "" {
 			panic("$RAND_OWNER_PREFIX not set, failing test")
 		}
+
+		rdsInstanceName = fmt.Sprintf("%s-test-rds", randOwnerPrefix)
 
 		var err error
 		sess, err = session.NewSession(&aws.Config{
@@ -89,7 +88,7 @@ var _ = Describe("rds controller", func() {
 
 		rdsInstance = &dbv1beta1.RDSInstance{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-test-rds", randOwnerPrefix),
+				Name:      rdsInstanceName,
 				Namespace: helpers.Namespace,
 			},
 		}
@@ -117,15 +116,13 @@ var _ = Describe("rds controller", func() {
 		c.Create(rdsInstance)
 
 		fetchRDS := &dbv1beta1.RDSInstance{}
-		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating), c.EventuallyTimeout(time.Minute*2))
-
-		//c.EventuallyGet(helpers.Name("test-rds"), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
+		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusCreating), c.EventuallyTimeout(time.Minute*3))
 
 		// This process should max out at roughly 10 minutes
-		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
+		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 
 		fetchSecret := &corev1.Secret{}
-		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds-user-password", randOwnerPrefix)), fetchSecret)
+		c.Get(helpers.Name(fmt.Sprintf("%s.rds-user-password", rdsInstanceName)), fetchSecret)
 		Expect(string(fetchSecret.Data["password"])).To(HaveLen(43))
 
 		testContext := components.NewTestContext(fetchSecret, nil)
@@ -137,10 +134,10 @@ var _ = Describe("rds controller", func() {
 
 		// Test password recreation via deletion
 		c.Delete(fetchSecret)
-		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
-		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*5))
+		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*2))
+		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*5))
 
-		c.Get(helpers.Name(fmt.Sprintf("%s-test-rds.rds-user-password", randOwnerPrefix)), fetchSecret)
+		c.Get(helpers.Name(fmt.Sprintf("%s.rds-user-password", rdsInstanceName)), fetchSecret)
 		Expect(string(fetchSecret.Data["password"])).To(HaveLen(43))
 
 		db2, err := postgres.Open(testContext, &fetchRDS.Status.Connection)
@@ -172,8 +169,8 @@ var _ = Describe("rds controller", func() {
 		fetchRDS.Spec.Parameters = map[string]string{}
 		c.Update(fetchRDS)
 
-		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*3))
-		c.EventuallyGet(helpers.Name(fmt.Sprintf("%s-test-rds", randOwnerPrefix)), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*11))
+		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusModifying), c.EventuallyTimeout(time.Minute*3))
+		c.EventuallyGet(helpers.Name(rdsInstanceName), fetchRDS, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*11))
 
 		params, err := getDBParameters()
 		Expect(err).ToNot(HaveOccurred())
@@ -204,7 +201,7 @@ func runTestQuery(db *sql.DB) error {
 
 func dbInstanceExists() bool {
 	_, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
-		DBInstanceIdentifier: aws.String(rdsInstance.Name),
+		DBInstanceIdentifier: aws.String(rdsInstanceName),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBInstanceNotFoundFault {

@@ -23,6 +23,7 @@ import (
 // RDSInstanceSpec defines the desired state of RDS
 type RDSInstanceSpec struct {
 	AllocatedStorage int64  `json:"allocatedStorage,omitempty"`
+	InstanceID       string `json:"instanceID,omitempty"`
 	Engine           string `json:"engine,omitempty"`
 	EngineVersion    string `json:"engineVersion,omitempty"`
 	InstanceClass    string `json:"instanceClass,omitempty"`
