@@ -31,3 +31,8 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 6379
+        args:
+        - "--save"
+        - ""
+        - "--appendonly"
+        - "no"
