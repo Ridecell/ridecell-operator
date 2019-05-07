@@ -41,27 +41,27 @@ type testStatusClient struct {
 
 func (c *testClient) Get(key client.ObjectKey, obj runtime.Object) {
 	err := c.client.Get(context.Background(), key, obj)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 
 func (c *testClient) List(opts *client.ListOptions, list runtime.Object) {
 	err := c.client.List(context.Background(), opts, list)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 
 func (c *testClient) Create(obj runtime.Object) {
 	err := c.client.Create(context.Background(), obj)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 
 func (c *testClient) Delete(obj runtime.Object, opts ...client.DeleteOptionFunc) {
 	err := c.client.Delete(context.Background(), obj, opts...)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 
 func (c *testClient) Update(obj runtime.Object) {
 	err := c.client.Update(context.Background(), obj)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 
 // Implementation to match StatusClient.
@@ -71,7 +71,7 @@ func (c *testClient) Status() *testStatusClient {
 
 func (c *testStatusClient) Update(obj runtime.Object) {
 	err := c.client.Update(context.Background(), obj)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 
 // Flexible helper, mostly used for waiting for an object to be available.
@@ -115,7 +115,7 @@ func (c *testClient) EventuallyGet(key client.ObjectKey, obj runtime.Object, opt
 	}
 
 	if opts.valueGetter != nil {
-		gomega.Eventually(func() (interface{}, error) {
+		gomega.EventuallyWithOffset(1, func() (interface{}, error) {
 			var value interface{}
 			err := c.client.Get(context.Background(), key, obj)
 			if err == nil {
@@ -124,7 +124,7 @@ func (c *testClient) EventuallyGet(key client.ObjectKey, obj runtime.Object, opt
 			return value, err
 		}, opts.timeout).Should(opts.matcher)
 	} else {
-		gomega.Eventually(func() error {
+		gomega.EventuallyWithOffset(1, func() error {
 			return c.client.Get(context.Background(), key, obj)
 		}, opts.timeout).Should(gomega.Succeed())
 	}
