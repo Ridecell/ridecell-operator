@@ -290,8 +290,6 @@ func getRDSInstancesToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) 
 		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(instance.DBInstanceIdentifier)))
 		if match {
 			dbInstancesToDelete = append(dbInstancesToDelete, instance.DBInstanceIdentifier)
-		} else {
-			fmt.Printf("wat: %s\n", aws.StringValue(instance.DBInstanceIdentifier))
 		}
 	}
 	return dbInstancesToDelete, nil

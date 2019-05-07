@@ -28,12 +28,14 @@ var _ = Describe("rds Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
 		comp := rdscomponents.NewDefaults()
 		instance.Spec.AllocatedStorage = 200
+		instance.Spec.InstanceID = "nochange"
 		instance.Spec.Engine = "test"
 		instance.Spec.EngineVersion = "2"
 		instance.Spec.InstanceClass = "db.m5.4xlarge"
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.AllocatedStorage).To(Equal(int64(200)))
+		Expect(instance.Spec.InstanceID).To(Equal("nochange"))
 		Expect(instance.Spec.Engine).To(Equal("test"))
 		Expect(instance.Spec.EngineVersion).To(Equal("2"))
 		Expect(instance.Spec.InstanceClass).To(Equal("db.m5.4xlarge"))
@@ -44,6 +46,7 @@ var _ = Describe("rds Defaults Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		Expect(instance.Spec.AllocatedStorage).To(Equal(int64(100)))
+		Expect(instance.Spec.InstanceID).To(Equal("test"))
 		Expect(instance.Spec.Engine).To(Equal("postgres"))
 		Expect(instance.Spec.EngineVersion).To(Equal("11"))
 		Expect(instance.Spec.InstanceClass).To(Equal("db.t3.micro"))

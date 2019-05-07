@@ -46,6 +46,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.AllocatedStorage = 100
 	}
 
+	if instance.Spec.InstanceID == "" {
+		instance.Spec.InstanceID = instance.Name
+	}
+
 	if instance.Spec.Engine == "" {
 		instance.Spec.Engine = "postgres"
 	}
@@ -65,10 +69,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	if instance.Spec.SubnetGroupName == "" {
 		instance.Spec.SubnetGroupName = os.Getenv("AWS_SUBNET_GROUP_NAME")
-	}
-
-	if instance.Spec.VPCID == "" {
-		instance.Spec.VPCID = os.Getenv("VPC_ID")
 	}
 
 	if instance.Spec.DatabaseName == "" {

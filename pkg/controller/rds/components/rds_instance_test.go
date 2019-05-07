@@ -67,6 +67,7 @@ var _ = Describe("rds aws Component", func() {
 		comp = rdscomponents.NewRDSInstance()
 		mockRDS = &mockRDSDBClient{}
 		comp.InjectRDSAPI(mockRDS)
+		instance.Spec.InstanceID = "test"
 		instance.Spec.SubnetGroupName = "test"
 		instance.Status.Connection = dbv1beta1.PostgresConnection{
 			Host:     "test-database",
