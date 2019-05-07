@@ -44,7 +44,7 @@ type PostgresDatabaseStatus struct {
 	Status          string             `json:"status"`
 	Message         string             `json:"message"`
 	DatabaseStatus  string             `json:"databaseStatus"`
-	ExtensionStatus map[string]string  `json:"extensionStatus"`
+	ExtensionStatus map[string]string  `json:"extensionStatus,omitempty"`
 	UserStatus      string             `json:"userStatus"`
 	Connection      PostgresConnection `json:"connection"`
 	AdminConnection PostgresConnection `json:"adminConnection"`

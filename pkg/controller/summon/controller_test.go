@@ -145,15 +145,6 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Status().Update(db)
 
-		// Set the Postgres extensions to ready.
-		ext := &dbv1beta1.PostgresExtension{}
-		c.EventuallyGet(helpers.Name("foo-postgis"), ext)
-		ext.Status.Status = dbv1beta1.StatusReady
-		c.Status().Update(ext)
-		c.EventuallyGet(helpers.Name("foo-postgis-topology"), ext)
-		ext.Status.Status = dbv1beta1.StatusReady
-		c.Status().Update(ext)
-
 		// Check that a migration Job was created.
 		job := &batchv1.Job{}
 		c.EventuallyGet(helpers.Name("foo-migrations"), job)
@@ -253,21 +244,6 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Status().Update(context.TODO(), db)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Set the Postgres extensions to ready.
-		ext := &dbv1beta1.PostgresExtension{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis-topology", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Fetch the Deployment and check the initial label.
@@ -382,21 +358,6 @@ var _ = Describe("Summon controller", func() {
 
 		// Check the status. Should still be Initializing.
 		assertStatus(summonv1beta1.StatusInitializing)
-
-		// Set the postgres extensions to ready.
-		ext := &dbv1beta1.PostgresExtension{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-postgis", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-postgis-topology", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
 
 		// Set the pull secret to ready.
 		pullSecret := &secretsv1beta1.PullSecret{}
