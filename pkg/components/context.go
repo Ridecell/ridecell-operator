@@ -71,6 +71,17 @@ func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]in
 	return Result{}, op, nil
 }
 
+// Make a copy of a context with new templates. Used mostly for shared components.
+func (ctx *ComponentContext) WithTemplates(templates http.FileSystem) *ComponentContext {
+	return &ComponentContext{
+		Client:    ctx.Client,
+		templates: templates,
+		Context:   ctx.Context,
+		Top:       ctx.Top,
+		Scheme:    ctx.Scheme,
+	}
+}
+
 // Method for creating a test context, for use in component unit tests.
 func NewTestContext(top runtime.Object, templates http.FileSystem) *ComponentContext {
 	// This method is ugly and I don't like it. I should rebuild this whole subsytem around interfaces and have an explicit fake for it.

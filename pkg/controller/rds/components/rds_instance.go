@@ -117,7 +117,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 
 	var databaseNotExist bool
 	var database *rds.DBInstance
-	databaseName := strings.Replace(instance.Spec.DatabaseName, "-", "_", -1)
 	databaseUsername := strings.Replace(instance.Spec.Username, "-", "_", -1)
 
 	if instance.Spec.SubnetGroupName == "" {
@@ -138,7 +137,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		createDBInstanceOutput, err := comp.rdsAPI.CreateDBInstance(&rds.CreateDBInstanceInput{
 			MasterUsername:             aws.String(databaseUsername),
 			DBInstanceIdentifier:       aws.String(instance.Spec.InstanceID),
-			DBName:                     aws.String(databaseName),
 			MasterUserPassword:         aws.String(string(password)),
 			StorageType:                aws.String("gp2"),
 			AllocatedStorage:           aws.Int64(instance.Spec.AllocatedStorage),
@@ -279,12 +277,10 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			instance.Status.Status = dbv1beta1.StatusReady
 			instance.Status.Message = "RDS instance exists and is available"
 			instance.Status.InstanceID = aws.StringValue(database.DBInstanceIdentifier)
-			instance.Status.Connection = dbv1beta1.PostgresConnection{
-				Host:     aws.StringValue(database.Endpoint.Address),
-				Port:     int(5432),
-				Username: aws.StringValue(database.MasterUsername),
-				Database: databaseName,
-			}
+			instance.Status.Connection.Host = aws.StringValue(database.Endpoint.Address)
+			instance.Status.Connection.Port = 5432
+			instance.Status.Connection.Username = aws.StringValue(database.MasterUsername)
+			instance.Status.Connection.Database = "postgres"
 			return nil
 		}}, nil
 	}

@@ -19,15 +19,15 @@ package components
 import (
 	"fmt"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
 type PostgresUserComponent struct {
@@ -48,10 +48,9 @@ func (_ *PostgresUserComponent) IsReconcilable(ctx *components.ComponentContext)
 func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresUser)
 
-	fetchSecret := corev1.Secret{}
-	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Status.Connection.PasswordSecretRef.Name, Namespace: instance.Namespace}, &fetchSecret)
+	password, err := instance.Status.Connection.PasswordSecretRef.Resolve(ctx, "password")
 	if err != nil {
-		return components.Result{}, errors.Wrap(err, "postgres_user: failed to fetch password secret")
+		return components.Result{}, errors.Wrap(err, "postgres_user: failed fetch password")
 	}
 
 	db, err := postgres.Open(ctx, &instance.Spec.Connection)
@@ -87,22 +86,23 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		return components.Result{}, errors.Wrap(err, "postgres_user: row error")
 	}
 
-	safeUsername := pq.QuoteIdentifier(instance.Spec.Username)
+	quotedUsername := pq.QuoteIdentifier(instance.Spec.Username)
+	quotedPassword := utils.QuoteLiteral(password)
 	// Create the user if it doesn't exist
 	if !userExists {
-		_, err = db.Exec(fmt.Sprintf("CREATE USER %s WITH PASSWORD $1", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
+		_, err = db.Exec(fmt.Sprintf("CREATE USER %s WITH PASSWORD %s", quotedUsername, quotedPassword))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to create database user")
 		}
 	}
 
 	// Do a test query to make sure that the user is valid
-	newConnection := instance.Spec.Connection
+	newConnection := instance.Spec.Connection.DeepCopy()
 	newConnection.Database = "postgres"
 	newConnection.Username = instance.Spec.Username
 	newConnection.PasswordSecretRef = instance.Status.Connection.PasswordSecretRef
 
-	testdb, err := postgres.Open(ctx, &newConnection)
+	testdb, err := postgres.Open(ctx, newConnection)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "postgres_user: failed to open testdb connection")
 	}
@@ -119,7 +119,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 
 	if invalidPassword {
-		_, err = db.Exec(fmt.Sprintf("ALTER USER %s WITH PASSWORD $1", safeUsername), string(fetchSecret.Data[instance.Status.Connection.PasswordSecretRef.Key]))
+		_, err = db.Exec(fmt.Sprintf("ALTER USER %s WITH PASSWORD %s", quotedUsername, quotedPassword))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to update user password")
 		}
@@ -131,6 +131,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		instance.Status.Message = "User Created"
 		instance.Status.Connection.Host = instance.Spec.Connection.Host
 		instance.Status.Connection.Port = instance.Spec.Connection.Port
+		instance.Status.Connection.SSLMode = instance.Spec.Connection.SSLMode
 		instance.Status.Connection.Username = instance.Spec.Username
 		return nil
 	}}, nil

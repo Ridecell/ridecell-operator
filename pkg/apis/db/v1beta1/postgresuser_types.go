@@ -22,7 +22,7 @@ import (
 
 // PostgresUserSpec defines the desired state of PostgresUser
 type PostgresUserSpec struct {
-	Connection PostgresConnection `json:"database"`
+	Connection PostgresConnection `json:"connection"`
 	Username   string             `json:"username,omitempty"`
 }
 

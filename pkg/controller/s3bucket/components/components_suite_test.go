@@ -35,7 +35,7 @@ var ctx *components.ComponentContext
 func TestComponents(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "s3bucket Components Suite")
+	ginkgo.RunSpecs(t, "s3bucket Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {

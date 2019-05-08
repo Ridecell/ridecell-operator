@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,12 +57,8 @@ func (comp *migrationComponent) WatchTypes() []runtime.Object {
 
 func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
 		// Database not ready yet.
-		return false
-	}
-	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {
-		// Extensions not installed yet.
 		return false
 	}
 	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {

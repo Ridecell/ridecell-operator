@@ -23,15 +23,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
@@ -55,7 +54,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 		Context("with Postgres not ready", func() {
 			BeforeEach(func() {
-				instance.Status.PostgresStatus = postgresv1.ClusterStatusCreating
+				instance.Status.PostgresStatus = ""
 			})
 
 			It("returns false", func() {
@@ -66,7 +65,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 		Context("with Postgres ready", func() {
 			BeforeEach(func() {
-				instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+				instance.Status.PostgresStatus = dbv1beta1.StatusReady
 			})
 
 			It("returns false", func() {
@@ -77,8 +76,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 		Context("with Postgres and pull secret ready", func() {
 			BeforeEach(func() {
-				instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-				instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
+				instance.Status.PostgresStatus = dbv1beta1.StatusReady
 				instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
 			})
 
@@ -90,8 +88,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 		Context("with migrations already applied", func() {
 			BeforeEach(func() {
-				instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-				instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
+				instance.Status.PostgresStatus = dbv1beta1.StatusReady
 				instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
 				instance.Status.MigrateVersion = "1.2.3"
 			})

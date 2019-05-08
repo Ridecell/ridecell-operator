@@ -4,7 +4,62 @@ jobs:
     docker:
     - image: circleci/golang:1
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      GINKGO_ARGS: -skip '@(postgres|aws)'
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - v1-vendor-{{ checksum "Gopkg.lock" }}
+        - v1-vendor
+    - run: echo "export RAND_OWNER_PREFIX=$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
+    - run: sudo mkdir /usr/local/kubebuilder/
+    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
+    - run: make dep test
+    - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
+    - run:
+        command: go run scripts/aws_cleanup/delete_operator_resources.go
+        when: always
+        no_output_timeout: 15m
+    - run: mkdir workspace && cp -r config/crds workspace/crds
+    - persist_to_workspace:
+        root: workspace
+        paths:
+        - crds
 
+    - save_cache:
+        key: v1-vendor-{{ checksum "Gopkg.lock" }}
+        paths:
+        - vendor/
+
+  test_postgres:
+    docker:
+    - image: circleci/golang:1
+    - image: postgres:11-alpine
+      environment:
+        POSTGRES_PASSWORD: rootpass
+    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      GINKGO_ARGS: -focus @postgres
+      POSTGRES_URI: postgres://postgres:rootpass@localhost/postgres
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - v1-vendor-{{ checksum "Gopkg.lock" }}
+        - v1-vendor
+    - run: echo "export RAND_OWNER_PREFIX=$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
+    - run: sudo mkdir /usr/local/kubebuilder/
+    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
+    - run: make dep test
+    - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+  test_aws:
+    docker:
+    - image: circleci/golang:1
+    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      GINKGO_ARGS: -focus @aws
     steps:
     - checkout
     - restore_cache:
@@ -22,16 +77,7 @@ jobs:
         command: go run scripts/aws_cleanup/delete_operator_resources.go
         when: always
         no_output_timeout: 15m
-    - run: mkdir workspace && cp -r config/crds workspace/crds
-    - persist_to_workspace:
-        root: workspace
-        paths:
-        - crds
 
-    - save_cache:
-        key: v1-vendor-{{ checksum "Gopkg.lock" }}
-        paths:
-        - vendor/
   build:
     docker:
     - image: us.gcr.io/ridecell-public/docker-gcloud:2018-09-17
@@ -70,9 +116,17 @@ workflows:
   default:
     jobs:
     - test
+    - test_postgres:
+        requires:
+        - test
+    - test_aws:
+        requires:
+        - test
     - build:
         requires:
         - test
+        - test_postgres
+        - test_aws
     - deploy:
         requires:
         - build
