@@ -34,6 +34,7 @@ func Add(mgr manager.Manager) error {
 		pdcomponents.NewUser(),
 		pdcomponents.NewDatabase(),
 		pdcomponents.NewExtensions(),
+		pdcomponents.NewStatus(),
 	})
 	return err
 }

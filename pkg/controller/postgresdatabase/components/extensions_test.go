@@ -41,7 +41,7 @@ var _ = FDescribe("PostgresDatabase Extensions Component", func() {
 
 	It("does nothing with no extensions", func() {
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 
 	It("creates two extensions", func() {
@@ -63,7 +63,7 @@ var _ = FDescribe("PostgresDatabase Extensions Component", func() {
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis_topology"))
 	})
 
-	It("sets the status to ready", func() {
+	It("sets the status to creating", func() {
 		ext := &dbv1beta1.PostgresExtension{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-postgis", Namespace: "summon-dev"},
 			Status: dbv1beta1.PostgresExtensionStatus{
@@ -76,6 +76,6 @@ var _ = FDescribe("PostgresDatabase Extensions Component", func() {
 			"postgis": "",
 		}
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 })

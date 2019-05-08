@@ -42,7 +42,7 @@ func (_ *databaseComponent) WatchTypes() []runtime.Object {
 
 func (_ *databaseComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
-	return (instance.Status.DatabaseStatus == dbv1beta1.StatusReady || instance.Status.DatabaseStatus == postgresv1.ClusterStatusRunning.String()) && (instance.Spec.SkipUser || instance.Status.UserStatus == dbv1beta1.StatusReady)
+	return (instance.Status.DatabaseClusterStatus == dbv1beta1.StatusReady || instance.Status.DatabaseClusterStatus == postgresv1.ClusterStatusRunning.String()) && (instance.Spec.SkipUser || instance.Status.UserStatus == dbv1beta1.StatusReady)
 }
 
 func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
@@ -76,6 +76,7 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 	dbName := instance.Spec.DatabaseName
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.PostgresDatabase)
+		instance.Status.DatabaseStatus = dbv1beta1.StatusReady
 		instance.Status.Status = dbv1beta1.StatusCreating
 		instance.Status.Message = fmt.Sprintf("Created database %s", dbName)
 		instance.Status.Connection.Host = instance.Status.AdminConnection.Host

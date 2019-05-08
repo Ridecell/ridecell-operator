@@ -111,7 +111,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		if dbconfig.Spec.Postgres.Mode == "Shared" {
 			return components.Result{StatusModifier: func(obj runtime.Object) error {
 				pqdb := obj.(*dbv1beta1.PostgresDatabase)
-				pqdb.Status.DatabaseStatus = dbconfig.Status.Postgres.Status
+				pqdb.Status.DatabaseClusterStatus = dbconfig.Status.Postgres.Status
 				pqdb.Status.AdminConnection = dbconfig.Status.Postgres.Connection
 				return nil
 			}}, nil
@@ -143,7 +143,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		// Updating the status for a PostgresDatabase.
 		res.StatusModifier = func(obj runtime.Object) error {
 			instance := obj.(*dbv1beta1.PostgresDatabase)
-			instance.Status.DatabaseStatus = status
+			instance.Status.DatabaseClusterStatus = status
 			instance.Status.AdminConnection = *conn
 			return nil
 		}

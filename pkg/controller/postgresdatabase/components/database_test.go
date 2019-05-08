@@ -58,24 +58,24 @@ var _ = Describe("PostgresDatabase Database Component", func() {
 
 	Describe("IsReconcilable", func() {
 		It("does create a database if the database and user are ready", func() {
-			instance.Status.DatabaseStatus = dbv1beta1.StatusReady
+			instance.Status.DatabaseClusterStatus = dbv1beta1.StatusReady
 			instance.Status.UserStatus = dbv1beta1.StatusReady
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
 
 		It("does create a database if the database is ready and skipuser", func() {
-			instance.Status.DatabaseStatus = dbv1beta1.StatusReady
+			instance.Status.DatabaseClusterStatus = dbv1beta1.StatusReady
 			instance.Spec.SkipUser = true
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
 
 		It("does not create a database if the database is not ready", func() {
-			instance.Status.DatabaseStatus = ""
+			instance.Status.DatabaseClusterStatus = ""
 			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})
 
 		It("does not create a database if the user is not ready", func() {
-			instance.Status.DatabaseStatus = dbv1beta1.StatusReady
+			instance.Status.DatabaseClusterStatus = dbv1beta1.StatusReady
 			instance.Status.UserStatus = ""
 			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})

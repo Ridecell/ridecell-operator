@@ -17,7 +17,6 @@ package components
 
 import (
 	"github.com/pkg/errors"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -38,13 +37,12 @@ func (comp *extensionsComponent) WatchTypes() []runtime.Object {
 
 func (_ *extensionsComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
-	return (instance.Status.DatabaseStatus == dbv1beta1.StatusReady || instance.Status.DatabaseStatus == postgresv1.ClusterStatusRunning.String())
+	return instance.Status.DatabaseStatus == dbv1beta1.StatusReady
 }
 
 func (_ *extensionsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
 	existingStatus := map[string]string{}
-	isReady := true
 
 	for extName, extVersion := range instance.Spec.Extensions {
 		// Make the template extras.
@@ -62,9 +60,6 @@ func (_ *extensionsComponent) Reconcile(ctx *components.ComponentContext) (compo
 			existing.Spec = goal.Spec
 			// Grab the status.
 			existingStatus[extName] = existing.Status.Status
-			if existing.Status.Status != dbv1beta1.StatusReady {
-				isReady = false
-			}
 			return nil
 		})
 		if err != nil {
@@ -75,9 +70,7 @@ func (_ *extensionsComponent) Reconcile(ctx *components.ComponentContext) (compo
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
 		instance.Status.ExtensionStatus = existingStatus
-		if isReady {
-			instance.Status.Status = dbv1beta1.StatusReady
-		}
+		instance.Status.Status = dbv1beta1.StatusCreating
 		return nil
 	}}, nil
 }

@@ -41,13 +41,14 @@ type PostgresDatabaseSpec struct {
 
 // PostgresDatabaseStatus defines the observed state of PostgresDatabase
 type PostgresDatabaseStatus struct {
-	Status          string             `json:"status"`
-	Message         string             `json:"message"`
-	DatabaseStatus  string             `json:"databaseStatus"`
-	ExtensionStatus map[string]string  `json:"extensionStatus,omitempty"`
-	UserStatus      string             `json:"userStatus"`
-	Connection      PostgresConnection `json:"connection"`
-	AdminConnection PostgresConnection `json:"adminConnection"`
+	Status                string             `json:"status"`
+	Message               string             `json:"message"`
+	DatabaseClusterStatus string             `json:"databaseClusterStatus"`
+	DatabaseStatus        string             `json:"databaseStatus"`
+	ExtensionStatus       map[string]string  `json:"extensionStatus,omitempty"`
+	UserStatus            string             `json:"userStatus"`
+	Connection            PostgresConnection `json:"connection"`
+	AdminConnection       PostgresConnection `json:"adminConnection"`
 }
 
 // +genclient

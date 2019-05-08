@@ -39,7 +39,7 @@ var _ = Describe("PostgresDatabase User Component", func() {
 
 	Describe("IsReconcilable", func() {
 		It("does create a user if the database is ready", func() {
-			instance.Status.DatabaseStatus = dbv1beta1.StatusReady
+			instance.Status.DatabaseClusterStatus = dbv1beta1.StatusReady
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
 
@@ -49,7 +49,7 @@ var _ = Describe("PostgresDatabase User Component", func() {
 
 		It("does not create a user if skipuser is on", func() {
 			instance.Spec.SkipUser = true
-			instance.Status.DatabaseStatus = dbv1beta1.StatusReady
+			instance.Status.DatabaseClusterStatus = dbv1beta1.StatusReady
 			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
 		})
 	})
