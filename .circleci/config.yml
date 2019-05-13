@@ -20,7 +20,7 @@ jobs:
         command: go run scripts/aws_cleanup/delete_operator_resources.go
         when: always
         no_output_timeout: 15m
-    - run: mkdir workspace workspace/cover && cp -r config/crds workspace/crds && gover.coverprofile workspace/cover/test.coverprofile
+    - run: mkdir workspace workspace/cover && cp -r config/crds workspace/crds && cp gover.coverprofile workspace/cover/test.coverprofile
     - persist_to_workspace:
         root: workspace
         paths:
