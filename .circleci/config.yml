@@ -109,7 +109,7 @@ jobs:
     - run: gcloud --quiet config set project ridecell-sandbox
     - run: gcloud container clusters get-credentials noah-test --region=us-west1
     - run: cp workspace/crds/* helm/templates/crds/
-    - run: helm upgrade --install --namespace ridecell-operator --set tag=$(cat workspace/tag) ridecell-operator ./helm
+    # - run: helm upgrade --install --namespace ridecell-operator --set tag=$(cat workspace/tag) ridecell-operator ./helm
 
 workflows:
   version: 2
