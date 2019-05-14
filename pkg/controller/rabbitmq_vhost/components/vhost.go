@@ -18,6 +18,9 @@ package components
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	rabbithole "github.com/michaelklishin/rabbit-hole"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -82,26 +85,22 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	}
 
 	// Policies
-	policiesList, err := rmqc.ListPoliciesIn(instance.Spec.VhostName)
+	existingPolicyList, err := rmqc.ListPoliciesIn(instance.Spec.VhostName)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error fetching policies for vhost %s", instance.Spec.VhostName)
 	}
+	existingPolicies := map[string]*rabbithole.Policy{}
+	for _, existingPolicy := range existingPolicyList {
+		name := existingPolicy.Name
+		if strings.HasPrefix(name, instance.Spec.VhostName+"-") {
+			name = name[len(instance.Spec.VhostName)+1:]
+		}
+		existingPolicies[name] = &existingPolicy
+	}
+
 	for policyName, policy := range instance.Spec.Policies {
-		var pFound bool
-		var index int
-		actualPolicyName := fmt.Sprintf("%s-%s", instance.Spec.VhostName, policyName)
-		for i := range policiesList {
-			if actualPolicyName == policiesList[i].Name {
-				pFound = true
-				index = i
-				break
-			}
-		}
-		if pFound {
-			// Remove policy that was found from the list
-			policiesList[index] = policiesList[len(policiesList)-1]
-			policiesList = policiesList[:len(policiesList)-1]
-		}
+		fullPolicyName := fmt.Sprintf("%s-%s", instance.Spec.VhostName, policyName)
+
 		// Create/Update policy
 		newPolicy := rabbithole.Policy{}
 		newPolicy.Pattern = policy.Pattern
@@ -111,16 +110,30 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "error unable to parse policy definition for %s", policyName)
 		}
-		_, err = rmqc.PutPolicy(instance.Spec.VhostName, actualPolicyName, newPolicy)
+
+		// Check for a match with the existing policy.
+		existingPolicy, ok := existingPolicies[policyName]
+		if ok && reflect.DeepEqual(newPolicy, &existingPolicy) {
+			// Don't bother calling the put.
+			continue
+		}
+
+		_, err = rmqc.PutPolicy(instance.Spec.VhostName, fullPolicyName, newPolicy)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "error updating policy %s for vhost %s", policyName, instance.Spec.VhostName)
 		}
 	}
 	// Remove policies for a vhost which are not in the Spec
-	for _, policy := range policiesList {
-		_, err = rmqc.DeletePolicy(instance.Spec.VhostName, policy.Name)
+	for existingPolicyName, _ := range existingPolicies {
+		_, ok := instance.Spec.Policies[existingPolicyName]
+		if ok {
+			// Still exists.
+			continue
+		}
+
+		_, err = rmqc.DeletePolicy(instance.Spec.VhostName, fmt.Sprintf("%s-%s", instance.Spec.VhostName, existingPolicyName))
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "error deleting policy %s for vhost %s", policy.Name, instance.Spec.VhostName)
+			return components.Result{}, errors.Wrapf(err, "error deleting policy %s for vhost %s", existingPolicyName, instance.Spec.VhostName)
 		}
 	}
 

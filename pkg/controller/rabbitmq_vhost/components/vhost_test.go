@@ -37,7 +37,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		VhostName: "rabbitmq-test",
 		SkipUser:  false,
 		Policies: map[string]dbv1beta1.RabbitmqPolicy{
-			"rabbitmq-test-p1": dbv1beta1.RabbitmqPolicy{
+			"p1": dbv1beta1.RabbitmqPolicy{
 				Pattern:  "^amq\\.",
 				ApplyTo:  "queues",
 				Priority: 1,
@@ -125,8 +125,9 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		policy.Priority = 1
 		policy.Vhost = "rabbitmq-test"
 		policy.Pattern = "^amq\\."
-		frc.Policies["rabbitmq-test"] = append(frc.Policies["rabbitmq-test"], policy)
-		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
+		frc.Policies["rabbitmq-test"] = map[string]rabbithole.Policy{
+			policy.Name: policy,
+		}
 		instance.Spec = spec1
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
@@ -141,10 +142,12 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		policy.Priority = 2
 		policy.Vhost = "rabbitmq-test"
 		policy.Pattern = "^amq\\."
-		frc.Policies["rabbitmq-test"] = append(frc.Policies["rabbitmq-test"], policy)
+		frc.Policies["rabbitmq-test"] = map[string]rabbithole.Policy{
+			policy.Name: policy,
+		}
 		instance.Spec = spec1
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
-		Expect(frc.Policies["rabbitmq-test"][0].Priority).Should(BeEquivalentTo(1))
+		Expect(frc.Policies["rabbitmq-test"]["rabbitmq-test-p1"].Priority).Should(BeEquivalentTo(1))
 	})
 })
