@@ -119,6 +119,7 @@ jobs:
     - image: circleci/golang:1
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     steps:
+    - checkout
     - attach_workspace:
         at: workspace
     - run: go get -u github.com/modocache/gover github.com/mattn/goveralls
