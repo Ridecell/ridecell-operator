@@ -87,6 +87,41 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 		return components.Result{}, errors.Errorf("unable to create rabbitmq user %s: %s %s", instance.Spec.Username, resp.Status, body)
 	}
 
+	//Policies
+	// Get all Permissions for a vhost, user. Add all mentioned in spec and Remove unwanted
+	permInfo, err := rmqc.ListPermissionsOf(instance.Spec.Username)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "error listing permissions for user %s", instance.Spec.Username)
+	}
+	for key := range instance.Spec.Permissions {
+		_, err := rmqc.UpdatePermissionsIn(instance.Spec.Permissions[key].Vhost, instance.Spec.Username, rabbithole.Permissions{
+			Configure: instance.Spec.Permissions[key].Configure,
+			Read:      instance.Spec.Permissions[key].Read,
+			Write:     instance.Spec.Permissions[key].Write,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "error creating / updating permissions for user %s and vhost %s", instance.Spec.Username, instance.Spec.Permissions[key].Vhost)
+		}
+		// Removes entries from the list of all permission that got updated
+		for k := range permInfo {
+			if permInfo[k].Vhost == instance.Spec.Permissions[key].Vhost {
+				// Remove key from permInfo
+				permInfo[k] = permInfo[len(permInfo)-1]
+				permInfo = permInfo[:len(permInfo)-1]
+				break
+			}
+		}
+	}
+	//Remove unwanted permissions
+	for k := range permInfo {
+		// 204 response code when permission is removed
+		_, err := rmqc.ClearPermissionsIn(permInfo[k].Vhost, permInfo[k].User)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "error removing permissions for user %s and vhost %s", permInfo[k].User, permInfo[k].Vhost)
+		}
+
+	}
+
 	// Data for the status modifier.
 	hostAndPort, err := utils.RabbitHostAndPort(rmqc)
 	if err != nil {

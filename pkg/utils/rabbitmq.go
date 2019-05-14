@@ -35,6 +35,12 @@ type RabbitMQManager interface {
 	PutVhost(string, rabbithole.VhostSettings) (*http.Response, error)
 	ListUsers() ([]rabbithole.UserInfo, error)
 	PutUser(string, rabbithole.UserSettings) (*http.Response, error)
+	ListPoliciesIn(vhost string) (rec []rabbithole.Policy, err error)
+	PutPolicy(vhost string, name string, policy rabbithole.Policy) (res *http.Response, err error)
+	DeletePolicy(vhost string, name string) (res *http.Response, err error)
+	ListPermissionsOf(username string) (rec []rabbithole.PermissionInfo, err error)
+	UpdatePermissionsIn(vhost, username string, permissions rabbithole.Permissions) (res *http.Response, err error)
+	ClearPermissionsIn(vhost, username string) (res *http.Response, err error)
 }
 
 type RabbitMQClientFactory func(uri string, user string, pass string, t *http.Transport) (RabbitMQManager, error)

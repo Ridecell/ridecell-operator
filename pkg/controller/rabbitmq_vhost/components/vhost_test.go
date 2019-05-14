@@ -33,7 +33,21 @@ import (
 var _ = Describe("RabbitmqVhost Vhost Component", func() {
 	comp := rmqvcomponents.NewVhost()
 	var frc *fake_rabbitmq.FakeRabbitClient
-
+	spec1 := dbv1beta1.RabbitmqVhostSpec{
+		VhostName: "rabbitmq-test",
+		SkipUser:  false,
+		Policies: map[string]dbv1beta1.RabbitmqPolicy{
+			"p1": dbv1beta1.RabbitmqPolicy{
+				Pattern:  "^amq\\.",
+				ApplyTo:  "queues",
+				Priority: 1,
+				Definition: `
+                      federation-upstream-set: all
+                      ha-mode: all
+                      `,
+			},
+		},
+	}
 	BeforeEach(func() {
 		user1 := &dbv1beta1.RabbitmqUser{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
@@ -54,6 +68,7 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 				Status: "",
 			},
 		}
+
 		ctx.Client = fake.NewFakeClient(instance, user1, user2)
 
 		comp = rmqvcomponents.NewVhost()
@@ -93,5 +108,46 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		instance.Spec.SkipUser = true
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+	})
+	It("creates a policy for rabbitmqvhost", func() {
+		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
+	})
+	It("removes unwanted policies for vhost", func() {
+		policy := rabbithole.Policy{}
+		policy.ApplyTo = "exchanges"
+		policy.Name = "rabbitmq-test-p2"
+		policy.Definition = map[string]interface{}{
+			"federation-upstream-set": "all",
+			"ha-mode":                 "all",
+		}
+		policy.Priority = 1
+		policy.Vhost = "rabbitmq-test"
+		policy.Pattern = "^amq\\."
+		frc.Policies["rabbitmq-test"] = map[string]rabbithole.Policy{
+			policy.Name: policy,
+		}
+		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
+	})
+	It("updates existing policy for vhost", func() {
+		policy := rabbithole.Policy{}
+		policy.ApplyTo = "exchanges"
+		policy.Name = "rabbitmq-test-p1"
+		policy.Definition = map[string]interface{}{
+			"federation-upstream-set": "all",
+		}
+		policy.Priority = 2
+		policy.Vhost = "rabbitmq-test"
+		policy.Pattern = "^amq\\."
+		frc.Policies["rabbitmq-test"] = map[string]rabbithole.Policy{
+			policy.Name: policy,
+		}
+		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
+		Expect(frc.Policies["rabbitmq-test"]["rabbitmq-test-p1"].Priority).Should(BeEquivalentTo(1))
 	})
 })
