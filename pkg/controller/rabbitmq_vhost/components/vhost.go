@@ -86,7 +86,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error fetching policies for vhost %s", instance.Spec.VhostName)
 	}
-	for policyName := range instance.Spec.Policies {
+	for policyName, policy := range instance.Spec.Policies {
 		var pFound bool
 		var index int
 		actualPolicyName := fmt.Sprintf("%s-%s", instance.Spec.VhostName, policyName)
@@ -103,24 +103,24 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 			policiesList = policiesList[:len(policiesList)-1]
 		}
 		// Create/Update policy
-		policy := rabbithole.Policy{}
-		policy.Pattern = instance.Spec.Policies[policyName].Pattern
-		policy.ApplyTo = instance.Spec.Policies[policyName].ApplyTo
-		policy.Priority = instance.Spec.Policies[policyName].Priority
-		err := yaml.Unmarshal([]byte(instance.Spec.Policies[policyName].Definition), &policy.Definition)
+		newPolicy := rabbithole.Policy{}
+		newPolicy.Pattern = policy.Pattern
+		newPolicy.ApplyTo = policy.ApplyTo
+		newPolicy.Priority = policy.Priority
+		err := yaml.Unmarshal([]byte(policy.Definition), &newPolicy.Definition)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "error unable to parse policy definition for %s", instance.Spec.VhostName)
+			return components.Result{}, errors.Wrapf(err, "error unable to parse policy definition for %s", policyName)
 		}
-		_, err = rmqc.PutPolicy(instance.Spec.VhostName, actualPolicyName, policy)
+		_, err = rmqc.PutPolicy(instance.Spec.VhostName, actualPolicyName, newPolicy)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "error updating policy for vhost %s", instance.Spec.VhostName)
+			return components.Result{}, errors.Wrapf(err, "error updating policy %s for vhost %s", policyName, instance.Spec.VhostName)
 		}
 	}
 	// Remove policies for a vhost which are not in the Spec
-	for i := range policiesList {
-		_, err = rmqc.DeletePolicy(instance.Spec.VhostName, policiesList[i].Name)
+	for _, policy := range policiesList {
+		_, err = rmqc.DeletePolicy(instance.Spec.VhostName, policy.Name)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "error deleting policy %s for vhost %s", policiesList[i].Name, instance.Spec.VhostName)
+			return components.Result{}, errors.Wrapf(err, "error deleting policy %s for vhost %s", policy.Name, instance.Spec.VhostName)
 		}
 	}
 

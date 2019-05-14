@@ -36,24 +36,7 @@ import (
 var _ = Describe("RabbitmqUser User Component", func() {
 	comp := rmqucomponents.NewUser()
 	var frc *fake_rabbitmq.FakeRabbitClient
-	spec1 := dbv1beta1.RabbitmqUserSpec{
-		Username: "rabbitmq-user-test1",
-		Tags:     "policymaker",
-		Permissions: []dbv1beta1.RabbitmqPermission{
-			{
-				Vhost:     "rabbimq-test1",
-				Configure: ".*",
-				Read:      ".*",
-				Write:     ".*",
-			},
-			{
-				Vhost:     "rabbitmq-test2",
-				Configure: ".*",
-				Read:      ".*",
-				Write:     ".*",
-			},
-		},
-	}
+	var spec1 dbv1beta1.RabbitmqUserSpec
 
 	BeforeEach(func() {
 		// Set password in secrets
@@ -61,6 +44,24 @@ var _ = Describe("RabbitmqUser User Component", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("rabbitmqpass"),
+			},
+		}
+		spec1 = dbv1beta1.RabbitmqUserSpec{
+			Username: "rabbitmq-user-test1",
+			Tags:     "policymaker",
+			Permissions: []dbv1beta1.RabbitmqPermission{
+				{
+					Vhost:     "rabbimq-test1",
+					Configure: ".*",
+					Read:      ".*",
+					Write:     ".*",
+				},
+				{
+					Vhost:     "rabbitmq-test2",
+					Configure: ".*",
+					Read:      ".*",
+					Write:     ".*",
+				},
 			},
 		}
 		ctx.Client = fake.NewFakeClient(instance, rabbitSecret)

@@ -14,11 +14,3 @@ spec:
         ha-mode: exactly
         ha-params: 2
         ha-sync-mode:	automatic
-    Federate:
-      pattern: ^celery$
-      apply-to: queues
-      priority: 100
-      definition: |
-        ha-mode: exactly
-        ha-params: 2
-        ha-sync-mode: automatic
