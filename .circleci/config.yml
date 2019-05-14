@@ -122,7 +122,7 @@ jobs:
     - checkout
     - attach_workspace:
         at: workspace
-    - run: go get -u github.com/modocache/gover github.com/mattn/goveralls
+    - run: make dep generate
     - run: gover
     - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
