@@ -26,7 +26,7 @@ import (
 type FakeRabbitClient struct {
 	Users       []rabbithole.UserInfo
 	Vhosts      []rabbithole.VhostInfo
-	Policies    map[string][]rabbithole.Policy
+	Policies    map[string]map[string]rabbithole.Policy
 	Permissions map[string][]rabbithole.PermissionInfo
 }
 
@@ -34,7 +34,7 @@ func New() *FakeRabbitClient {
 	return &FakeRabbitClient{
 		Users:       []rabbithole.UserInfo{},
 		Vhosts:      []rabbithole.VhostInfo{},
-		Policies:    make(map[string][]rabbithole.Policy),
+		Policies:    make(map[string]map[string]rabbithole.Policy),
 		Permissions: make(map[string][]rabbithole.PermissionInfo),
 	}
 }
@@ -73,29 +73,39 @@ func (frc *FakeRabbitClient) PutVhost(vhost string, _settings rabbithole.VhostSe
 }
 
 func (frc *FakeRabbitClient) ListPoliciesIn(vhost string) (rec []rabbithole.Policy, err error) {
-	return frc.Policies[vhost], nil
+	policies := []rabbithole.Policy{}
+	vhostPolicies, ok := frc.Policies[vhost]
+	if ok {
+		for _, policy := range vhostPolicies {
+			policies = append(policies, policy)
+		}
+	}
+	return policies, nil
 }
 
 func (frc *FakeRabbitClient) PutPolicy(vhost string, name string, policy rabbithole.Policy) (res *http.Response, err error) {
-	for key, policie := range frc.Policies[vhost] {
-		if policie.Name == policy.Name {
-			frc.Policies[vhost][key] = policy
-			return &http.Response{StatusCode: 200}, nil
-		}
+	vhostPolicies, ok := frc.Policies[vhost]
+	if !ok {
+		vhostPolicies = map[string]rabbithole.Policy{}
+		frc.Policies[vhost] = vhostPolicies
 	}
-	frc.Policies[vhost] = append(frc.Policies[vhost], policy)
-	return &http.Response{StatusCode: 201}, nil
+	_, ok = vhostPolicies[name]
+	vhostPolicies[name] = policy
+	if ok {
+		return &http.Response{StatusCode: 200}, nil
+	} else {
+		return &http.Response{StatusCode: 201}, nil
+
+	}
 }
 
 func (frc *FakeRabbitClient) DeletePolicy(vhost string, name string) (res *http.Response, err error) {
-	// If the policy exists or not both api calls returns 204
-	for key, policie := range frc.Policies[vhost] {
-		if policie.Name == name {
-			frc.Policies[vhost][key] = frc.Policies[vhost][len(frc.Policies[vhost])-1]
-			frc.Policies[vhost] = frc.Policies[vhost][:len(frc.Policies[vhost])-1]
-			return &http.Response{StatusCode: 204}, nil
-		}
+	vhostPolicies, ok := frc.Policies[vhost]
+	if !ok {
+		return &http.Response{StatusCode: 404}, nil
 	}
+	delete(vhostPolicies, name)
+	// If the policy exists or not both api calls returns 204
 	return &http.Response{StatusCode: 204}, nil
 }
 
