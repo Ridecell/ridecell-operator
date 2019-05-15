@@ -51,7 +51,10 @@ spec:
           mountPath: /etc/secrets
         livenessProbe:
           exec:
-            command: ["python", "-m", "celery", "-A", "summon_platform", "inspect", "ping", "-d", "celery@$HOSTNAME"]
+            command:
+            - bash
+            - -c
+            - python -m celery -A summon_platform inspect ping -d celery@$HOSTNAME
           initialDelaySeconds: 10
           periodSeconds: 5
       volumes:
