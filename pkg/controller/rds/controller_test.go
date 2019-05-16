@@ -111,8 +111,9 @@ var _ = Describe("rds controller", func() {
 
 		// Make sure the object is deleted
 		fetchRDSInstance := &dbv1beta1.RDSInstance{}
-		err := helpers.Client.Get(context.TODO(), helpers.Name(rdsInstance.Name), fetchRDSInstance)
-		Expect(err).To(HaveOccurred())
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), helpers.Name(rdsInstance.Name), fetchRDSInstance)
+		}, time.Second*30).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})

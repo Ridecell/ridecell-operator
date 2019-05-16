@@ -90,8 +90,9 @@ var _ = Describe("s3bucket controller", func() {
 
 		// Make sure the object is deleted
 		fetchS3Bucket := &awsv1beta1.S3Bucket{}
-		err := helpers.Client.Get(context.TODO(), helpers.Name(s3Bucket.Name), fetchS3Bucket)
-		Expect(err).To(HaveOccurred())
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), helpers.Name(s3Bucket.Name), fetchS3Bucket)
+		}, time.Second*30).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})

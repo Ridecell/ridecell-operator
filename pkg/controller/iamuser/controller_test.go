@@ -120,8 +120,10 @@ var _ = Describe("iamuser controller", func() {
 
 		// Make sure the object is deleted
 		fetchIAMUser := &awsv1beta1.IAMUser{}
-		err := helpers.Client.Get(context.TODO(), helpers.Name(iamUser.Name), fetchIAMUser)
-		Expect(err).To(HaveOccurred())
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), helpers.Name(iamUser.Name), fetchIAMUser)
+		}, time.Second*30).ShouldNot(Succeed())
+
 		helpers.TeardownTest()
 	})
 
