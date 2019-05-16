@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 )
 
 const s3BucketFinalizer = "s3bucket.finalizer"
@@ -77,8 +78,8 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// if object is not being deleted
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Is our finalizer attached to the object?
-		if !containsString(s3BucketFinalizer, instance.ObjectMeta.Finalizers) {
-			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, s3BucketFinalizer)
+		if !helpers.ContainsFinalizer(s3BucketFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(s3BucketFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance)
 			if err != nil {
 				return components.Result{Requeue: true}, errors.Wrapf(err, "s3bucket: failed to update instance while adding finalizer")
@@ -86,13 +87,13 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 			return components.Result{Requeue: true}, nil
 		}
 	} else {
-		if containsString(s3BucketFinalizer, instance.ObjectMeta.Finalizers) {
+		if helpers.ContainsFinalizer(s3BucketFinalizer, instance) {
 			result, err := comp.deleteDependencies(ctx)
 			if err != nil {
 				return result, err
 			}
 			// All operations complete, remove finalizer
-			removeString(s3BucketFinalizer, instance.ObjectMeta.Finalizers)
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(s3BucketFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance)
 			if err != nil {
 				return components.Result{Requeue: true}, errors.Wrapf(err, "s3bucket: failed to update instance while removing finalizer")
@@ -283,24 +284,4 @@ func (comp *s3BucketComponent) deleteDependencies(ctx *components.ComponentConte
 		}
 	}
 	return components.Result{}, nil
-}
-
-func containsString(input string, slice []string) bool {
-	for _, i := range slice {
-		if i == input {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(input string, slice []string) []string {
-	var outputSlice []string
-	for _, i := range slice {
-		if i == input {
-			continue
-		}
-		outputSlice = append(outputSlice, input)
-	}
-	return outputSlice
 }

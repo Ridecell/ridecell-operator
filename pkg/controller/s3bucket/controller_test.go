@@ -17,6 +17,7 @@ limitations under the License.
 package s3bucket_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -86,6 +87,11 @@ var _ = Describe("s3bucket controller", func() {
 		c := helpers.TestClient
 		c.Delete(s3Bucket)
 		Eventually(func() error { return bucketExists() }, time.Second*30).ShouldNot(Succeed())
+
+		// Make sure the object is deleted
+		fetchS3Bucket := &awsv1beta1.S3Bucket{}
+		err := helpers.Client.Get(context.TODO(), helpers.Name(s3Bucket.Name), fetchS3Bucket)
+		Expect(err).To(HaveOccurred())
 
 		helpers.TeardownTest()
 	})

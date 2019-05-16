@@ -17,6 +17,7 @@ limitations under the License.
 package rds_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -107,6 +108,11 @@ var _ = Describe("rds controller", func() {
 		Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
 		Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
 		Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
+
+		// Make sure the object is deleted
+		fetchRDSInstance := &dbv1beta1.RDSInstance{}
+		err := helpers.Client.Get(context.TODO(), helpers.Name(rdsInstance.Name), fetchRDSInstance)
+		Expect(err).To(HaveOccurred())
 
 		helpers.TeardownTest()
 	})

@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,22 +71,22 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	// if object is not being deleted
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Is our finalizer attached to the object?
-		if !containsString(iamUserFinalizer, instance.ObjectMeta.Finalizers) {
-			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, iamUserFinalizer)
-			err := ctx.Update(ctx.Context, instance)
+		if !helpers.ContainsFinalizer(iamUserFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(iamUserFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
 				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while adding finalizer")
 			}
 			return components.Result{Requeue: true}, nil
 		}
 	} else {
-		if containsString(iamUserFinalizer, instance.ObjectMeta.Finalizers) {
+		if helpers.ContainsFinalizer(iamUserFinalizer, instance) {
 			result, err := comp.deleteDependencies(ctx)
 			if err != nil {
 				return result, err
 			}
 			// All operations complete, remove finalizer
-			removeString(iamUserFinalizer, instance.ObjectMeta.Finalizers)
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(iamUserFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance)
 			if err != nil {
 				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while removing finalizer")
@@ -325,24 +326,4 @@ func (comp *iamUserComponent) deleteDependencies(ctx *components.ComponentContex
 		}
 	}
 	return components.Result{}, nil
-}
-
-func containsString(input string, slice []string) bool {
-	for _, i := range slice {
-		if i == input {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(input string, slice []string) []string {
-	var outputSlice []string
-	for _, i := range slice {
-		if i == input {
-			continue
-		}
-		outputSlice = append(outputSlice, input)
-	}
-	return outputSlice
 }
