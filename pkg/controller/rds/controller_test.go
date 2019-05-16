@@ -17,6 +17,7 @@ limitations under the License.
 package rds_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -98,6 +99,11 @@ var _ = Describe("rds controller", func() {
 	})
 
 	AfterEach(func() {
+
+		// Display some debugging info if the test failed.
+		if CurrentGinkgoTestDescription().Failed {
+			helpers.DebugList(&dbv1beta1.RDSInstanceList{})
+		}
 		// Delete object and see if it cleans up on its own
 		c := helpers.TestClient
 
@@ -107,6 +113,12 @@ var _ = Describe("rds controller", func() {
 		Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
 		Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
 		Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
+
+		// Make sure the object is deleted
+		fetchRDSInstance := &dbv1beta1.RDSInstance{}
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), helpers.Name(rdsInstance.Name), fetchRDSInstance)
+		}, time.Second*30).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})

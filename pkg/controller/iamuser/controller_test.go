@@ -17,6 +17,7 @@ limitations under the License.
 package iamuser_test
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -116,6 +117,12 @@ var _ = Describe("iamuser controller", func() {
 		c := helpers.TestClient
 		c.Delete(iamUser)
 		Eventually(func() error { return userExists() }, time.Second*10).ShouldNot(Succeed())
+
+		// Make sure the object is deleted
+		fetchIAMUser := &awsv1beta1.IAMUser{}
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), helpers.Name(iamUser.Name), fetchIAMUser)
+		}, time.Second*30).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})
