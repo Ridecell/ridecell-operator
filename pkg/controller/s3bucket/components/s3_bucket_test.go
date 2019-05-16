@@ -186,6 +186,8 @@ var _ = Describe("s3bucket aws Component", func() {
 			fetchS3Bucket := &awsv1beta1.S3Bucket{}
 			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-bucket", Namespace: "default"}, fetchS3Bucket)
 			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fetchS3Bucket.ObjectMeta.Finalizers).To(HaveLen(0))
 		})
 	})
 })

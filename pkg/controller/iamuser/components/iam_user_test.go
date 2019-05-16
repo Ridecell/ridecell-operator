@@ -194,6 +194,8 @@ var _ = Describe("iam_user aws Component", func() {
 			fetchIAMUser := &awsv1beta1.IAMUser{}
 			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user", Namespace: "default"}, fetchIAMUser)
 			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fetchIAMUser.ObjectMeta.Finalizers).To(HaveLen(0))
 		})
 	})
 })
