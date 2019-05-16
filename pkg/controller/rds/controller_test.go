@@ -99,6 +99,11 @@ var _ = Describe("rds controller", func() {
 	})
 
 	AfterEach(func() {
+
+		// Display some debugging info if the test failed.
+		if CurrentGinkgoTestDescription().Failed {
+			helpers.DebugList(&dbv1beta1.RDSInstanceList{})
+		}
 		// Delete object and see if it cleans up on its own
 		c := helpers.TestClient
 
