@@ -58,6 +58,10 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	AfterEach(func() {
+		// Display some debugging info if the test failed.
+		if CurrentGinkgoTestDescription().Failed {
+			helpers.DebugList(&summonv1beta1.SummonPlatform{})
+		}
 		helpers.TeardownTest()
 	})
 
