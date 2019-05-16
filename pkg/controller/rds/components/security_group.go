@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -32,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 )
 
 const rdsInstanceSecurityGroupFinalizer = "rdsinstance.securitygroup.finalizer"
