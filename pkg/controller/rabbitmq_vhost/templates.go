@@ -24,7 +24,7 @@ import (
 	"runtime"
 )
 
-//go:generate go run ../../../hack/assets_generate.go rabbitmq_vhost
+//go:generate bash ../../../hack/assets_generate.sh controller/rabbitmq_vhost rabbitmq_vhost
 var Templates http.FileSystem
 
 func init() {
