@@ -45,7 +45,8 @@ spec:
                     "Action": [
                        "s3:GetObject",
                        "s3:DeleteObject",
-                       "s3:PutObject"
+                       "s3:PutObject",
+                       "s3:PutObjectAcl"
                      ],
                     "Resource": "arn:aws:s3:::{{ .Extra.mivBucket }}/*"
                  }

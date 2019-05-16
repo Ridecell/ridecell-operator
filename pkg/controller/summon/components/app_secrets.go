@@ -20,10 +20,8 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -110,7 +108,7 @@ func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client)
 func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
 		return false
 	}
 
@@ -136,8 +134,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	awsSecret := dynamicInputSecrets[3]
 	rabbitmqSecret := dynamicInputSecrets[4]
 
-	postgresDatabase, postgresUser := comp.postgresNames(instance)
-	postgresPassword, ok := postgresSecret.Data["password"]
+	postgresConnection := instance.Status.PostgresConnection
+	postgresPassword, ok := postgresSecret.Data[postgresConnection.PasswordSecretRef.Key]
 	if !ok {
 		return components.Result{}, errors.New("app_secrets: Postgres password not found in secret")
 	}
@@ -174,7 +172,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	appSecretsData := map[string]interface{}{}
 
-	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s-database/%s", postgresUser, postgresPassword, postgresDatabase, postgresUser)
+	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s/%s", postgresConnection.Username, postgresPassword, postgresConnection.Host, postgresConnection.Database)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rmqVhost.Status.Connection.Username, rabbitmqSecret.Data["password"], rmqVhost.Status.Connection.Host, rmqVhost.Status.Connection.Vhost)
@@ -243,20 +241,10 @@ func (_ *appSecretComponent) formatFernetKeys(fernetData map[string][]byte) ([]s
 	return outputSlice, nil
 }
 
-func (_ *appSecretComponent) postgresNames(instance *summonv1beta1.SummonPlatform) (string, string) {
-	if instance.Spec.Database.ExclusiveDatabase {
-		return instance.Name, "summon"
-	} else {
-		return instance.Spec.Database.SharedDatabaseName, strings.Replace(instance.Name, "-", "_", -1)
-	}
-}
-
 func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform) []string {
-	postgresDatabase, postgresUser := c.postgresNames(instance)
-
 	// The order of these must match the code using it. Do not change. I mean it.
 	return []string{
-		fmt.Sprintf("%s.%s-database.credentials", strings.Replace(postgresUser, "_", "-", -1), postgresDatabase),
+		instance.Status.PostgresConnection.PasswordSecretRef.Name,
 		fmt.Sprintf("%s.fernet-keys", instance.Name),
 		fmt.Sprintf("%s.secret-key", instance.Name),
 		fmt.Sprintf("%s.aws-credentials", instance.Name),

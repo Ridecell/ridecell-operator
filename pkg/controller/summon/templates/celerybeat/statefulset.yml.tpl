@@ -37,9 +37,6 @@ spec:
           requests:
             memory: 4M
             cpu: 10m
-          limits:
-            memory: 8M
-            cpu: 10m
         volumeMounts:
         - name: beat-state
           mountPath: /schedule

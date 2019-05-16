@@ -71,3 +71,55 @@ func (pe *RabbitmqUser) SetErrorStatus(errorMsg string) {
 	pe.Status.Status = StatusError
 	pe.Status.Message = errorMsg
 }
+
+func (rds *RDSInstance) GetStatus() components.Status {
+	return rds.Status
+}
+
+func (rds *RDSInstance) SetStatus(status components.Status) {
+	rds.Status = status.(RDSInstanceStatus)
+}
+
+func (rds *RDSInstance) SetErrorStatus(errorMsg string) {
+	rds.Status.Status = StatusError
+	rds.Status.Message = errorMsg
+}
+
+func (pgu *PostgresUser) GetStatus() components.Status {
+	return pgu.Status
+}
+
+func (pgu *PostgresUser) SetStatus(status components.Status) {
+	pgu.Status = status.(PostgresUserStatus)
+}
+
+func (pgu *PostgresUser) SetErrorStatus(errorMsg string) {
+	pgu.Status.Status = StatusError
+	pgu.Status.Message = errorMsg
+}
+
+func (pgu *PostgresDatabase) GetStatus() components.Status {
+	return pgu.Status
+}
+
+func (pgu *PostgresDatabase) SetStatus(status components.Status) {
+	pgu.Status = status.(PostgresDatabaseStatus)
+}
+
+func (pgu *PostgresDatabase) SetErrorStatus(errorMsg string) {
+	pgu.Status.Status = StatusError
+	pgu.Status.Message = errorMsg
+}
+
+func (pgu *DbConfig) GetStatus() components.Status {
+	return pgu.Status
+}
+
+func (pgu *DbConfig) SetStatus(status components.Status) {
+	pgu.Status = status.(DbConfigStatus)
+}
+
+func (pgu *DbConfig) SetErrorStatus(errorMsg string) {
+	pgu.Status.Status = StatusError
+	pgu.Status.Message = errorMsg
+}

@@ -21,8 +21,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -41,8 +40,16 @@ var _ = Describe("app_secrets Component", func() {
 	var comp components.Component
 
 	BeforeEach(func() {
-		instance.Spec.Database.ExclusiveDatabase = true
-		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		instance.Status.PostgresStatus = dbv1beta1.StatusReady
+		instance.Status.PostgresConnection = dbv1beta1.PostgresConnection{
+			Host:     "summon-qa-database",
+			Username: "foo_qa",
+			Database: "foo_qa",
+			PasswordSecretRef: helpers.SecretRef{
+				Name: "foo-qa.postgres-user-password",
+				Key:  "password",
+			},
+		}
 
 		inSecret = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: "default"},
@@ -60,7 +67,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		postgresSecret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-qa.postgres-user-password", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("postgresPassword"),
 			},
@@ -105,7 +112,7 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("Unreconcilable when db not ready", func() {
-		instance.Status.PostgresStatus = postgresv1.ClusterStatusUnknown
+		instance.Status.PostgresStatus = ""
 		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
 	})
 
@@ -136,7 +143,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://summon:postgresPassword@foo-database/summon"))
+		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://foo_qa:postgresPassword@summon-qa-database/foo_qa"))
 		Expect(parsedYaml["OUTBOUNDSMS_URL"]).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo.ridecell.us/sms/receive/"))
 		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-user:rabbitmqpassword@rabbitmqserver/foo?ssl=true"))
@@ -230,33 +237,5 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(appSecretsData["TOKEN"]).To(Equal("overwritten_again"))
 
-	})
-
-	It("reconciles with shared database config", func() {
-		instance.Spec.Database.ExclusiveDatabase = false
-		instance.Spec.Database.SharedDatabaseName = "shareddb"
-
-		postgresSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.shareddb-database.credentials", Namespace: "default"},
-			Data:       map[string][]byte{"password": []byte("postgresPassword")},
-		}
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
-
-		Expect(comp).To(ReconcileContext(ctx))
-
-		fetchSecret := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
-		Expect(err).ToNot(HaveOccurred())
-
-		byteData := fetchSecret.Data["summon-platform.yml"]
-		var parsedYaml map[string]interface{}
-		err = yaml.Unmarshal(byteData, &parsedYaml)
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://foo:postgresPassword@shareddb-database/foo"))
-		Expect(parsedYaml["OUTBOUNDSMS_URL"]).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
-		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo.ridecell.us/sms/receive/"))
-		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-user:rabbitmqpassword@rabbitmqserver/foo?ssl=true"))
-		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
 	})
 })

@@ -30,7 +30,7 @@ var testHelpers *test_helpers.TestHelpers
 
 func TestTemplates(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "s3bucket controller Suite")
+	ginkgo.RunSpecs(t, "s3bucket controller Suite @aws")
 }
 
 var _ = ginkgo.BeforeSuite(func() {

@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -137,13 +138,13 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Create(awsSecret)
 
-		// Wait for the Postgresql to be created.
-		postgres := &postgresv1.Postgresql{}
-		c.EventuallyGet(helpers.Name(name+"-database"), postgres)
+		// Wait for the database to be created.
+		db := &dbv1beta1.PostgresDatabase{}
+		c.EventuallyGet(helpers.Name(name), db)
 
 		// Create a fake Postgres credentials secret.
 		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon." + name + "-database.credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: name + ".postgres-user-password", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"password": "secretdbpass",
 			},
@@ -151,8 +152,17 @@ var _ = Describe("Summon controller", func() {
 		c.Create(dbSecret)
 
 		// Set the status of the DB to ready.
-		postgres.Status = postgresv1.ClusterStatusRunning
-		c.Status().Update(postgres)
+		db.Status.Status = dbv1beta1.StatusReady
+		db.Status.Connection = dbv1beta1.PostgresConnection{
+			Host:     name,
+			Username: "summon",
+			Database: "summon",
+			PasswordSecretRef: apihelpers.SecretRef{
+				Name: dbSecret.Name,
+				Key:  "password",
+			},
+		}
+		c.Status().Update(db)
 
 		// Set the Postgres extensions to ready.
 		ext := &dbv1beta1.PostgresExtension{}

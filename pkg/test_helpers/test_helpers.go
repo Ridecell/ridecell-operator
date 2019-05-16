@@ -30,6 +30,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -47,6 +49,7 @@ type TestHelpers struct {
 	ManagerStop chan struct{}
 	Client      client.Client
 	TestClient  *testClient
+	starter     func()
 }
 
 type PerTestHelpers struct {
@@ -76,37 +79,47 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 	helpers, err := New()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// Start the test environment.
-	cfg, err := helpers.Environment.Start()
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	helpers.Cfg = cfg
-
-	// Create a manager.
-	mgr, err := manager.New(helpers.Cfg, manager.Options{})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	helpers.Manager = mgr
-
-	// Add the requested controller(s).
-	if adder != nil {
-		err = adder(helpers.Manager)
+	// Delay the actual startup until the first time SetupTest() is called because
+	// when using -focus and -skip, the suite level before is still run even if
+	// every test in the suite will be skipped. So for us, it takes a while as it
+	// sits around and launches the control plane and then shuts it down for skipped
+	// suites.
+	helpers.starter = func() {
+		// Start the test environment.
+		cfg, err := helpers.Environment.Start()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		helpers.Cfg = cfg
+
+		// Create a manager.
+		mgr, err := manager.New(helpers.Cfg, manager.Options{})
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		helpers.Manager = mgr
+
+		// Add the requested controller(s).
+		if adder != nil {
+			err = adder(helpers.Manager)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		}
+
+		// Grab the test client.
+		if cacheClient {
+			helpers.Client = helpers.Manager.GetClient()
+		} else {
+			helpers.Client, err = client.New(helpers.Cfg, client.Options{Scheme: helpers.Manager.GetScheme()})
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		}
+		helpers.TestClient = &testClient{client: helpers.Client}
+
+		// Start the manager.
+		helpers.ManagerStop = make(chan struct{})
+		go func() {
+			err := mgr.Start(helpers.ManagerStop)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		}()
+
+		// Only run the starter the first time.
+		helpers.starter = func() {}
 	}
-
-	// Grab the test client.
-	if cacheClient {
-		helpers.Client = helpers.Manager.GetClient()
-	} else {
-		helpers.Client, err = client.New(helpers.Cfg, client.Options{Scheme: helpers.Manager.GetScheme()})
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	}
-	helpers.TestClient = &testClient{client: helpers.Client}
-
-	// Start the manager.
-	helpers.ManagerStop = make(chan struct{})
-	go func() {
-		err := mgr.Start(helpers.ManagerStop)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	}()
 
 	return helpers
 }
@@ -123,6 +136,7 @@ func (helpers *TestHelpers) Stop() {
 
 // Set up any needed per test values. Call from BeforeEach().
 func (helpers *TestHelpers) SetupTest() *PerTestHelpers {
+	helpers.starter()
 	newHelpers := &PerTestHelpers{TestHelpers: helpers}
 
 	newHelpers.Namespace = createRandomNamespace(helpers.Client)
@@ -153,4 +167,37 @@ func createRandomNamespace(client client.Client) string {
 // Helper method to make a types.NamespacedName in the correct namespace.
 func (h *PerTestHelpers) Name(objName string) types.NamespacedName {
 	return types.NamespacedName{Name: objName, Namespace: h.Namespace}
+}
+
+// Helper method to show a list of objects, used in AfterEach helpers.
+func (h *PerTestHelpers) DebugList(listType kruntime.Object) {
+	gvks, unversioned, err := h.Manager.GetScheme().ObjectKinds(listType)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	if unversioned || len(gvks) == 0 {
+		fmt.Println("error getting gvks")
+		panic("Error getting GVKs")
+	}
+	list := &unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(gvks[0])
+
+	h.TestClient.List(nil, list)
+	// TODO Probably replace this whole thing with building maps and yaml.Marshal.
+	fmt.Print(gvks[0].Kind[:len(gvks[0].Kind)-4] + ":\n")
+	for _, item := range list.Items {
+		meta := item.Object["metadata"].(map[string]interface{})
+		if meta["namespace"].(string) == h.Namespace {
+			status, ok := item.Object["status"].(map[string]interface{})
+			if ok {
+				fmt.Printf("  %s:\n", meta["name"])
+				for key, value := range status {
+					fmt.Printf("    %s: %v\n", key, value)
+				}
+			} else {
+				fmt.Printf("  %s: %v\n", meta["name"], item.Object["status"])
+			}
+		}
+	}
 }

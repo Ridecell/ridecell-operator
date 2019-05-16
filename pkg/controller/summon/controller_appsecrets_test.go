@@ -23,13 +23,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
@@ -74,7 +74,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 	createDbSecret := func() *corev1.Secret {
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.appsecretstest-database.credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.postgres-user-password", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"password": "secretdbpass",
 			},
@@ -113,11 +113,20 @@ var _ = Describe("Summon controller appsecrets", func() {
 		instance.Spec.Secrets = []string{"testsecret"}
 		helpers.TestClient.Create(instance)
 
-		// Advance postgres to running.
-		postgres := &postgresv1.Postgresql{}
-		helpers.TestClient.EventuallyGet(helpers.Name("appsecretstest-database"), postgres)
-		postgres.Status = postgresv1.ClusterStatusRunning
-		helpers.TestClient.Status().Update(postgres)
+		// Advance db to running.
+		db := &dbv1beta1.PostgresDatabase{}
+		helpers.TestClient.EventuallyGet(helpers.Name("appsecretstest"), db)
+		db.Status.Status = dbv1beta1.StatusReady
+		db.Status.Connection = dbv1beta1.PostgresConnection{
+			Host:     "appsecretstest-database",
+			Username: "summon",
+			Database: "summon",
+			PasswordSecretRef: apihelpers.SecretRef{
+				Name: "appsecretstest.postgres-user-password",
+				Key:  "password",
+			},
+		}
+		helpers.TestClient.Status().Update(db)
 	}
 
 	BeforeEach(func() {

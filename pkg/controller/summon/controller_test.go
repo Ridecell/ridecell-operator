@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -34,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -109,14 +109,13 @@ var _ = Describe("Summon controller", func() {
 		pullsecret.Status.Status = secretsv1beta1.StatusReady
 		c.Status().Update(pullsecret)
 
-		// Check the Postgresql object.
-		postgres := &postgresv1.Postgresql{}
-		c.EventuallyGet(helpers.Name("foo-database"), postgres)
-		Expect(postgres.Spec.Databases["summon"]).To(Equal("ridecell-admin"))
+		// Check the database object.
+		db := &dbv1beta1.PostgresDatabase{}
+		c.EventuallyGet(helpers.Name("foo"), db)
 
 		// Create a fake credentials secret.
 		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.postgres-user-password", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"password": "secretdbpass",
 			},
@@ -156,17 +155,17 @@ var _ = Describe("Summon controller", func() {
 		c.Status().Update(rmqVhost)
 
 		// Set the status of the DB to ready.
-		postgres.Status = postgresv1.ClusterStatusRunning
-		c.Status().Update(postgres)
-
-		// Set the Postgres extensions to ready.
-		ext := &dbv1beta1.PostgresExtension{}
-		c.EventuallyGet(helpers.Name("foo-postgis"), ext)
-		ext.Status.Status = dbv1beta1.StatusReady
-		c.Status().Update(ext)
-		c.EventuallyGet(helpers.Name("foo-postgis-topology"), ext)
-		ext.Status.Status = dbv1beta1.StatusReady
-		c.Status().Update(ext)
+		db.Status.Status = dbv1beta1.StatusReady
+		db.Status.Connection = dbv1beta1.PostgresConnection{
+			Host:     "summon-qa-database",
+			Username: "foo",
+			Database: "foo",
+			PasswordSecretRef: apihelpers.SecretRef{
+				Name: "foo.postgres-user-password",
+				Key:  "password",
+			},
+		}
+		c.Status().Update(db)
 
 		// Check that a migration Job was created.
 		job := &batchv1.Job{}
@@ -221,7 +220,7 @@ var _ = Describe("Summon controller", func() {
 
 		// Create a fake credentials secret.
 		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.postgres-user-password", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"password": "secretdbpass",
 			},
@@ -261,28 +260,22 @@ var _ = Describe("Summon controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of the DB to ready.
-		postgres := &postgresv1.Postgresql{}
+		db := &dbv1beta1.PostgresDatabase{}
 		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-database", Namespace: helpers.Namespace}, postgres)
+			return c.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: helpers.Namespace}, db)
 		}, timeout).
 			Should(Succeed())
-		postgres.Status = postgresv1.ClusterStatusRunning
-		err = c.Status().Update(context.TODO(), postgres)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Set the Postgres extensions to ready.
-		ext := &dbv1beta1.PostgresExtension{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis-topology", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
+		db.Status.Status = dbv1beta1.StatusReady
+		db.Status.Connection = dbv1beta1.PostgresConnection{
+			Host:     "foo",
+			Username: "summon",
+			Database: "summon",
+			PasswordSecretRef: apihelpers.SecretRef{
+				Name: dbSecret.Name,
+				Key:  "password",
+			},
+		}
+		err = c.Status().Update(context.TODO(), db)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the rmq vhost to ready.
@@ -355,7 +348,7 @@ var _ = Describe("Summon controller", func() {
 		err := c.Create(context.TODO(), instance)
 		Expect(err).NotTo(HaveOccurred())
 		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.statustester-database.credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.postgres-user-password", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"password": "secretdbpass",
 			},
@@ -391,9 +384,9 @@ var _ = Describe("Summon controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Wait for the database to be created.
-		postgres := &postgresv1.Postgresql{}
+		db := &dbv1beta1.PostgresDatabase{}
 		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-database", Namespace: helpers.Namespace}, postgres)
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester", Namespace: helpers.Namespace}, db)
 		}, timeout).Should(Succeed())
 
 		// Check the status. Should not be set yet.
@@ -405,36 +398,22 @@ var _ = Describe("Summon controller", func() {
 		}
 		assertStatus("")
 
-		// Set the database to Creating
-		postgres.Status = postgresv1.ClusterStatusCreating
-		err = c.Status().Update(context.TODO(), postgres)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Check the status again. Should be Initializing.
-		assertStatus(summonv1beta1.StatusInitializing)
-
 		// Set the database to Running
-		postgres.Status = postgresv1.ClusterStatusRunning
-		err = c.Status().Update(context.TODO(), postgres)
+		db.Status.Status = dbv1beta1.StatusReady
+		db.Status.Connection = dbv1beta1.PostgresConnection{
+			Host:     "summon-dev-database",
+			Username: "statustester_dev",
+			Database: "statustester_dev",
+			PasswordSecretRef: apihelpers.SecretRef{
+				Name: "statustester.postgres-user-password",
+				Key:  "password",
+			},
+		}
+		err = c.Status().Update(context.TODO(), db)
 		Expect(err).NotTo(HaveOccurred())
 
-		// Check the status again. Should still be Initializing.
+		// Check the status. Should still be Initializing.
 		assertStatus(summonv1beta1.StatusInitializing)
-
-		// Set the postgres extensions to ready.
-		ext := &dbv1beta1.PostgresExtension{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-postgis", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-postgis-topology", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
-		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
 
 		// Set the pull secret to ready.
 		pullSecret := &secretsv1beta1.PullSecret{}

@@ -4,9 +4,15 @@ IMG ?= controller:latest
 
 all: test manager
 
+ifdef CI
+CI_GINKGO_ARGS=--v -compilers 4
+else
+CI_GINKGO_ARGS=
+endif
+
 # Run tests
 test: generate fmt vet manifests
-	ginkgo --randomizeAllSpecs --randomizeSuites --cover --trace --progress ./pkg/... ./cmd/...
+	ginkgo --randomizeAllSpecs --randomizeSuites --cover --trace --progress ${GINKGO_ARGS} ${CI_GINKGO_ARGS} -r ./pkg ./cmd
 	gover
 
 # Build manager binary

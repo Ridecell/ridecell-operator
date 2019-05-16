@@ -33,7 +33,16 @@ func Open(ctx *components.ComponentContext, dbInfo *dbv1beta1.PostgresConnection
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to resolve secret")
 	}
-	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=require", dbInfo.Host, dbInfo.Port, dbInfo.Database, dbInfo.Username, dbPassword)
+	// A default port.
+	port := dbInfo.Port
+	if port == 0 {
+		port = 5432
+	}
+	sslmode := "require"
+	if dbInfo.SSLMode != "" {
+		sslmode = dbInfo.SSLMode
+	}
+	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=%s", dbInfo.Host, uint16(port), dbInfo.Database, dbInfo.Username, dbPassword, sslmode)
 	db, err := dbpool.Open("postgres", connStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "database: Unable to open database connection")

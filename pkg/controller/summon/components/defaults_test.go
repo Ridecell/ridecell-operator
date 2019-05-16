@@ -30,6 +30,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Hostname:              "foo.example.com",
+			Environment:           "dev",
 			WebReplicas:           intp(2),
 			DaphneReplicas:        intp(2),
 			ChannelWorkerReplicas: intp(2),
@@ -39,6 +40,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		comp := summoncomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
+		Expect(instance.Spec.Environment).To(Equal("dev"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
@@ -105,6 +107,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.Secrets[0]).To(Equal("dev"))
+		Expect(instance.Spec.Secrets[1]).To(Equal("foo"))
 	})
 
 	It("Sets a default Secret for prod", func() {
@@ -113,6 +116,25 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		comp := summoncomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Secrets[0]).To(Equal("foo"))
+		Expect(instance.Spec.Secrets[0]).To(Equal("prod"))
+		Expect(instance.Spec.Secrets[1]).To(Equal("foo"))
+	})
+
+	It("Sets a default environment with summon prefix", func() {
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		comp := summoncomponents.NewDefaults()
+		instance.Namespace = "summon-dev"
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instance.Spec.Environment).To(Equal("dev"))
+	})
+
+	It("Sets a default environment without the summon prefix", func() {
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		comp := summoncomponents.NewDefaults()
+		instance.Namespace = "dev"
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instance.Spec.Environment).To(Equal("dev"))
 	})
 })
