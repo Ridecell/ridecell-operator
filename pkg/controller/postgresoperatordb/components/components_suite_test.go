@@ -36,7 +36,7 @@ var ctx *components.ComponentContext
 func TestTemplates(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "PostgresOperatorDatabase Components Suite")
+	ginkgo.RunSpecs(t, "PostgresOperatorDatabase Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {

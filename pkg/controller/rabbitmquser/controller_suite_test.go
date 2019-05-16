@@ -31,7 +31,7 @@ var testHelpers *test_helpers.TestHelpers
 
 func TestController(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "RabbitMQ User controller Suite")
+	ginkgo.RunSpecs(t, "RabbitMQ User controller Suite @rabbitmq")
 }
 
 var _ = ginkgo.BeforeSuite(func() {

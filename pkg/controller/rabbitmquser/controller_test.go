@@ -31,7 +31,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
-var _ = Describe("RabbitmqUser controller @rabbitmq", func() {
+var _ = Describe("RabbitmqUser controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var user *dbv1beta1.RabbitmqUser
 

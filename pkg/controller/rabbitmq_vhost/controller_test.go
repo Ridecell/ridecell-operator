@@ -30,7 +30,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
-var _ = Describe("RabbitmqVhost controller @rabbitmq", func() {
+var _ = Describe("RabbitmqVhost controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var rabbitmqvhost *dbv1beta1.RabbitmqVhost
 
