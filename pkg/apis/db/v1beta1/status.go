@@ -46,6 +46,32 @@ func (po *PostgresOperatorDatabase) SetErrorStatus(errorMsg string) {
 	po.Status.Message = errorMsg
 }
 
+func (pe *RabbitmqVhost) GetStatus() components.Status {
+	return pe.Status
+}
+
+func (pe *RabbitmqVhost) SetStatus(status components.Status) {
+	pe.Status = status.(RabbitmqVhostStatus)
+}
+
+func (pe *RabbitmqVhost) SetErrorStatus(errorMsg string) {
+	pe.Status.Status = StatusError
+	pe.Status.Message = errorMsg
+}
+
+func (pe *RabbitmqUser) GetStatus() components.Status {
+	return pe.Status
+}
+
+func (pe *RabbitmqUser) SetStatus(status components.Status) {
+	pe.Status = status.(RabbitmqUserStatus)
+}
+
+func (pe *RabbitmqUser) SetErrorStatus(errorMsg string) {
+	pe.Status.Status = StatusError
+	pe.Status.Message = errorMsg
+}
+
 func (rds *RDSInstance) GetStatus() components.Status {
 	return rds.Status
 }

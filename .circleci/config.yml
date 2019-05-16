@@ -5,7 +5,7 @@ jobs:
     - image: circleci/golang:1
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      GINKGO_ARGS: -skip '@(postgres|aws)'
+      GINKGO_ARGS: -skip '@(postgres|aws|rds|rabbitmq)'
     steps:
     - checkout
     - restore_cache:
@@ -114,6 +114,32 @@ jobs:
         when: always
         no_output_timeout: 15m
 
+  test_rabbitmq:
+    docker:
+    - image: circleci/golang:1
+    - image: rabbitmq:3-management-alpine
+      environment:
+        RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 256Mi
+    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      RABBITMQ_URI: http://guest:guest@localhost:15672
+      GINKGO_ARGS: -focus @rabbitmq
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - v1-vendor-{{ checksum "Gopkg.lock" }}
+        - v1-vendor
+    - run: echo "export RAND_OWNER_PREFIX=$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
+    - run: sudo mkdir /usr/local/kubebuilder/
+    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
+    - run: make dep test
+    - run: mkdir workspace workspace/cover && cp gover.coverprofile workspace/cover/test_rabbitmq.coverprofile
+    - persist_to_workspace:
+        root: workspace
+        paths:
+        - cover/test_rabbitmq.coverprofile
+
   coveralls:
     docker:
     - image: circleci/golang:1
@@ -173,18 +199,23 @@ workflows:
     - test_rds:
         requires:
         - test
+    - test_rabbitmq:
+        requires:
+        - test
     - coveralls:
         requires:
         - test
         - test_postgres
         - test_aws
         - test_rds
+        - test_rabbitmq
     - build:
         requires:
         - test
         - test_postgres
         - test_aws
         - test_rds
+        - test_rabbitmq
     - deploy:
         requires:
         - build

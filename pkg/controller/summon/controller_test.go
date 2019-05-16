@@ -132,6 +132,28 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Create(accessKey)
 
+		// Create fake rmq creds from rabbitmquser controller
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		c.Create(rmqSecret)
+
+		// Set the rmq vhost to ready.
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		c.EventuallyGet(helpers.Name("foo"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "foo-user",
+				Vhost:    "foo",
+			},
+		}
+		c.Status().Update(rmqVhost)
+
 		// Set the status of the DB to ready.
 		db.Status.Status = dbv1beta1.StatusReady
 		db.Status.Connection = dbv1beta1.PostgresConnection{
@@ -217,6 +239,16 @@ var _ = Describe("Summon controller", func() {
 		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
 
+		// Create fake rmq creds from rabbitmquser controller
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		err = c.Create(context.TODO(), rmqSecret)
+		Expect(err).NotTo(HaveOccurred())
+
 		// Set the status of PullSecret to ready.
 		pullsecret := &secretsv1beta1.PullSecret{}
 		Eventually(func() error {
@@ -245,6 +277,19 @@ var _ = Describe("Summon controller", func() {
 		}
 		err = c.Status().Update(context.TODO(), db)
 		Expect(err).NotTo(HaveOccurred())
+
+		// Set the rmq vhost to ready.
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		helpers.TestClient.EventuallyGet(helpers.Name("foo"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "foo-user",
+				Vhost:    "foo",
+			},
+		}
+		helpers.TestClient.Status().Update(rmqVhost)
 
 		// Fetch the Deployment and check the initial label.
 		deploy := &appsv1.Deployment{}
@@ -320,6 +365,17 @@ var _ = Describe("Summon controller", func() {
 		}
 		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
+
+		// Create fake rmq creds from rabbitmquser controller
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		err = c.Create(context.TODO(), rmqSecret)
+
+		Expect(err).NotTo(HaveOccurred())
 		inSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
 			StringData: map[string]string{},
@@ -367,6 +423,19 @@ var _ = Describe("Summon controller", func() {
 		pullSecret.Status.Status = secretsv1beta1.StatusReady
 		err = c.Status().Update(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
+
+		// Set the rmq vhost to ready.
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		helpers.TestClient.EventuallyGet(helpers.Name("statustester"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "statustester-user",
+				Vhost:    "statustester",
+			},
+		}
+		helpers.TestClient.Status().Update(rmqVhost)
 
 		// Check the status again. Should be Migrating.
 		assertStatus(summonv1beta1.StatusMigrating)

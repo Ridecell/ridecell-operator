@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,27 +22,30 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type defaultsComponent struct{}
+type userComponent struct{}
 
-func NewDefaults() *defaultsComponent {
-	return &defaultsComponent{}
+func NewUser() *userComponent {
+	return &userComponent{}
 }
 
-func (_ *defaultsComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
-}
-
-func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool {
-	return true
-}
-
-func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
-
-	// Fill in defaults.
-	if instance.Spec.VhostName == "" {
-		// Default extension name is just the name of the resource.
-		instance.Spec.VhostName = instance.Name
+func (_ *userComponent) WatchTypes() []runtime.Object {
+	return []runtime.Object{
+		&dbv1beta1.RabbitmqUser{},
 	}
-	return components.Result{}, nil
+}
+
+func (_ *userComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
+	return !instance.Spec.SkipUser
+}
+
+func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	res, _, err := ctx.CreateOrUpdate("rabbitmq_user.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*dbv1beta1.RabbitmqUser)
+		existing := existingObj.(*dbv1beta1.RabbitmqUser)
+		// Copy the Spec over.
+		existing.Spec = goal.Spec
+		return nil
+	})
+	return res, err
 }

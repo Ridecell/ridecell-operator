@@ -20,16 +20,27 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("RabbitmqVhost Defaults Component", func() {
+	comp := rmqvcomponents.NewDefaults()
+
+	BeforeEach(func() {
+		comp = rmqvcomponents.NewDefaults()
+	})
+
+	It("fills in a default vhost name", func() {
+		instance.Spec = dbv1beta1.RabbitmqVhostSpec{}
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.VhostName).To(Equal("foo"))
+	})
+
 	It("does nothing on a filled out object", func() {
-		comp := rmqvcomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.VhostName).To(Equal(instance.Name))
-		Expect(instance.Spec.Connection.Username).To(Equal("guest"))
-		Expect(instance.Spec.Connection.InsecureSkip).To(Equal(false))
+		instance.Spec = dbv1beta1.RabbitmqVhostSpec{VhostName: "other"}
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.VhostName).To(Equal("other"))
 	})
 })

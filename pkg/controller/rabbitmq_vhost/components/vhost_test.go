@@ -17,88 +17,137 @@ limitations under the License.
 package components_test
 
 import (
+	rabbithole "github.com/michaelklishin/rabbit-hole"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/michaelklishin/rabbit-hole"
-	"net/http"
-
-	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
+	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_rabbitmq"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-type fakeRabbitClient struct {
-	rmqvcomponents.RabbitMQManager
-	FakeClient    *rabbithole.Client
-	FakeVhostList []rabbithole.VhostInfo
-}
-
-func (frc *fakeRabbitClient) ListVhosts() ([]rabbithole.VhostInfo, error) {
-	return frc.FakeVhostList, nil
-}
-
-func (frc *fakeRabbitClient) PutVhost(vhostname string, settings rabbithole.VhostSettings) (*http.Response, error) {
-	var vhost_exists bool
-	for _, element := range frc.FakeVhostList {
-		if element.Name == vhostname {
-			vhost_exists = true
-		}
-	}
-	if !vhost_exists {
-		frc.FakeVhostList = append(frc.FakeVhostList, rabbithole.VhostInfo{Name: vhostname, Tracing: false})
-		return &http.Response{StatusCode: 201}, nil
-	}
-	return &http.Response{StatusCode: 200}, nil
-}
-
 var _ = Describe("RabbitmqVhost Vhost Component", func() {
+	comp := rmqvcomponents.NewVhost()
+	var frc *fake_rabbitmq.FakeRabbitClient
+	spec1 := dbv1beta1.RabbitmqVhostSpec{
+		VhostName: "rabbitmq-test",
+		SkipUser:  false,
+		Policies: map[string]dbv1beta1.RabbitmqPolicy{
+			"p1": dbv1beta1.RabbitmqPolicy{
+				Pattern:  "^amq\\.",
+				ApplyTo:  "queues",
+				Priority: 1,
+				Definition: `
+                      federation-upstream-set: all
+                      ha-mode: all
+                      `,
+			},
+		},
+	}
 	BeforeEach(func() {
-		// Set password in secrets
-		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "admin.foo-rabbitmq.credentials", Namespace: "default"},
-			Data: map[string][]byte{
-				"password": []byte("secretrabbitmqpass"),
+		user1 := &dbv1beta1.RabbitmqUser{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+			Status: dbv1beta1.RabbitmqUserStatus{
+				Status: dbv1beta1.StatusReady,
+				Connection: dbv1beta1.RabbitmqStatusConnection{
+					Username: "foo-user",
+					PasswordSecretRef: helpers.SecretRef{
+						Name: "foo.rabbitmq-user-password",
+						Key:  "password",
+					},
+				},
 			},
 		}
-		ctx.Client = fake.NewFakeClient(dbSecret)
+		user2 := &dbv1beta1.RabbitmqUser{
+			ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "default"},
+			Status: dbv1beta1.RabbitmqUserStatus{
+				Status: "",
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(instance, user1, user2)
+
+		comp = rmqvcomponents.NewVhost()
+		frc = fake_rabbitmq.New()
+		comp.InjectClientFactory(frc.Factory)
 	})
 
-	It("Reconcile with empty parameters", func() {
-		comp := rmqvcomponents.NewVhost()
-		instance.Spec.VhostName = ""
-		instance.Spec.Connection.Password.Key = ""
-		instance.Spec.Connection.Username = ""
-		instance.Spec.Connection.Host = ""
-		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
-			var mgr rmqvcomponents.RabbitMQManager = &fakeRabbitClient{}
-			return mgr, nil
-		}
-		comp.InjectFakeNewTLSClient(fakeFunc)
+	It("creates a new vhost if it does not exist", func() {
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(frc.Vhosts).To(HaveLen(1))
+		Expect(frc.Vhosts[0].Name).To(Equal("foo"))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+		Expect(instance.Status.Connection.Host).To(Equal("mockhost"))
+		Expect(instance.Status.Connection.Username).To(Equal("foo-user"))
+		Expect(instance.Status.Connection.Vhost).To(Equal("foo"))
 	})
-	It("Create new vhost if it does not exist", func() {
-		comp := rmqvcomponents.NewVhost()
-		mgr := &fakeRabbitClient{}
-		fakeFunc := func(uri string, user string, pass string, t *http.Transport) (rmqvcomponents.RabbitMQManager, error) {
-			fclient := &rabbithole.Client{Endpoint: uri, Username: user, Password: pass}
-			mgr.FakeClient = fclient
-			mgr.FakeVhostList = []rabbithole.VhostInfo{}
-			return mgr, nil
-		}
-		comp.InjectFakeNewTLSClient(fakeFunc)
+
+	It("does not create a new vhost if it exists already", func() {
+		frc.Vhosts = append(frc.Vhosts, rabbithole.VhostInfo{Name: "foo"})
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(mgr.FakeVhostList).To(HaveLen(1))
+		Expect(frc.Vhosts).To(HaveLen(1))
+		Expect(frc.Vhosts[0].Name).To(Equal("foo"))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+		Expect(instance.Status.Connection.Host).To(Equal("mockhost"))
+		Expect(instance.Status.Connection.Username).To(Equal("foo-user"))
+		Expect(instance.Status.Connection.Vhost).To(Equal("foo"))
 	})
-	It("Fails to connect to unavailable rabbitmq host", func() {
-		comp := rmqvcomponents.NewVhost()
-		Expect(comp).ToNot(ReconcileContext(ctx))
+
+	It("does not report ready if the user is not ready", func() {
+		instance.Name = "bar"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Status.Status).To(Equal(""))
 	})
-	It("Fails to create a rabbithole Client", func() {
-		comp := rmqvcomponents.NewVhost()
-		instance.Spec.Connection.Host = "htt://127.0.0.1:80"
-		Expect(comp).ToNot(ReconcileContext(ctx))
+
+	It("does report ready if the user is not ready and SkipUser is enabled", func() {
+		instance.Name = "bar"
+		instance.Spec.SkipUser = true
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+	})
+	It("creates a policy for rabbitmqvhost", func() {
+		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
+	})
+	It("removes unwanted policies for vhost", func() {
+		policy := rabbithole.Policy{}
+		policy.ApplyTo = "exchanges"
+		policy.Name = "rabbitmq-test-p2"
+		policy.Definition = map[string]interface{}{
+			"federation-upstream-set": "all",
+			"ha-mode":                 "all",
+		}
+		policy.Priority = 1
+		policy.Vhost = "rabbitmq-test"
+		policy.Pattern = "^amq\\."
+		frc.Policies["rabbitmq-test"] = map[string]rabbithole.Policy{
+			policy.Name: policy,
+		}
+		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
+	})
+	It("updates existing policy for vhost", func() {
+		policy := rabbithole.Policy{}
+		policy.ApplyTo = "exchanges"
+		policy.Name = "rabbitmq-test-p1"
+		policy.Definition = map[string]interface{}{
+			"federation-upstream-set": "all",
+		}
+		policy.Priority = 2
+		policy.Vhost = "rabbitmq-test"
+		policy.Pattern = "^amq\\."
+		frc.Policies["rabbitmq-test"] = map[string]rabbithole.Policy{
+			policy.Name: policy,
+		}
+		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(frc.Policies["rabbitmq-test"]).To(HaveLen(1))
+		Expect(frc.Policies["rabbitmq-test"]["rabbitmq-test-p1"].Priority).Should(BeEquivalentTo(1))
 	})
 })

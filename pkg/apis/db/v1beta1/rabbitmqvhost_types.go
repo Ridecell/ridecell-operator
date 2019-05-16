@@ -20,16 +20,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type RabbitmqPolicy struct {
+	// Regular expression pattern used to match queues and exchanges,
+	// , e.g. "^ha\..+"
+	Pattern string `json:"pattern"`
+	// What this policy applies to: "queues", "exchanges", etc.
+	ApplyTo string `json:"apply-to,omitempty"`
+	// Numeric priority of this policy.
+	Priority int `json:"priority,omitempty"`
+	// Additional arguments added to the entities (queues,
+	// exchanges or both) that match a policy
+	Definition string `json:"definition"`
+}
+
 // RabbitmqVhostSpec defines the desired state of RabbitmqVhost
 type RabbitmqVhostSpec struct {
-	VhostName  string             `json:"vhostName,omitempty"`
-	Connection RabbitmqConnection `json:"connection"`
+	VhostName  string                    `json:"vhostName,omitempty"`
+	SkipUser   bool                      `json:"skipUser,omitempty"`
+	Policies   map[string]RabbitmqPolicy `json:"policies,omitempty"`
+	Connection RabbitmqConnection        `json:"connection,omitempty"`
 }
 
 // RabbitmqVhostStatus defines the observed state of RabbitmqVhost
 type RabbitmqVhostStatus struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status     string                   `json:"status"`
+	Message    string                   `json:"message"`
+	Connection RabbitmqStatusConnection `json:"connection,omitempty"`
 }
 
 // +genclient

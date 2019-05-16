@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc.
+Copyright 2019-2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 package components
 
 import (
+	//"fmt"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,12 +38,10 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
-
-	// Fill in defaults.
-	if instance.Spec.VhostName == "" {
-		// Default extension name is just the name of the resource.
-		instance.Spec.VhostName = instance.Name
+	instance := ctx.Top.(*dbv1beta1.RabbitmqUser)
+	if instance.Spec.Username == "" {
+		// Default rabbitmq user is just the name of the resource.
+		instance.Spec.Username = instance.Name
 	}
 	return components.Result{}, nil
 }

@@ -17,17 +17,18 @@ limitations under the License.
 package components_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost"
 )
 
 var instance *dbv1beta1.RabbitmqVhost
@@ -36,13 +37,18 @@ var ctx *components.ComponentContext
 func TestTemplates(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "RabbitmqVhost Components Suite")
+	ginkgo.RunSpecs(t, "RabbitmqVhost Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &dbv1beta1.RabbitmqVhost{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Spec: dbv1beta1.RabbitmqVhostSpec{
+			VhostName: "foo",
+		},
 	}
-	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
+	ctx = components.NewTestContext(instance, rabbitmq_vhost.Templates)
+
+	os.Setenv("RABBITMQ_URI", "https://guest:guest@rabbitmq-prod:5671")
 })

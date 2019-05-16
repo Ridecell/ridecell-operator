@@ -19,24 +19,24 @@ package components_test
 import (
 	"time"
 
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("app_secrets Component", func() {
-	var inSecret, postgresSecret, fernetKeys, secretKey, accessKey *corev1.Secret
+	var inSecret, postgresSecret, fernetKeys, rabbitmqPassword, secretKey, accessKey *corev1.Secret
+	var rabbitmqVhost *dbv1beta1.RabbitmqVhost
 	var comp components.Component
 
 	BeforeEach(func() {
@@ -88,7 +88,26 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey)
+		rabbitmqPassword = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("rabbitmqpassword"),
+			},
+		}
+
+		rabbitmqVhost = &dbv1beta1.RabbitmqVhost{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+			Status: dbv1beta1.RabbitmqVhostStatus{
+				Status: dbv1beta1.StatusReady,
+				Connection: dbv1beta1.RabbitmqStatusConnection{
+					Host:     "rabbitmqserver",
+					Username: "foo-user",
+					Vhost:    "foo",
+				},
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
 		comp = summoncomponents.NewAppSecret()
 	})
 
@@ -102,13 +121,13 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("Run reconcile without a postgres password", func() {
-		ctx.Client = fake.NewFakeClient(inSecret, fernetKeys, secretKey, accessKey)
+		ctx.Client = fake.NewFakeClient(inSecret, fernetKeys, secretKey, accessKey, rabbitmqVhost)
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 
 	It("Run reconcile with a blank postgres password", func() {
 		delete(postgresSecret.Data, "password")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("app_secrets: Postgres password not found in secret"))
 	})
@@ -127,7 +146,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://foo_qa:postgresPassword@summon-qa-database/foo_qa"))
 		Expect(parsedYaml["OUTBOUNDSMS_URL"]).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo.ridecell.us/sms/receive/"))
-		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("redis://foo-redis/2"))
+		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-user:rabbitmqpassword@rabbitmqserver/foo?ssl=true"))
 		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
 		Expect(parsedYaml["AWS_ACCESS_KEY_ID"]).To(Equal("testid"))
 		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(Equal("testkey"))
@@ -159,7 +178,8 @@ var _ = Describe("app_secrets Component", func() {
 		addKey("-3h", "3")
 		addKey("-4h", "4")
 		addKey("-5h", "5")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey)
+		addKey("-6h", "6")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
 
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -173,11 +193,11 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(parsedYaml.Keys).To(Equal([]string{"1", "2", "3", "4", "5"}))
+		Expect(parsedYaml.Keys).To(Equal([]string{"1", "2", "3", "4", "5", "6"}))
 	})
 
 	It("runs reconcile with no secret_key", func() {
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, rabbitmqVhost)
 		res, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError(`app_secrets: error fetching derived app secret foo.secret-key: secrets "foo.secret-key" not found`))
 		Expect(res.Requeue).To(BeTrue())
@@ -204,7 +224,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, fernetKeys, secretKey, accessKey)
+		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}

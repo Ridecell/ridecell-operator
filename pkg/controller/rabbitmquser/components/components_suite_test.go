@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2019-2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 package components_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/onsi/ginkgo"
@@ -25,23 +26,26 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
-	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmquser"
 )
 
-var instance *secretsv1beta1.EncryptedSecret
+var instance *dbv1beta1.RabbitmqUser
 var ctx *components.ComponentContext
 
-func TestComponents(t *testing.T) {
+func TestTemplates(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "encryptedsecret Components Suite @unit")
+	ginkgo.RunSpecs(t, "RabbitmqUser Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
-	instance = &secretsv1beta1.EncryptedSecret{
+	instance = &dbv1beta1.RabbitmqUser{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 	}
-	ctx = components.NewTestContext(instance, nil)
+	ctx = components.NewTestContext(instance, rabbitmquser.Templates)
+
+	os.Setenv("RABBITMQ_URI", "https://guest:guest@rabbitmq-prod:5671")
 })

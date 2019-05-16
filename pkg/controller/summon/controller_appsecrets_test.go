@@ -83,6 +83,32 @@ var _ = Describe("Summon controller appsecrets", func() {
 		return secret
 	}
 
+	createRmqSecret := func() *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		helpers.TestClient.Create(secret)
+		return secret
+	}
+
+	updateRmqVhost := func() *dbv1beta1.RabbitmqVhost {
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		helpers.TestClient.EventuallyGet(helpers.Name("appsecretstest"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "appsecretstest-user",
+				Vhost:    "appsecretstest",
+			},
+		}
+		helpers.TestClient.Status().Update(rmqVhost)
+		return rmqVhost
+	}
+
 	createInstance := func() {
 		instance.Spec.Secrets = []string{"testsecret"}
 		helpers.TestClient.Create(instance)
@@ -146,9 +172,11 @@ var _ = Describe("Summon controller appsecrets", func() {
 		createInputSecret()
 		createAwsSecret()
 		createDbSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Get the output app secrets.
 		appSecret := &corev1.Secret{}
@@ -159,6 +187,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		err := yaml.Unmarshal(appSecret.Data["summon-platform.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data["DATABASE_URL"]).To(Equal("postgis://summon:secretdbpass@appsecretstest-database/summon"))
+		Expect(data["CELERY_BROKER_URL"]).To(Equal("pyamqp://appsecretstest-user:secretrabbitpass@rabbitmqserver/appsecretstest?ssl=true"))
 		Expect(data["TOKEN"]).To(Equal("secrettoken"))
 	})
 
@@ -168,9 +197,11 @@ var _ = Describe("Summon controller appsecrets", func() {
 		// Create some of the input secrets.
 		createInputSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Create the DB secret later than where it would normally be created.
 		time.Sleep(2 * time.Second)
@@ -194,9 +225,11 @@ var _ = Describe("Summon controller appsecrets", func() {
 		createInputSecret()
 		dbSecret := createDbSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Change the DB secret
 		time.Sleep(10 * time.Second)
@@ -214,9 +247,11 @@ var _ = Describe("Summon controller appsecrets", func() {
 		// Create some of the input secrets.
 		createDbSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Check the status.
 		c.EventuallyGet(helpers.Name("appsecretstest"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
@@ -229,9 +264,11 @@ var _ = Describe("Summon controller appsecrets", func() {
 		inputSecret := createInputSecret()
 		createDbSecret()
 		createAwsSecret()
+		createRmqSecret()
 
 		// Create the instance.
 		createInstance()
+		updateRmqVhost()
 
 		// Change the DB secret
 		time.Sleep(10 * time.Second)
