@@ -73,7 +73,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		// Is our finalizer attached to the object?
 		if !helpers.ContainsFinalizer(iamUserFinalizer, instance) {
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(iamUserFinalizer, instance)
-			err := ctx.Update(ctx.Context, instance.DeepCopy())
+			err := ctx.Update(ctx.Context, instance)
 			if err != nil {
 				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while adding finalizer")
 			}
