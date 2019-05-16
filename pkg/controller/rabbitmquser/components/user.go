@@ -25,9 +25,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 	"github.com/michaelklishin/rabbit-hole"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 type userComponent struct {
@@ -52,12 +50,6 @@ func (_ *userComponent) IsReconcilable(_ *components.ComponentContext) bool {
 
 func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RabbitmqUser)
-	secretName := instance.Status.Connection.PasswordSecretRef.Name
-	secretKey := instance.Status.Connection.PasswordSecretRef.Key
-
-	if secretName == "" || secretKey == "" {
-		return components.Result{}, errors.New("Secret name or key not set in status.")
-	}
 
 	// Connect to the rabbitmq cluster
 	rmqc, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.ClientFactory)
@@ -65,14 +57,9 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 		return components.Result{}, errors.Wrapf(err, "error creating rabbitmq client")
 	}
 
-	secret := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
+	userPassword, err := instance.Status.Connection.PasswordSecretRef.Resolve(ctx, "password")
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "rabbitmq: Unable to load password secret %s/%s", instance.Namespace, secretName)
-	}
-	userPassword, ok := secret.Data[secretKey]
-	if !ok {
-		return components.Result{}, errors.Errorf("rabbitmq: Password secret %s/%s has no key \"%s\"", instance.Namespace, secretName, secretKey)
+		return components.Result{}, errors.Wrap(err, "user: error getting user password")
 	}
 
 	resp, err := rmqc.PutUser(instance.Spec.Username, rabbithole.UserSettings{Password: string(userPassword), Tags: instance.Spec.Tags})
