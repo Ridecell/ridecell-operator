@@ -60,6 +60,8 @@ type SummonPlatformSpec struct {
 	// Hostname to use for the instance. Defaults to $NAME.ridecell.us.
 	// +optional
 	Hostname string `json:"hostname,omitempty"`
+	// Hostname aliases (for vanity purposes)
+	Aliases []string `json:"aliases,omitempty"`
 	// Summon image version to deploy.
 	Version string `json:"version"`
 	// Name of the secret to use for secret values.
