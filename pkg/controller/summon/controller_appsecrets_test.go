@@ -103,6 +103,10 @@ var _ = Describe("Summon controller appsecrets", func() {
 				Host:     "rabbitmqserver",
 				Username: "appsecretstest-user",
 				Vhost:    "appsecretstest",
+				PasswordSecretRef: apihelpers.SecretRef{
+					Name: "appsecretstest.rabbitmq-user-password",
+					Key:  "password",
+				},
 			},
 		}
 		helpers.TestClient.Status().Update(rmqVhost)

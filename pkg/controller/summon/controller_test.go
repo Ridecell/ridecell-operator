@@ -60,7 +60,7 @@ var _ = Describe("Summon controller", func() {
 	AfterEach(func() {
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
-			helpers.DebugList(&summonv1beta1.SummonPlatform{})
+			helpers.DebugList(&summonv1beta1.SummonPlatformList{})
 		}
 		helpers.TeardownTest()
 	})
@@ -154,6 +154,10 @@ var _ = Describe("Summon controller", func() {
 				Host:     "rabbitmqserver",
 				Username: "foo-user",
 				Vhost:    "foo",
+				PasswordSecretRef: apihelpers.SecretRef{
+					Name: "foo.postgres-user-password",
+					Key:  "password",
+				},
 			},
 		}
 		c.Status().Update(rmqVhost)
@@ -291,6 +295,10 @@ var _ = Describe("Summon controller", func() {
 				Host:     "rabbitmqserver",
 				Username: "foo-user",
 				Vhost:    "foo",
+				PasswordSecretRef: apihelpers.SecretRef{
+					Name: "foo.rabbitmq-user-password",
+					Key:  "password",
+				},
 			},
 		}
 		helpers.TestClient.Status().Update(rmqVhost)
@@ -437,6 +445,10 @@ var _ = Describe("Summon controller", func() {
 				Host:     "rabbitmqserver",
 				Username: "statustester-user",
 				Vhost:    "statustester",
+				PasswordSecretRef: apihelpers.SecretRef{
+					Name: "statustester.rabbitmq-user-password",
+					Key:  "password",
+				},
 			},
 		}
 		helpers.TestClient.Status().Update(rmqVhost)
