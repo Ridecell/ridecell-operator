@@ -36,7 +36,6 @@ import (
 
 var _ = Describe("app_secrets Component", func() {
 	var inSecret, postgresSecret, fernetKeys, rabbitmqPassword, secretKey, accessKey *corev1.Secret
-	var rabbitmqVhost *dbv1beta1.RabbitmqVhost
 	var comp components.Component
 
 	BeforeEach(func() {
@@ -47,6 +46,16 @@ var _ = Describe("app_secrets Component", func() {
 			Database: "foo_qa",
 			PasswordSecretRef: helpers.SecretRef{
 				Name: "foo-qa.postgres-user-password",
+				Key:  "password",
+			},
+		}
+		instance.Status.RabbitMQStatus = dbv1beta1.StatusReady
+		instance.Status.RabbitMQConnection = dbv1beta1.RabbitmqStatusConnection{
+			Host:     "rabbitmqserver",
+			Username: "foo-user",
+			Vhost:    "foo",
+			PasswordSecretRef: helpers.SecretRef{
+				Name: "foo.rabbitmq-user-password",
 				Key:  "password",
 			},
 		}
@@ -95,19 +104,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		rabbitmqVhost = &dbv1beta1.RabbitmqVhost{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-			Status: dbv1beta1.RabbitmqVhostStatus{
-				Status: dbv1beta1.StatusReady,
-				Connection: dbv1beta1.RabbitmqStatusConnection{
-					Host:     "rabbitmqserver",
-					Username: "foo-user",
-					Vhost:    "foo",
-				},
-			},
-		}
-
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		comp = summoncomponents.NewAppSecret()
 	})
 
@@ -121,13 +118,13 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("Run reconcile without a postgres password", func() {
-		ctx.Client = fake.NewFakeClient(inSecret, fernetKeys, secretKey, accessKey, rabbitmqVhost)
+		ctx.Client = fake.NewFakeClient(inSecret, fernetKeys, secretKey, accessKey)
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 
 	It("Run reconcile with a blank postgres password", func() {
 		delete(postgresSecret.Data, "password")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("app_secrets: Postgres password not found in secret"))
 	})
@@ -179,7 +176,7 @@ var _ = Describe("app_secrets Component", func() {
 		addKey("-4h", "4")
 		addKey("-5h", "5")
 		addKey("-6h", "6")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -197,7 +194,7 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("runs reconcile with no secret_key", func() {
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, rabbitmqVhost)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys)
 		res, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError(`app_secrets: error fetching derived app secret foo.secret-key: secrets "foo.secret-key" not found`))
 		Expect(res.Requeue).To(BeTrue())
@@ -224,7 +221,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword, rabbitmqVhost)
+		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
