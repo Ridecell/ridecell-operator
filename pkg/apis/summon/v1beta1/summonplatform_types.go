@@ -140,6 +140,10 @@ type SummonPlatformStatus struct {
 	PostgresStatus     string                       `json:"postgresStatus,omitempty"`
 	PostgresConnection dbv1beta1.PostgresConnection `json:"postgresConnection,omitempty"`
 
+	// Current RabbitMQ status if one exists.
+	RabbitMQStatus     string                             `json:"rabbitmqStatus,omitempty"`
+	RabbitMQConnection dbv1beta1.RabbitmqStatusConnection `json:"rabbitmqConnection,omitempty"`
+
 	// Previous version for which migrations ran successfully.
 	// +optional
 	MigrateVersion string `json:"migrateVersion,omitempty"`
