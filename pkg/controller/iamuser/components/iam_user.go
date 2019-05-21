@@ -75,7 +75,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(iamUserFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while adding finalizer")
+				return components.Result{}, errors.Wrapf(err, "iamuser: failed to update instance while adding finalizer")
 			}
 			return components.Result{Requeue: true}, nil
 		}
@@ -89,7 +89,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(iamUserFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while removing finalizer")
+				return components.Result{}, errors.Wrapf(err, "iamuser: failed to update instance while removing finalizer")
 			}
 			return components.Result{}, nil
 		}
