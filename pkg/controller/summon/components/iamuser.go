@@ -57,7 +57,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}
 	match := regexp.MustCompile(`:([0-9]{6,}):`).FindStringSubmatch(permissionsBoundaryArn)
 	if match == nil {
-		return components.Result{}, errors.Errorf("unable to get account id from boundary arn")
+		return components.Result{}, errors.Errorf("iamuser: unable to get account id from boundary arn")
 	}
 	accountID := match[1]
 
