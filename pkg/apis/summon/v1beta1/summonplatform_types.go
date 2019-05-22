@@ -61,6 +61,7 @@ type SummonPlatformSpec struct {
 	// +optional
 	Hostname string `json:"hostname,omitempty"`
 	// Hostname aliases (for vanity purposes)
+	// +optional
 	Aliases []string `json:"aliases,omitempty"`
 	// Summon image version to deploy.
 	Version string `json:"version"`

@@ -54,4 +54,16 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-daphne", Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	It("creates an ingress object with rules for given aliases using web template", func() {
+		instance.Spec.Aliases = []string{"foo-1.ridecell.us", "foo-2.ridecell.us"}
+		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &k8sv1beta1.Ingress{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(target.Spec.Rules).To(HaveKeyWithValue("host", "foo.ridecell.us"))
+		Expect(target.Spec.Rules).To(HaveKeyWithValue("host", "foo-1.ridecell.us"))
+		Expect(target.Spec.Rules).To(HaveKeyWithValue("host", "foo-2.ridecell.us"))
+	})
 })
