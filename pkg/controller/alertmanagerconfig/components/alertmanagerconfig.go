@@ -54,23 +54,23 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	instance := ctx.Top.(*monitoringv1beta1.AlertManagerConfig)
 	defaultConfigSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{
-		Name:      instance.Spec.AlertManagerName,
+		Name:      fmt.Sprintf("%s-default", instance.Spec.AlertManagerName),
 		Namespace: instance.Spec.AlertManagerNamespace}, defaultConfigSecret)
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "Failed to get default config")
+		return components.Result{}, errors.Wrapf(err, "Failed to get default AlertManagerConfig")
 	}
 	// verify default config
 	defaultConfig, err := alertconfig.Load(string(defaultConfigSecret.Data["alertmanager.yaml"][:]))
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "Look like default config in bad format.")
+		return components.Result{}, errors.Wrapf(err, "Looks like default config in bad format.")
 	}
-	// Get all alermanagerconfig kind  with AlertManagerName filter
+	// Get all AlertManagerConfig's
 	alertList := &monitoringv1beta1.AlertManagerConfigList{}
 	err = ctx.List(ctx.Context, &client.ListOptions{}, alertList)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "failed to list alermanagerconfig.")
 	}
-	// Merge  alertconfig in in default config
+	// Merge  all AlertManagerConfig's
 	for _, config := range alertList.Items {
 		var route, receiver, inhibitRule []byte
 		routetype := &alertconfig.Route{}
@@ -84,7 +84,7 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 			errRe := yaml.Unmarshal(receiver, receivertype)
 			errIn := yaml.Unmarshal(inhibitRule, inhibitRuletype)
 			if errRo != nil || errRe != nil || errIn != nil {
-				glog.Errorf("failed  load yaml for %s in %s", config.Name, config.Namespace)
+				glog.Errorf("failed to load yaml for %s in %s", config.Name, config.Namespace)
 				continue
 			}
 			defaultConfig.Route.Routes = append(defaultConfig.Route.Routes, routetype)
