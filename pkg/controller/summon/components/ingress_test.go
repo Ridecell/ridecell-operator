@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -30,7 +31,6 @@ import (
 )
 
 var _ = Describe("SummonPlatform ingress Component", func() {
-
 	It("creates an ingress object using web template", func() {
 		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
@@ -62,8 +62,13 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		target := &k8sv1beta1.Ingress{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(target.Spec.Rules).To(HaveKeyWithValue("host", "foo.ridecell.us"))
-		Expect(target.Spec.Rules).To(HaveKeyWithValue("host", "foo-1.ridecell.us"))
-		Expect(target.Spec.Rules).To(HaveKeyWithValue("host", "foo-2.ridecell.us"))
+
+		for _, vanityName := range instance.Spec.Aliases {
+			vanityRule := &k8sv1beta1.IngressRule{
+				Host:             vanityName,
+				IngressRuleValue: target.Spec.Rules[0].IngressRuleValue,
+			}
+			Expect(target.Spec.Rules).To(ContainElement(vanityRule))
+		}
 	})
 })
