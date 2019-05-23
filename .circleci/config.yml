@@ -70,6 +70,7 @@ jobs:
     - run: make generate vet
     # Use a funky grep and xargs thing to speed this up so it doesn't spend time building the non-unit suites.
     - run: grep -l -R @unit cmd pkg | xargs -n 1 dirname | xargs ginkgo -focus @unit --randomizeAllSpecs --randomizeSuites --cover --trace --progress -v -compilers 4
+    - run: gover
     - rc_cleanup:
         cover: unit
     - save_cache:
