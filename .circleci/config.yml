@@ -56,7 +56,7 @@ commands:
         type: string
     steps:
     - rc_setup
-    - make test
+    - run: make test
     - rc_cleanup:
         cover: << parameters.cover >>
         aws: << parameters.aws >>
