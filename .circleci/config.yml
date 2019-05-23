@@ -54,9 +54,14 @@ commands:
         type: boolean
       cover:
         type: string
+      timeout:
+        default: 10m
+        type: string
     steps:
     - rc_setup
-    - run: make test
+    - run:
+        command: make test
+        no_output_timeout: << parameters.timeout >>
     - rc_cleanup:
         cover: << parameters.cover >>
         aws: << parameters.aws >>
@@ -109,6 +114,7 @@ jobs:
     - rc_test:
         cover: rds
         aws: true
+        timeout: 30m
 
   test_rabbitmq:
     executor: rc_test
