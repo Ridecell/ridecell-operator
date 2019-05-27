@@ -175,8 +175,7 @@ jobs:
   coveralls:
     executor: rc_test
     steps:
-    - rc_setup:
-        kubebuilder: false
+    - rc_setup
     - run: make generate
     - run: gover
     - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
@@ -184,8 +183,7 @@ jobs:
   crds:
     executor: rc_test
     steps:
-    - rc_setup:
-        kubebuilder: false
+    - rc_setup
     - run: make manifests
     - persist_to_workspace:
         root: config
