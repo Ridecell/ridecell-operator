@@ -6,7 +6,7 @@ executors:
     - image: circleci/golang:1
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      KUBECONFIG: ./hack/config.yml
+      KUBECONFIG: /go/src/github.com/Ridecell/ridecell-operator/hack/config.yml
 
 commands:
   rc_setup:
