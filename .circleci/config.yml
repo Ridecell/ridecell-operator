@@ -126,7 +126,7 @@ jobs:
     environment:
       GINKGO_ARGS: -focus @rds
     steps:
-    - echo REMOVE ME TESTING ONLY
+    - run: echo REMOVE ME TESTING ONLY
     # - rc_test:
     #     cover: rds
     #     aws: true
