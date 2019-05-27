@@ -5,6 +5,8 @@ executors:
     docker:
     - image: circleci/golang:1
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      KUBECONFIG: ./hack/config.yml
 
 commands:
   rc_setup:
@@ -87,12 +89,25 @@ jobs:
     executor: rc_test
     docker:
     - image: circleci/golang:1
+    - image: quay.io/coreos/etcd:v3.3
+    - image: gcr.io/google-containers/kube-apiserver-amd64:v1.14.2
+      command:
+      - /usr/local/bin/kube-apiserver
+      - --etcd-servers=http://localhost:2379
+      - --cert-dir=.
+      - --admission-control=AlwaysAdmit
+    - image: gcr.io/google-containers/kube-controller-manager-amd64:v1.14.2
+      command:
+      - /usr/local/bin/kube-controller-manager
+      -  --master=http://localhost:8080
+      - --controllers=garbagecollector,namespace
     - image: postgres:11-alpine
       environment:
         POSTGRES_PASSWORD: rootpass
     environment:
       GINKGO_ARGS: -focus @postgres
       POSTGRES_URI: postgres://postgres:rootpass@localhost/postgres
+      USE_EXISTING_CLUSTER: true
     steps:
     - rc_test:
         cover: postgres

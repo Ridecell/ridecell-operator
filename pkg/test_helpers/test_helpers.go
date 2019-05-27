@@ -66,8 +66,9 @@ func New() (*TestHelpers, error) {
 	}
 	crdPath := filepath.Join(callerLine, "..", "..", "..", "config", "crds")
 	helpers.Environment = &envtest.Environment{
-		CRDDirectoryPaths: []string{crdPath},
-		CRDs:              []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
+		CRDDirectoryPaths:  []string{crdPath},
+		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
+		UseExistingCluster: os.Getenv("USE_EXISTING_CLUSTER") == "true",
 	}
 	apis.AddToScheme(scheme.Scheme)
 
