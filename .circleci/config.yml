@@ -1,44 +1,33 @@
 version: 2.1
 
+defaults:
+  etcd: &etcd
+    image: quay.io/coreos/etcd:v3.3
+  kube-apiserver: &kube-apiserver
+    image: gcr.io/google-containers/kube-apiserver-amd64:v1.14.2
+    command:
+    - /usr/local/bin/kube-apiserver
+    - --etcd-servers=http://localhost:2379
+    - --cert-dir=.
+    - --admission-control=AlwaysAdmit
+  kube-controller-manager: &kube-controller-manager
+    image: gcr.io/google-containers/kube-controller-manager-amd64:v1.14.2
+    command:
+    - /usr/local/bin/kube-controller-manager
+    -  --master=http://localhost:8080
+    - --controllers=garbagecollector,namespace
+
 executors:
   rc_test:
-    parameters:
-      control_plane:
-        default: false
-        type: boolean
-      extra:
-        type: string
     docker:
     - image: circleci/golang:1
-    - when:
-        condition: << parameters.control_plane >>
-        docker:
-        - image: quay.io/coreos/etcd:v3.3
-        - image: gcr.io/google-containers/kube-apiserver-amd64:v1.14.2
-          command:
-          - /usr/local/bin/kube-apiserver
-          - --etcd-servers=http://localhost:2379
-          - --cert-dir=.
-          - --admission-control=AlwaysAdmit
-        - image: gcr.io/google-containers/kube-controller-manager-amd64:v1.14.2
-          command:
-          - /usr/local/bin/kube-controller-manager
-          -  --master=http://localhost:8080
-          - --controllers=garbagecollector,namespace
-    - when:
-        condition: << parameters.extra >>
-        docker:
-        - image: << parameters.extra >>
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
       KUBECONFIG: /go/src/github.com/Ridecell/ridecell-operator/hack/config.yml
+      USE_EXISTING_CLUSTER: true
 
 commands:
   rc_setup:
-    parameters:
-      kubebuilder:
-        default: true
-        type: boolean
     steps:
     - checkout
     - restore_cache:
@@ -47,11 +36,6 @@ commands:
         - v1-vendor
     - run: make dep
     - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
-    - when:
-        condition: << parameters.kubebuilder >>
-        steps:
-        - run: sudo mkdir /usr/local/kubebuilder/
-        - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
 
   rc_cleanup:
     parameters:
@@ -97,8 +81,7 @@ jobs:
   test:
     executor: rc_test
     steps:
-    - rc_setup:
-        kubebuilder: false
+    - rc_setup
     - run: make generate vet
     # Use a funky grep and xargs thing to speed this up so it doesn't spend time building the non-unit suites.
     - run: grep -l -R @unit cmd pkg | xargs -n 1 dirname | xargs ginkgo -focus @unit --randomizeAllSpecs --randomizeSuites --cover --trace --progress -v -compilers 4
@@ -111,38 +94,29 @@ jobs:
         - vendor/
 
   test_postgres:
-    executor:
-      name: rc_test
-      control_plane: true
-      extra: postgres:11-alpine
-    # docker:
-    # - image: circleci/golang:1
-    # - image: quay.io/coreos/etcd:v3.3
-    # - image: gcr.io/google-containers/kube-apiserver-amd64:v1.14.2
-    #   command:
-    #   - /usr/local/bin/kube-apiserver
-    #   - --etcd-servers=http://localhost:2379
-    #   - --cert-dir=.
-    #   - --admission-control=AlwaysAdmit
-    # - image: gcr.io/google-containers/kube-controller-manager-amd64:v1.14.2
-    #   command:
-    #   - /usr/local/bin/kube-controller-manager
-    #   -  --master=http://localhost:8080
-    #   - --controllers=garbagecollector,namespace
-    # - image: postgres:11-alpine
-    #   environment:
-    #     POSTGRES_PASSWORD: rootpass
+    executor: rc_test
+    docker:
+    - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
+    - image: postgres:11-alpine
+      environment:
+        POSTGRES_PASSWORD: rootpass
     environment:
       GINKGO_ARGS: -focus @postgres
       POSTGRES_URI: postgres://postgres:rootpass@localhost/postgres
-      USE_EXISTING_CLUSTER: true
-      POSTGRES_PASSWORD: rootpass
     steps:
     - rc_test:
         cover: postgres
 
   test_aws:
     executor: rc_test
+    docker:
+    - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     environment:
       GINKGO_ARGS: -focus @aws -skip @rds
     steps:
@@ -152,6 +126,11 @@ jobs:
 
   test_rds:
     executor: rc_test
+    docker:
+    - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     environment:
       GINKGO_ARGS: -focus @rds
     steps:
@@ -165,6 +144,9 @@ jobs:
     executor: rc_test
     docker:
     - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     - image: rabbitmq:3-management-alpine
       environment:
         RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 256Mi
@@ -179,6 +161,9 @@ jobs:
     executor: rc_test
     docker:
     - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
       GINKGO_ARGS: -skip '@(postgres|aws|rds|rabbitmq|unit)'
