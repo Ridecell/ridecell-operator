@@ -18,7 +18,6 @@ package components_test
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -37,6 +36,8 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		target := &k8sv1beta1.Ingress{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
+		// There should only be a single rule (for the primary hostname -- no vanity hostname rules should exist)
+		Expect(target.Spec.Rules).To(HaveLen(1))
 	})
 
 	It("creates an ingress object using static template", func() {
@@ -63,8 +64,9 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 
+		// ensure each vanity hostname has the same ingress rules as the primary hostname
 		for _, vanityName := range instance.Spec.Aliases {
-			vanityRule := &k8sv1beta1.IngressRule{
+			vanityRule := k8sv1beta1.IngressRule{
 				Host:             vanityName,
 				IngressRuleValue: target.Spec.Rules[0].IngressRuleValue,
 			}
