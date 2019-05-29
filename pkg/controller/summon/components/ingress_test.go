@@ -38,6 +38,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		// There should only be a single rule (for the primary hostname -- no vanity hostname rules should exist)
 		Expect(target.Spec.Rules).To(HaveLen(1))
+		Expect(target.Spec.TLS[0].Hosts).To(And(ContainElement(instance.Spec.Hostname), HaveLen(1)))
 	})
 
 	It("creates an ingress object using static template", func() {
@@ -71,6 +72,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 				IngressRuleValue: target.Spec.Rules[0].IngressRuleValue,
 			}
 			Expect(target.Spec.Rules).To(ContainElement(vanityRule))
+			Expect(target.Spec.TLS[0].Hosts).To(ContainElement(vanityName))
 		}
 	})
 })
