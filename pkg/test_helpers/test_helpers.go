@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/onsi/gomega"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
@@ -71,6 +72,9 @@ func New() (*TestHelpers, error) {
 		UseExistingCluster: os.Getenv("USE_EXISTING_CLUSTER") == "true",
 	}
 	apis.AddToScheme(scheme.Scheme)
+
+	// Initialze the RNG.
+	rand.Seed(time.Now().UnixNano())
 
 	return helpers, nil
 }
