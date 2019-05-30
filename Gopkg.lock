@@ -1041,7 +1041,7 @@
 
 [[projects]]
   branch = "crd-update-0.1"
-  digest = "1:93287f5be0826e9264e5feaa769d8aa47746f7b01c6bdef3a5d223b8fc21e35d"
+  digest = "1:6cc25111b75590220e32b7693fa1d9b2a1b0764266d90990c4f3618fbec778a4"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
@@ -1084,7 +1084,7 @@
     "pkg/webhook/types",
   ]
   pruneopts = "T"
-  revision = "4fdc816d066f7599d692d8fbd1c0a14274819fdc"
+  revision = "6a7b1c53bae29d39b93285a383080c044f3808f4"
   source = "https://github.com/coderanger/controller-runtime.git"
 
 [[projects]]
