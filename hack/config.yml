@@ -1,0 +1,15 @@
+# Kubeconfig file used in CI.
+apiVersion: v1
+clusters:
+- cluster:
+    server: http://localhost:8080/
+  name: default
+contexts:
+- context:
+    cluster: default
+    user: ""
+  name: default
+current-context: default
+kind: Config
+preferences: {}
+users: []
