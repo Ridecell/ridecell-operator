@@ -260,10 +260,10 @@ workflows:
         - test
         - test_postgres
         - test_aws
-        - test_rds
         - test_rabbitmq
         - test_other
         - crds
+        # Does not require test_rds to allow for a little more parallelism, shaves 5m off the whole process.
     # - deploy:
     #     requires:
     #     - build
