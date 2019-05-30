@@ -34,7 +34,7 @@ import (
 var _ = Describe("SummonPlatform iamuser Component", func() {
 
 	BeforeEach(func() {
-		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn:::test*")
+		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn::123456789:test*")
 	})
 
 	It("creates an IAMUser object", func() {
