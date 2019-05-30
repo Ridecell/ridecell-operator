@@ -134,11 +134,10 @@ jobs:
     environment:
       GINKGO_ARGS: -focus @rds
     steps:
-    - run: echo REMOVE ME TESTING ONLY
-    # - rc_test:
-    #     cover: rds
-    #     aws: true
-    #     timeout: 30m
+    - rc_test:
+        cover: rds
+        aws: true
+        timeout: 30m
 
   test_rabbitmq:
     executor: rc_test
