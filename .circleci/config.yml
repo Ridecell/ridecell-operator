@@ -150,9 +150,9 @@ jobs:
       GINKGO_ARGS: -focus @rdssnapshot
     steps:
     - rc_test:
-      cover: rdssnapshot
-      aws: true
-      timeout: 20m
+        cover: rdssnapshot
+        aws: true
+        timeout: 20m
 
   test_rabbitmq:
     executor: rc_test
