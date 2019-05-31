@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,9 +55,16 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	if permissionsBoundaryArn == "" {
 		return components.Result{}, errors.Errorf("iamuser: permissions_boundary_arn is empty")
 	}
+	match := regexp.MustCompile(`:([0-9]{6,}):`).FindStringSubmatch(permissionsBoundaryArn)
+	if match == nil {
+		return components.Result{}, errors.Errorf("iamuser: unable to get account id from boundary arn")
+	}
+	accountID := match[1]
+
 	// Data to be copied over to template
 	extra := map[string]interface{}{}
 	extra["permissionsBoundaryArn"] = permissionsBoundaryArn
+	extra["accountId"] = accountID
 	extra["mivBucket"] = fmt.Sprintf("ridecell-%s-miv", instance.Name)
 	if instance.Spec.MIV.ExistingBucket != "" {
 		extra["mivBucket"] = instance.Spec.MIV.ExistingBucket
