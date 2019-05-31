@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
 
@@ -32,9 +33,27 @@ import (
 
 var genericChannel chan event.GenericEvent
 
+type ttlWatch struct {
+	client  client.Client
+	channel chan event.GenericEvent
+}
+
+// Automatically inject client
+var _ inject.Client = &ttlWatch{}
+
+// InjectClient injects the client.
+func (v *ttlWatch) InjectClient(c client.Client) error {
+	v.client = c
+	return nil
+}
+
 func init() {
 	genericChannel = make(chan event.GenericEvent)
-	go watchTTL(genericChannel)
+
+	watchTTLObj := &ttlWatch{
+		channel: genericChannel,
+	}
+	go watchTTL(watchTTLObj)
 }
 
 // Add creates a new rds snapshot Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
@@ -55,10 +74,9 @@ func Add(mgr manager.Manager) error {
 	return err
 }
 
-func watchTTL(outputChannel chan event.GenericEvent) {
+func watchTTL(obj *ttlWatch) {
 	rdsSnapshots := &dbv1beta1.RDSSnapshotList{}
-	var k8Client client.Client
-	err := k8Client.List(context.Background(), &client.ListOptions{}, rdsSnapshots)
+	err := obj.client.List(context.Background(), &client.ListOptions{}, rdsSnapshots)
 	if err != nil {
 		// Make this do something useful or ignore it.
 		panic(err)
@@ -74,7 +92,7 @@ func watchTTL(outputChannel chan event.GenericEvent) {
 		deletionTime := rdsSnapshot.ObjectMeta.CreationTimestamp.Add(rdsSnapshot.Spec.TTL)
 		if deletionTime.After(time.Now()) {
 			// Send a generic event to our watched channel to cause a reconcile of specified object
-			outputChannel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}
+			obj.channel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}
 		}
 	}
 	time.Sleep(time.Minute)
