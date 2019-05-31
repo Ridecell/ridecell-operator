@@ -152,7 +152,7 @@ jobs:
     - rc_test:
         cover: rdssnapshot
         aws: true
-        timeout: 20m
+        timeout: 25m
 
   test_rabbitmq:
     executor: rc_test
@@ -180,7 +180,7 @@ jobs:
     - *kube-controller-manager
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      GINKGO_ARGS: -skip '@(postgres|aws|rds|rabbitmq|unit)'
+      GINKGO_ARGS: -skip '@(postgres|aws|rds|rdssnapshot|rabbitmq|unit)'
     steps:
     - rc_test:
         cover: other
