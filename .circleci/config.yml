@@ -139,6 +139,21 @@ jobs:
         aws: true
         timeout: 30m
 
+  test_rdssnapshot:
+    executor: rc_test
+    docker:
+    - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
+    environment:
+      GINKGO_ARGS: -focus @rdssnapshot
+    steps:
+    - rc_test:
+      cover: rdssnapshot
+      aws: true
+      timeout: 20m
+
   test_rabbitmq:
     executor: rc_test
     docker:
@@ -238,6 +253,9 @@ workflows:
     - test_rds:
         requires:
         - test
+    - test_rdssnapshot:
+        requires:
+        - test
     - test_rabbitmq:
         requires:
         - test
@@ -250,6 +268,7 @@ workflows:
         - test_postgres
         - test_aws
         - test_rds
+        - test_rdssnapshot
         - test_rabbitmq
         - test_other
     - crds:
