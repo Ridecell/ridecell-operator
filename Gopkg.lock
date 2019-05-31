@@ -1022,14 +1022,6 @@
   revision = "9dfdf9be683f61f82cda12362c44c784e0778b56"
 
 [[projects]]
-  digest = "1:125142a42600d29329b4d1367772d36f510449ad4476f7c9b7a45eb4e32250b0"
-  name = "k8s.io/kubernetes"
-  packages = ["pkg/kubelet/events"]
-  pruneopts = "T"
-  revision = "66049e3b21efe110454d67df4fa62b08ea79a19b"
-  version = "v1.14.2"
-
-[[projects]]
   digest = "1:0366859202a26d3ad16ff9d7545c20f2a95ced5183f2f3cdb762522dbaffe6ea"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
@@ -1159,7 +1151,6 @@
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
     "k8s.io/code-generator/cmd/deepcopy-gen",
-    "k8s.io/kubernetes/pkg/kubelet/events",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/apiutil",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
@@ -1167,6 +1158,7 @@
     "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
     "sigs.k8s.io/controller-runtime/pkg/envtest",
+    "sigs.k8s.io/controller-runtime/pkg/event",
     "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
     "sigs.k8s.io/controller-runtime/pkg/reconcile",
