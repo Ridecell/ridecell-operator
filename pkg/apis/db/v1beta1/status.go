@@ -85,6 +85,19 @@ func (rds *RDSInstance) SetErrorStatus(errorMsg string) {
 	rds.Status.Message = errorMsg
 }
 
+func (snap *RDSSnapshot) GetStatus() components.Status {
+	return snap.Status
+}
+
+func (snap *RDSSnapshot) SetStatus(status components.Status) {
+	snap.Status = status.(RDSSnapshotStatus)
+}
+
+func (snap *RDSSnapshot) SetErrorStatus(errorMsg string) {
+	snap.Status.Status = StatusError
+	snap.Status.Message = errorMsg
+}
+
 func (pgu *PostgresUser) GetStatus() components.Status {
 	return pgu.Status
 }

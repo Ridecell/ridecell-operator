@@ -51,6 +51,7 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 	if err != nil {
 		return nil, fmt.Errorf("unable to create controller: %v", err)
 	}
+	cr.Controller = c
 
 	// Watch for changes in the Top object.
 	err = c.Watch(&source.Kind{Type: cr.top}, &handler.EnqueueRequestForObject{})
