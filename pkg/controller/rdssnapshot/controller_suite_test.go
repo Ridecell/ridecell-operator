@@ -75,7 +75,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		panic("$RAND_OWNER_PREFIX not set, failing test")
 	}
 
-	rdsInstanceName := fmt.Sprintf("%s-snapshot-controller")
+	rdsInstanceName := fmt.Sprintf("%s-snapshot-controller", randOwnerPrefix)
 	rdsInstanceID, err = setupRDSInstance(rdsInstanceName)
 	Expect(err).ToNot(HaveOccurred())
 

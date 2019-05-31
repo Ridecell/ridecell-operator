@@ -18,18 +18,11 @@ package rdssnapshot_test
 
 import (
 	"context"
-	//"fmt"
-	"os"
 	"time"
 
-	//"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
-	//"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/pkg/errors"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,8 +35,6 @@ var rdsSnapshot *dbv1beta1.RDSSnapshot
 
 var _ = Describe("rds controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-	var rdssvc *rds.RDS
-	var randOwnerPrefix string
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
