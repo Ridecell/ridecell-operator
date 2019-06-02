@@ -43,9 +43,6 @@ var _ = Describe("Postgres Shared Component", func() {
 		dbconfig = instance
 		pqdb = &dbv1beta1.PostgresDatabase{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
-			Spec: dbv1beta1.PostgresDatabaseSpec{
-				DbConfig: "summon-dev",
-			},
 		}
 	})
 
