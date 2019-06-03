@@ -82,7 +82,6 @@ var _ = Describe("rdssnapshot controller", func() {
 
 		rdsSnapshot = &dbv1beta1.RDSSnapshot{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
 				Namespace: "snapshot-controller",
 			},
 			Spec: dbv1beta1.RDSSnapshotSpec{
@@ -118,7 +117,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 	It("creates snapshot with a ttl", func() {
 		c := helpers.TestClient
-		rdsSnapshot.Name = fmt.Sprintf("%s-initial-ttl", *rdsInstanceID)
+		rdsSnapshot.Name = fmt.Sprintf("%s-ten-minute-ttl", *rdsInstanceID)
 		rdsSnapshot.Spec.TTL = time.Minute * 10
 		c.Create(rdsSnapshot)
 
