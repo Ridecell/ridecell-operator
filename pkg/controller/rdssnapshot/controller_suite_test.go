@@ -106,6 +106,7 @@ func setupRDSInstance(rdsInstanceName string) (*string, error) {
 		DBInstanceClass:      aws.String("db.t3.micro"),
 		Engine:               aws.String("postgres"),
 		DBInstanceIdentifier: aws.String(rdsInstanceName),
+		MasterUsername:       aws.String("test_rds"),
 		MasterUserPassword:   aws.String(string(password)),
 	})
 	if err != nil {
