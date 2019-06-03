@@ -147,6 +147,7 @@ func snapshotExists() bool {
 }
 
 // Setup/teardown
+// we aren't resusing the rds controller here to keep the tests truly independant
 func setupRDSInstance(rdsInstanceName string) (*string, error) {
 	if rdsInstanceID != nil {
 		return rdsInstanceID, nil
