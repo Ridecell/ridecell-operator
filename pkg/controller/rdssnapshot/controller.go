@@ -23,27 +23,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	rdssnapshotcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot/components"
 )
-
-type ttlWatch struct {
-	client  client.Client
-	channel chan event.GenericEvent
-}
-
-// Automatically inject client
-var _ inject.Client = &ttlWatch{}
-
-// InjectClient injects the client.
-func (v *ttlWatch) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
-}
 
 // Add creates a new rds snapshot Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -58,10 +43,7 @@ func Add(mgr manager.Manager) error {
 
 	genericChannel := make(chan event.GenericEvent)
 
-	watchTTLObj := &ttlWatch{
-		channel: genericChannel,
-	}
-	go watchTTL(watchTTLObj)
+	go watchTTL(genericChannel, c.GetComponentClient())
 
 	err = c.Controller.Watch(
 		&source.Channel{Source: genericChannel},
@@ -70,9 +52,9 @@ func Add(mgr manager.Manager) error {
 	return err
 }
 
-func watchTTL(obj *ttlWatch) {
+func watchTTL(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 	rdsSnapshots := &dbv1beta1.RDSSnapshotList{}
-	err := obj.client.List(context.TODO(), &client.ListOptions{}, rdsSnapshots)
+	err := k8sClient.List(context.TODO(), &client.ListOptions{}, rdsSnapshots)
 	if err != nil {
 		// Make this do something useful or ignore it.
 		panic(err)
@@ -88,7 +70,7 @@ func watchTTL(obj *ttlWatch) {
 		deletionTime := rdsSnapshot.ObjectMeta.CreationTimestamp.Add(rdsSnapshot.Spec.TTL)
 		if time.Now().After(deletionTime) {
 			// Send a generic event to our watched channel to cause a reconcile of specified object
-			obj.channel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}
+			watchChannel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}
 		}
 	}
 	time.Sleep(time.Minute)
