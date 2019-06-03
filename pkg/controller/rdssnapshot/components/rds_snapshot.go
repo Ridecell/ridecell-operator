@@ -102,6 +102,17 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		scheduledDelete = true
 		deletionTime = instance.ObjectMeta.CreationTimestamp.Add(instance.Spec.TTL)
 		deletionTimestamp = time.Time.Format(deletionTime, CustomTimeLayout)
+
+		// Check if our object needs to be cleaned up
+		if metav1.Now().After(deletionTime) {
+			currentTime := metav1.Now()
+			instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
+			err := ctx.Client.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "rds_snapshot: failed to delete itself")
+			}
+			return components.Result{Requeue: true}, nil
+		}
 	}
 
 	snapshotTags := []*rds.Tag{
@@ -143,17 +154,6 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		}
 	} else {
 		dbSnapshot = describeDBSnapshotsOutput.DBSnapshots[0]
-	}
-
-	// Check if our object needs to be cleaned up
-	if metav1.Now().After(deletionTime) {
-		currentTime := metav1.Now()
-		instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
-		err = ctx.Client.Update(ctx.Context, instance.DeepCopy())
-		if err != nil {
-			return components.Result{}, errors.Wrap(err, "rds_snapshot: failed to delete itself")
-		}
-		return components.Result{Requeue: true}, nil
 	}
 
 	if aws.StringValue(dbSnapshot.Status) == "pending" {
