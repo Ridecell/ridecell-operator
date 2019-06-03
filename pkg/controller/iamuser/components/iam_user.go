@@ -241,7 +241,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	var foundAccessKeyID bool
 	for _, accessKeyMeta := range existingAccessKeys.AccessKeyMetadata {
-		if aws.StringValue(accessKeyMeta.AccessKeyId) == string(fetchAccessKeyID) && len(fetchAccessKeyID) != 0 {
+		if aws.StringValue(accessKeyMeta.AccessKeyId) == string(fetchAccessKeyID) {
 			foundAccessKeyID = true
 		} else {
 			// If the access key isn't known to the controller delete it
