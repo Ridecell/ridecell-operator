@@ -1,156 +1,193 @@
-version: 2
-jobs:
-  test:
+version: 2.1
+
+defaults:
+  etcd: &etcd
+    image: quay.io/coreos/etcd:v3.3
+  kube-apiserver: &kube-apiserver
+    image: gcr.io/google-containers/kube-apiserver-amd64:v1.14.2
+    command:
+    - /usr/local/bin/kube-apiserver
+    - --etcd-servers=http://localhost:2379
+    - --cert-dir=.
+    - --admission-control=AlwaysAdmit
+  kube-controller-manager: &kube-controller-manager
+    image: gcr.io/google-containers/kube-controller-manager-amd64:v1.14.2
+    command:
+    - /usr/local/bin/kube-controller-manager
+    -  --master=http://localhost:8080
+    - --controllers=garbagecollector,namespace
+
+executors:
+  rc_test:
     docker:
     - image: circleci/golang:1
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      GINKGO_ARGS: -skip '@(postgres|aws|rds|rabbitmq)'
+      KUBECONFIG: /go/src/github.com/Ridecell/ridecell-operator/hack/config.yml
+      USE_EXISTING_CLUSTER: true
+
+commands:
+  rc_setup:
     steps:
     - checkout
     - restore_cache:
         keys:
         - v1-vendor-{{ checksum "Gopkg.lock" }}
         - v1-vendor
+    - run: make dep
     - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
-    - run: sudo mkdir /usr/local/kubebuilder/
-    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
-    - run: make dep test
-    - run:
-        command: go run scripts/aws_cleanup/delete_operator_resources.go
-        when: always
-        no_output_timeout: 15m
-    - run: mkdir workspace workspace/cover && cp -r config/crds workspace/crds && cp gover.coverprofile workspace/cover/test.coverprofile
+
+  rc_cleanup:
+    parameters:
+      aws:
+        default: false
+        type: boolean
+      cover:
+        type: string
+    steps:
+    - run: mkdir workspace workspace/cover && cp gover.coverprofile workspace/cover/test_<< parameters.cover >>.coverprofile
     - persist_to_workspace:
         root: workspace
         paths:
-        - crds
-        - cover/test.coverprofile
+        - cover/test_<< parameters.cover >>.coverprofile
+    - when:
+        condition: << parameters.aws >>
+        steps:
+        - run:
+            command: go run scripts/aws_cleanup/delete_operator_resources.go
+            when: always
+            no_output_timeout: 15m
 
+  rc_test:
+    parameters:
+      aws:
+        default: false
+        type: boolean
+      cover:
+        type: string
+      timeout:
+        default: 10m
+        type: string
+    steps:
+    - rc_setup
+    - run:
+        command: make test
+        no_output_timeout: << parameters.timeout >>
+    - rc_cleanup:
+        cover: << parameters.cover >>
+        aws: << parameters.aws >>
+
+jobs:
+  test:
+    executor: rc_test
+    steps:
+    - rc_setup
+    - run: make generate vet
+    # Use a funky grep and xargs thing to speed this up so it doesn't spend time building the non-unit suites.
+    - run: grep -l -R @unit cmd pkg | xargs -n 1 dirname | xargs ginkgo -focus @unit --randomizeAllSpecs --randomizeSuites --cover --trace --progress -v -compilers 4
+    - run: gover
+    - rc_cleanup:
+        cover: unit
     - save_cache:
         key: v1-vendor-{{ checksum "Gopkg.lock" }}
         paths:
         - vendor/
 
   test_postgres:
+    executor: rc_test
     docker:
     - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     - image: postgres:11-alpine
       environment:
         POSTGRES_PASSWORD: rootpass
-    working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
       GINKGO_ARGS: -focus @postgres
       POSTGRES_URI: postgres://postgres:rootpass@localhost/postgres
     steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - v1-vendor-{{ checksum "Gopkg.lock" }}
-        - v1-vendor
-    - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
-    - run: sudo mkdir /usr/local/kubebuilder/
-    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
-    - run: make dep test
-    - run: mkdir workspace workspace/cover && cp gover.coverprofile workspace/cover/test_postgres.coverprofile
-    - persist_to_workspace:
-        root: workspace
-        paths:
-        - cover/test_postgres.coverprofile
+    - rc_test:
+        cover: postgres
 
   test_aws:
+    executor: rc_test
     docker:
     - image: circleci/golang:1
-    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     environment:
       GINKGO_ARGS: -focus @aws -skip @rds
     steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - v1-vendor-{{ checksum "Gopkg.lock" }}
-        - v1-vendor
-    - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
-    - run: sudo mkdir /usr/local/kubebuilder/
-    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
-    - run:
-        command: make dep test
-        no_output_timeout: 30m
-    - run: mkdir workspace workspace/cover && cp gover.coverprofile workspace/cover/test_aws.coverprofile
-    - persist_to_workspace:
-        root: workspace
-        paths:
-        - cover/test_aws.coverprofile
-    - run:
-        command: go run scripts/aws_cleanup/delete_operator_resources.go
-        when: always
-        no_output_timeout: 15m
+    - rc_test:
+        cover: aws
+        aws: true
 
   test_rds:
+    executor: rc_test
     docker:
     - image: circleci/golang:1
-    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     environment:
       GINKGO_ARGS: -focus @rds
     steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - v1-vendor-{{ checksum "Gopkg.lock" }}
-        - v1-vendor
-    - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
-    - run: sudo mkdir /usr/local/kubebuilder/
-    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
-    - run:
-        command: make dep test
-        no_output_timeout: 30m
-    - run: mkdir workspace workspace/cover && cp gover.coverprofile workspace/cover/test_rds.coverprofile
-    - persist_to_workspace:
-        root: workspace
-        paths:
-        - cover/test_rds.coverprofile
-    - run:
-        command: go run scripts/aws_cleanup/delete_operator_resources.go
-        when: always
-        no_output_timeout: 15m
+    - rc_test:
+        cover: rds
+        aws: true
+        timeout: 30m
 
   test_rabbitmq:
+    executor: rc_test
     docker:
     - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     - image: rabbitmq:3-management-alpine
       environment:
         RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 256Mi
-    working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
       RABBITMQ_URI: http://guest:guest@localhost:15672
       GINKGO_ARGS: -focus @rabbitmq
     steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - v1-vendor-{{ checksum "Gopkg.lock" }}
-        - v1-vendor
-    - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
-    - run: sudo mkdir /usr/local/kubebuilder/
-    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
-    - run: make dep test
-    - run: mkdir workspace workspace/cover && cp gover.coverprofile workspace/cover/test_rabbitmq.coverprofile
-    - persist_to_workspace:
-        root: workspace
-        paths:
-        - cover/test_rabbitmq.coverprofile
+    - rc_test:
+        cover: rabbitmq
 
-  coveralls:
+  test_other:
+    executor: rc_test
     docker:
     - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    environment:
+      GINKGO_ARGS: -skip '@(postgres|aws|rds|rabbitmq|unit)'
     steps:
-    - checkout
-    - attach_workspace:
-        at: workspace
-    - run: make dep generate
+    - rc_test:
+        cover: other
+        aws: true
+
+  coveralls:
+    executor: rc_test
+    steps:
+    - rc_setup
+    - run: make generate
     - run: gover
     - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+  crds:
+    executor: rc_test
+    steps:
+    - rc_setup
+    - run: make manifests
+    - persist_to_workspace:
+        root: config
+        paths:
+        - crds
 
   build:
     docker:
@@ -160,6 +197,7 @@ jobs:
     - setup_remote_docker
     - attach_workspace:
         at: workspace
+    - run: cp -r workspace/crds/* config/crds/
     - run: docker build -t us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH} .
     - run: echo ${GCP_SERVICE_ACCOUNT} > gcp-key.json
     - run: gcloud auth activate-service-account --key-file gcp-key.json
@@ -171,19 +209,20 @@ jobs:
         root: workspace
         paths:
         - tag
-  deploy:
-    docker:
-    - image: us.gcr.io/ridecell-public/helm-gcloud:2.8.2
-    steps:
-    - checkout
-    - attach_workspace:
-        at: workspace
-    - run: echo ${GCP_SERVICE_ACCOUNT_SANDBOX} > gcp-key.json
-    - run: gcloud auth activate-service-account --key-file gcp-key.json
-    - run: gcloud --quiet config set project ridecell-sandbox
-    - run: gcloud container clusters get-credentials noah-test --region=us-west1
-    - run: cp workspace/crds/* helm/templates/crds/
-    # - run: helm upgrade --install --namespace ridecell-operator --set tag=$(cat workspace/tag) ridecell-operator ./helm
+
+  # deploy:
+  #   docker:
+  #   - image: us.gcr.io/ridecell-public/helm-gcloud:2.8.2
+  #   steps:
+  #   - checkout
+  #   - attach_workspace:
+  #       at: workspace
+  #   - run: echo ${GCP_SERVICE_ACCOUNT_SANDBOX} > gcp-key.json
+  #   - run: gcloud auth activate-service-account --key-file gcp-key.json
+  #   - run: gcloud --quiet config set project ridecell-sandbox
+  #   - run: gcloud container clusters get-credentials noah-test --region=us-west1
+  #   - run: cp workspace/crds/* helm/templates/crds/
+  #   - run: helm upgrade --install --namespace ridecell-operator --set tag=$(cat workspace/tag) ridecell-operator ./helm
 
 workflows:
   version: 2
@@ -202,6 +241,9 @@ workflows:
     - test_rabbitmq:
         requires:
         - test
+    - test_other:
+        requires:
+        - test
     - coveralls:
         requires:
         - test
@@ -209,16 +251,22 @@ workflows:
         - test_aws
         - test_rds
         - test_rabbitmq
+        - test_other
+    - crds:
+        requires:
+        - test
     - build:
         requires:
         - test
         - test_postgres
         - test_aws
-        - test_rds
         - test_rabbitmq
-    - deploy:
-        requires:
-        - build
-        filters:
-          branches:
-            only: master
+        - test_other
+        - crds
+        # Does not require test_rds to allow for a little more parallelism, shaves 5m off the whole process.
+    # - deploy:
+    #     requires:
+    #     - build
+    #     filters:
+    #       branches:
+    #         only: master
