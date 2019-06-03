@@ -22,6 +22,7 @@ import (
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -49,6 +50,11 @@ var _ = Describe("RDSSnapshot types", func() {
 				Name:      "rds",
 				Namespace: helpers.Namespace,
 			},
+			Spec: dbv1beta1.RDSSnapshotSpec{
+				RDSInstanceID: "testing-123",
+				TTL:           time.Minute * 30,
+				SnapshotID:    "testing-123-snapshot",
+			},
 		}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
@@ -57,19 +63,5 @@ var _ = Describe("RDSSnapshot types", func() {
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetched.Spec).To(Equal(created.Spec))
-	})
-
-	It("has no maintenancewindow set", func() {
-		c := helpers.Client
-
-		created := &dbv1beta1.RDSSnapshot{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rds",
-				Namespace: helpers.Namespace,
-			},
-		}
-
-		err := c.Create(context.TODO(), created)
-		Expect(err).To(HaveOccurred())
 	})
 })
