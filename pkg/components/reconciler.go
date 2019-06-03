@@ -313,3 +313,8 @@ func (v *componentReconciler) InjectClient(c client.Client) error {
 	v.client = c
 	return nil
 }
+
+// GetComponentClient Exposes the controller client
+func (cr *componentReconciler) GetComponentClient() client.Client {
+	return cr.client
+}
