@@ -17,6 +17,8 @@ limitations under the License.
 package rdssnapshot_test
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"testing"
@@ -93,12 +95,18 @@ func setupRDSInstance(rdsInstanceName string) (*string, error) {
 		return rdsInstanceID, nil
 	}
 
+	rawPassword := make([]byte, 32)
+	rand.Read(rawPassword)
+	password := make([]byte, base64.RawURLEncoding.EncodedLen(32))
+	base64.RawURLEncoding.Encode(password, rawPassword)
+
 	_, err := rdssvc.CreateDBInstance(&rds.CreateDBInstanceInput{
 		StorageType:          aws.String("gp2"),
 		AllocatedStorage:     aws.Int64(100),
 		DBInstanceClass:      aws.String("db.t3.micro"),
 		Engine:               aws.String("postgres"),
 		DBInstanceIdentifier: aws.String(rdsInstanceName),
+		MasterUserPassword:   aws.String(string(password)),
 	})
 	if err != nil {
 		return nil, err
