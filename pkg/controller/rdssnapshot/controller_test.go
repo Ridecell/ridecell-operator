@@ -182,7 +182,7 @@ func setupRDSInstance(rdsInstanceName string) (*string, error) {
 		dbStatus := aws.StringValue(describeDBInstancesOutput.DBInstances[0].DBInstanceStatus)
 		if dbStatus == "available" {
 			rdsInstanceID = describeDBInstancesOutput.DBInstances[0].DBInstanceIdentifier
-			return nil, nil
+			return &rdsInstanceName, nil
 		}
 		if dbStatus == "error" {
 			return nil, errors.New("rds instance in an error state")
