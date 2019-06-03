@@ -24,6 +24,7 @@ import (
 
 	"github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
 
 	. "github.com/onsi/gomega"
@@ -44,6 +45,7 @@ var _ = ginkgo.AfterSuite(func() {
 	if rdsInstanceID != nil {
 		_, err := rdssvc.DeleteDBInstance(&rds.DeleteDBInstanceInput{
 			DBInstanceIdentifier: rdsInstanceID,
+			SkipFinalSnapshot:    aws.Bool(true),
 		})
 		Expect(err).ToNot(HaveOccurred())
 	}
