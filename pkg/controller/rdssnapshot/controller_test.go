@@ -43,7 +43,7 @@ var testHelpers *test_helpers.TestHelpers
 var rdssvc *rds.RDS
 var rdsInstanceID *string
 
-var _ = Describe("rds controller", func() {
+var _ = Describe("rdssnapshot controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
