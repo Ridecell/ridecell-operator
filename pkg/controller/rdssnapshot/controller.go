@@ -31,8 +31,6 @@ import (
 	rdssnapshotcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot/components"
 )
 
-var genericChannel chan event.GenericEvent
-
 type ttlWatch struct {
 	client  client.Client
 	channel chan event.GenericEvent
@@ -58,7 +56,7 @@ func Add(mgr manager.Manager) error {
 		return err
 	}
 
-	genericChannel = make(chan event.GenericEvent)
+	genericChannel := make(chan event.GenericEvent)
 
 	watchTTLObj := &ttlWatch{
 		channel: genericChannel,
@@ -88,7 +86,7 @@ func watchTTL(obj *ttlWatch) {
 
 		// Check if our object is expired
 		deletionTime := rdsSnapshot.ObjectMeta.CreationTimestamp.Add(rdsSnapshot.Spec.TTL)
-		if deletionTime.After(time.Now()) {
+		if time.Now().After(deletionTime) {
 			// Send a generic event to our watched channel to cause a reconcile of specified object
 			obj.channel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}
 		}
