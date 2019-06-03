@@ -91,8 +91,7 @@ func main() {
 		panic(err)
 	}
 
-	// This may need to change later but for now we only make one test database
-	if len(rdsInstancesToDeleteOutput) > 1 {
+	if len(rdsInstancesToDeleteOutput) > 2 {
 		fmt.Printf("more than one rds instance to delete, aborting\n")
 		os.Exit(1)
 	}
@@ -148,7 +147,7 @@ func main() {
 	}
 
 	// This may need to change later but for now we only make one test database
-	if len(snapshotsToDeleteOutput) > 1 {
+	if len(snapshotsToDeleteOutput) > 3 {
 		fmt.Printf("more than one db snapshot to delete, aborting\n")
 		os.Exit(1)
 	}
@@ -280,7 +279,7 @@ func deleteIamUser(iamsvc *iam.IAM, username *string) error {
 }
 
 func getRDSInstancesToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) {
-	regexString := fmt.Sprintf(`^%s-test-rds$`, prefix)
+	regexString := fmt.Sprintf(`^%s-test-rds|%s-snapshot-controller$`, prefix, prefix)
 	var dbInstancesToDelete []*string
 	describeDBInstancesOutput, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
 	if err != nil {
@@ -397,7 +396,7 @@ func deleteParameterGroup(rdssvc *rds.RDS, parameterGroupName *string) error {
 }
 
 func getSnapshotsToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) {
-	regexString := fmt.Sprintf(`^%s-test-rds-.*`, prefix)
+	regexString := fmt.Sprintf(`^(%s-test-rds-.*|%s-snapshot-controller-.*)`, prefix, prefix)
 	var snapshotsToDelete []*string
 	err := rdssvc.DescribeDBSnapshotsPages(&rds.DescribeDBSnapshotsInput{}, func(page *rds.DescribeDBSnapshotsOutput, lastPage bool) bool {
 		for _, snapshot := range page.DBSnapshots {

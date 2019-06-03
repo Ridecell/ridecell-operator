@@ -100,8 +100,8 @@ var _ = Describe("rds controller", func() {
 
 	It("creates a snapshot with no ttl", func() {
 		c := helpers.TestClient
-		rdsSnapshot.Name =
-			c.Create(rdsSnapshot)
+		rdsSnapshot.Name = fmt.Sprintf("%s-no-ttl", rdsInstanceName)
+		c.Create(rdsSnapshot)
 
 		fetchSnapshot := &dbv1beta1.RDSSnapshot{}
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusCreating))
@@ -118,6 +118,7 @@ var _ = Describe("rds controller", func() {
 
 	It("creates snapshot with a ttl", func() {
 		c := helpers.TestClient
+		rdsSnapshot.Name = fmt.Sprintf("%s-initial-ttl", rdsInstanceName)
 		rdsSnapshot.Spec.TTL = time.Minute * 10
 		c.Create(rdsSnapshot)
 
