@@ -72,7 +72,7 @@ func Add(mgr manager.Manager) error {
 
 func watchTTL(obj *ttlWatch) {
 	rdsSnapshots := &dbv1beta1.RDSSnapshotList{}
-	err := obj.client.List(context.Background(), &client.ListOptions{}, rdsSnapshots)
+	err := obj.client.List(context.TODO(), &client.ListOptions{}, rdsSnapshots)
 	if err != nil {
 		// Make this do something useful or ignore it.
 		panic(err)
