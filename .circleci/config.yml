@@ -132,7 +132,7 @@ jobs:
     - *kube-apiserver
     - *kube-controller-manager
     environment:
-      GINKGO_ARGS: -focus @rds
+      GINKGO_ARGS: -focus @rds -skip @rdssnapshot
     steps:
     - rc_test:
         cover: rds
