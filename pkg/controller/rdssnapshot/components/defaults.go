@@ -46,7 +46,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.SnapshotID == "" {
 		creationTimestamp := instance.ObjectMeta.CreationTimestamp.Add(time.Second * 0)
 		curTimeString := time.Time.Format(creationTimestamp, CustomTimeLayout)
-		instance.Spec.SnapshotID = fmt.Sprintf("%s-%s", instance.name, curTimeString)
+		instance.Spec.SnapshotID = fmt.Sprintf("%s-%s", instance.Name, curTimeString)
 	}
 
 	return components.Result{}, nil
