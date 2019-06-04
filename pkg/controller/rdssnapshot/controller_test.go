@@ -82,7 +82,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 		rdsSnapshot = &dbv1beta1.RDSSnapshot{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "snapshot-controller",
+				Namespace: helpers.Namespace,
 			},
 			Spec: dbv1beta1.RDSSnapshotSpec{
 				RDSInstanceID: *rdsInstanceID,
