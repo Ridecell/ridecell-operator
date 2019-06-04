@@ -129,9 +129,9 @@ func (m *mockRDSDBClient) DescribeDBSnapshots(input *rds.DescribeDBSnapshotsInpu
 }
 
 func (m *mockRDSDBClient) CreateDBSnapshot(input *rds.CreateDBSnapshotInput) (*rds.CreateDBSnapshotOutput, error) {
-	match := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]*[a-zA-z]$`).MatchString(aws.StringValue(input.DBSnapshotIdentifier))
+	match := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$`).MatchString(aws.StringValue(input.DBSnapshotIdentifier))
 	if strings.Contains("--", aws.StringValue(input.DBSnapshotIdentifier)) || !match {
-		return &rds.CreateDBSnapshotOutput{}, errors.New("mock_rds_snapshot: input snapshot id did not match regex")
+		return &rds.CreateDBSnapshotOutput{}, errors.Errorf("mock_rds_snapshot: input snapshot id (%s) did not match regex", aws.StringValue(input.DBSnapshotIdentifier))
 	}
 
 	m.snapshotCreated = true
