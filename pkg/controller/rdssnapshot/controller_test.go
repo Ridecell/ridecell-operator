@@ -110,7 +110,7 @@ var _ = Describe("rdssnapshot controller", func() {
 		c.Delete(rdsSnapshot)
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
-		}).ShouldNot(Succeed())
+		}, time.Minute*10).ShouldNot(Succeed())
 
 		Expect(snapshotExists()).To(BeFalse())
 	})
@@ -128,7 +128,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
-		}, time.Minute*5).ShouldNot(Succeed())
+		}, time.Minute*10).ShouldNot(Succeed())
 
 		Expect(snapshotExists()).To(BeFalse())
 	})
