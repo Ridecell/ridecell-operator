@@ -343,44 +343,6 @@ var _ = Describe("Summon controller", func() {
 		}, timeout).Should(Succeed())
 	})
 
-	It("reconciles ingress service with specified vanity hostnames", func() {
-		c := helpers.TestClient
-		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
-			Spec: summonv1beta1.SummonPlatformSpec{
-				Hostname: "vanitytest.ridecell.us",
-				Aliases:  []string{"vanitytest-1.ridecell.us", "vanitytest-2.ridecell.us"},
-				Version:  "1.2.3",
-				Secrets:  []string{"testsecret"},
-				Database: summonv1beta1.DatabaseSpec{
-					ExclusiveDatabase: true,
-				},
-			}}
-
-		// Create the SummonPlatform object and expect the Reconcile to be created.
-		c.Create(instance)
-		c.Status().Update(instance)
-
-		// Check the web Service object.
-		service := &corev1.Service{}
-		c.EventuallyGet(helpers.Name("foo-web"), service)
-		Expect(service.Spec.Ports[0].Port).To(BeEquivalentTo(8000))
-
-		// Check the web Ingress object.
-		ingress := &extv1beta1.Ingress{}
-		c.EventuallyGet(helpers.Name("foo-web"), ingress)
-
-		Expect(ingress.Spec.TLS[0].SecretName).To(Equal("foo-tls"))
-
-		for _, vanityName := range instance.Spec.Aliases {
-			vanityRule := extv1beta1.IngressRule{
-				Host:             vanityName,
-				IngressRuleValue: ingress.Spec.Rules[0].IngressRuleValue,
-			}
-			Expect(ingress.Spec.Rules).To(ContainElement(vanityRule))
-			Expect(ingress.Spec.TLS[0].Hosts).To(ContainElement(vanityName))
-		}
-	})
-
 	It("manages the status correctly", func() {
 		c := helpers.Client
 

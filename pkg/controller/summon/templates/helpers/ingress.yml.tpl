@@ -31,11 +31,13 @@ spec:
       - path: {{ block "ingressPath" $ }}{{ end }}
         backend:
           serviceName: {{ $.Instance.Name }}-{{ block "componentName" $ }}{{ end }}
-          servicePort: 8000{{end}}
+          servicePort: 8000
+  {{- end }}
   tls:
   - secretName: {{ .Instance.Name }}-tls
     hosts:
     - {{ .Instance.Spec.Hostname }}
     {{- range .Instance.Spec.Aliases }}
-    - {{.}}{{ end }}
+    - {{.}}
+    {{- end }}
 {{ end }}
