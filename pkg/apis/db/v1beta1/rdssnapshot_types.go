@@ -25,8 +25,10 @@ import (
 type RDSSnapshotSpec struct {
 	RDSInstanceID string `json:"rdsInstanceID"`
 	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-z]$
-	SnapshotID string        `json:"SnapshotID,omitempty"`
-	TTL        time.Duration `json:"ttl,omitempty"`
+	// +optional
+	SnapshotID string `json:"SnapshotID,omitempty"`
+	// +optional
+	TTL time.Duration `json:"ttl,omitempty"`
 }
 
 // RDSSnapshotStatus defines the observed state of RDSSnapshot
