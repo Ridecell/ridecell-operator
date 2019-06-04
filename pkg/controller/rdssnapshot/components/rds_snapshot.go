@@ -140,18 +140,18 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() != rds.ErrCodeDBSnapshotNotFoundFault {
 			return components.Result{}, errors.Wrap(err, "rds_snapshot: failed to describe snapshot")
-		} else {
-			// if our snapshot doesn't exist create it
-			createDBSnapshotOutput, err := comp.rdsAPI.CreateDBSnapshot(&rds.CreateDBSnapshotInput{
-				DBInstanceIdentifier: aws.String(instance.Spec.RDSInstanceID),
-				DBSnapshotIdentifier: aws.String(instance.Spec.SnapshotID),
-				Tags:                 snapshotTags,
-			})
-			if err != nil {
-				return components.Result{}, errors.Wrap(err, "rds_snapshot: failed to create db snapshot")
-			}
-			dbSnapshot = createDBSnapshotOutput.DBSnapshot
 		}
+		// if our snapshot doesn't exist create it
+		createDBSnapshotOutput, err := comp.rdsAPI.CreateDBSnapshot(&rds.CreateDBSnapshotInput{
+			DBInstanceIdentifier: aws.String(instance.Spec.RDSInstanceID),
+			DBSnapshotIdentifier: aws.String(instance.Spec.SnapshotID),
+			Tags:                 snapshotTags,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "rds_snapshot: failed to create db snapshot")
+		}
+		dbSnapshot = createDBSnapshotOutput.DBSnapshot
+
 	} else {
 		dbSnapshot = describeDBSnapshotsOutput.DBSnapshots[0]
 	}
