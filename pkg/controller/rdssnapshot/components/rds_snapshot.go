@@ -36,7 +36,7 @@ import (
 )
 
 // k8s timestamps aren't friendly with ebs snapshots
-const CustomTimeLayout = "2006-01-02T15-04-05Z"
+const CustomTimeLayout = "2006-01-02-15-04-05"
 const RDSSnapshotFinalizer = "rdssnapshot.finalizer"
 
 type RDSSnapshotComponent struct {
