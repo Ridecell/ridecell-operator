@@ -69,7 +69,7 @@ func (comp *postgresComponent) WatchMap(obj handler.MapObject, c client.Client) 
 	}
 
 	requests := []reconcile.Request{}
-	// If we are in exclusive mode, check if the change is a linked DbConfig.
+	// If we are in PostgresDatabase, check if the change is a linked DbConfig.
 	_, isDbConfig := obj.Object.(*dbv1beta1.DbConfig)
 	if comp.mode == "Exclusive" && isDbConfig {
 		dbs := &dbv1beta1.PostgresDatabaseList{}
@@ -79,11 +79,6 @@ func (comp *postgresComponent) WatchMap(obj handler.MapObject, c client.Client) 
 		}
 
 		for _, db := range dbs.Items {
-			// TODO Can do this with a list option once that API stabilizes
-			if db.Namespace != obj.Meta.GetNamespace() {
-				continue
-			}
-
 			// Check the DbConfig field.
 			dbConfigRef := comp.dbConfigRefFor(&db)
 			if dbConfigRef.Name == obj.Meta.GetName() && dbConfigRef.Namespace == obj.Meta.GetNamespace() {

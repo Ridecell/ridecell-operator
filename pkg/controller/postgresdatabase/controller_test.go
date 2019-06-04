@@ -238,8 +238,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c := helpers.TestClient
 
 		// Set up the DbConfig.
-		dbconfig.ObjectMeta.Name = helpers.OperatorNamespace
-		dbconfig.ObjectMeta.Namespace = helpers.OperatorNamespace
+		dbconfig.Name = randomName
+		dbconfig.Namespace = helpers.OperatorNamespace
 		dbconfig.Spec.Postgres.Mode = "Shared"
 		dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
 			MaintenanceWindow: "Mon:00:00-Mon:01:00",
@@ -247,19 +247,19 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c.Create(dbconfig)
 
 		// Create our database.
-		instance.Spec.DbConfigRef.Name = helpers.OperatorNamespace
+		instance.Spec.DbConfigRef.Name = randomName
 		instance.Spec.DbConfigRef.Namespace = helpers.OperatorNamespace
 		c.Create(instance)
 
 		// Get our RDS cluster and advance it to ready.
 		rds := &dbv1beta1.RDSInstance{}
-		c.EventuallyGet(types.NamespacedName{Name: randomName + "-dev", Namespace: helpers.OperatorNamespace}, rds)
+		c.EventuallyGet(types.NamespacedName{Name: randomName, Namespace: helpers.OperatorNamespace}, rds)
 		rds.Status.Status = dbv1beta1.StatusReady
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
 
 		// Wait for our database to become ready.
-		c.EventuallyGet(types.NamespacedName{Name: randomName + "-dev", Namespace: helpers.OperatorNamespace}, instance, c.EventuallyStatus(dbv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
 
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
@@ -286,8 +286,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c := helpers.TestClient
 
 		// Set up the DbConfig.
-		dbconfig.ObjectMeta.Name = helpers.OperatorNamespace
-		dbconfig.ObjectMeta.Namespace = helpers.OperatorNamespace
+		dbconfig.Name = randomName
+		dbconfig.Namespace = helpers.OperatorNamespace
 		dbconfig.Spec.Postgres.Mode = "Exclusive"
 		dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
 			MaintenanceWindow: "Mon:00:00-Mon:01:00",
@@ -295,7 +295,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c.Create(dbconfig)
 
 		// Create our database.
-		instance.Spec.DbConfigRef.Name = helpers.OperatorNamespace
+		instance.Spec.DbConfigRef.Name = randomName
 		instance.Spec.DbConfigRef.Namespace = helpers.OperatorNamespace
 		c.Create(instance)
 
