@@ -222,8 +222,19 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 		return components.Result{}, err
 	}
 
-	// TODO: send to deployment tool?
+	// Only post to deploy status tool on first error occurred (don't want one entry per unique error)
+	if !ok {
+		// Create entry for Deployment Status Tool
+		deployEnv := instance.Namespace
+		if strings.HasPrefix(deployEnv, "summon-") {
+			deployEnv = deployEnv[7:]
+		}
 
+		err = c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
+		}
+	}
 	// Update status.
 	c.dupCache.Store(dupCacheKey, dupCacheValue)
 	return components.Result{}, nil

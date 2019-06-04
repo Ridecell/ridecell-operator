@@ -150,8 +150,11 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(post.In1).To(Equal("#test-channel"))
 			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
 			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
-			// TODO: currently not posting to deploy on error
-			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
+			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
+			Expect(deployPost.Name).To(Equal("foo"))
+			Expect(deployPost.Env).To(Equal("default"))
+			Expect(deployPost.Tag).To(Equal("1.2.3"))
 		})
 
 		It("does not send an error the second time for the same error", func() {
@@ -160,9 +163,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
-			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
-			// TODO: currently not posting to deploy on error
-			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 		})
 
 		It("sends two error notifications for two different errors", func() {
@@ -172,8 +173,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			instance.Status.Message = "You have no chance to survive"
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
-			// TODO: currently not posting to deploy on error
-			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 		})
 	})
 
@@ -185,24 +185,21 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(post.In1).To(Equal("#test-channel"))
 			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
 			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
-			// TODO: currently not posting to deploy on error
-			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 		})
 
 		It("does not send an error the second time for the same error", func() {
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
-			// TODO: currently not posting to deploy on error
-			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 		})
 
 		It("sends two error notifications for two different errors", func() {
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("You have no chance to survive")))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
-			// TODO: currently not posting to deploy on error
-			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 		})
 	})
 })
