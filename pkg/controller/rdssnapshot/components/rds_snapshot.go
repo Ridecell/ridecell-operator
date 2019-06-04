@@ -156,7 +156,7 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		dbSnapshot = describeDBSnapshotsOutput.DBSnapshots[0]
 	}
 
-	if aws.StringValue(dbSnapshot.Status) == "pending" {
+	if aws.StringValue(dbSnapshot.Status) == "creating" {
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance.Status.Status = dbv1beta1.StatusCreating
 			instance.Status.Message = fmt.Sprintf("Snapshot is in state: %s", aws.StringValue(dbSnapshot.Status))
