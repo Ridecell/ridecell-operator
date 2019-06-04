@@ -104,6 +104,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.Database.SharedDatabaseName = instance.Namespace
 	}
 
+	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
+		defConfig("FIREBASE_APP", "ridecell")
+	}
+
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
