@@ -24,7 +24,7 @@ import (
 // RDSSnapshotSpec defines the desired state of RDSSnapshot
 type RDSSnapshotSpec struct {
 	RDSInstanceID string `json:"rdsInstanceID"`
-	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-z0-9]$
+	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$
 	// +optional
 	SnapshotID string `json:"SnapshotID,omitempty"`
 	// +optional
