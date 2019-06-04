@@ -27,6 +27,7 @@ import (
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
@@ -231,5 +232,101 @@ var _ = Describe("PostgresDatabase controller", func() {
 
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
+	})
+
+	It("supports cross namespace use for shared mode", func() {
+		c := helpers.TestClient
+
+		// Set up the DbConfig.
+		dbconfig.ObjectMeta.Name = helpers.OperatorNamespace
+		dbconfig.ObjectMeta.Namespace = helpers.OperatorNamespace
+		dbconfig.Spec.Postgres.Mode = "Shared"
+		dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+			MaintenanceWindow: "Mon:00:00-Mon:01:00",
+		}
+		c.Create(dbconfig)
+
+		// Create our database.
+		instance.Spec.DbConfigRef.Name = helpers.OperatorNamespace
+		instance.Spec.DbConfigRef.Namespace = helpers.OperatorNamespace
+		c.Create(instance)
+
+		// Get our RDS cluster and advance it to ready.
+		rds := &dbv1beta1.RDSInstance{}
+		c.EventuallyGet(types.NamespacedName{Name: randomName + "-dev", Namespace: helpers.OperatorNamespace}, rds)
+		rds.Status.Status = dbv1beta1.StatusReady
+		rds.Status.Connection = *conn
+		c.Status().Update(rds)
+
+		// Wait for our database to become ready.
+		c.EventuallyGet(types.NamespacedName{Name: randomName + "-dev", Namespace: helpers.OperatorNamespace}, instance, c.EventuallyStatus(dbv1beta1.StatusReady))
+
+		// Check the output connection.
+		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
+
+		// Try to connect.
+		ctx := components.NewTestContext(instance, nil)
+		ctx.Client = helpers.Client
+		db, err := postgres.Open(ctx, &instance.Status.Connection)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Make a table.
+		_, err = db.Exec(`CREATE TABLE testing (id SERIAL, str VARCHAR)`)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
+		Expect(err).ToNot(HaveOccurred())
+		row := db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
+		var rowId int
+		err = row.Scan(&rowId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rowId).To(Equal(1))
+	})
+
+	It("supports cross namespace use for exclusive mode", func() {
+		c := helpers.TestClient
+
+		// Set up the DbConfig.
+		dbconfig.ObjectMeta.Name = helpers.OperatorNamespace
+		dbconfig.ObjectMeta.Namespace = helpers.OperatorNamespace
+		dbconfig.Spec.Postgres.Mode = "Exclusive"
+		dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+			MaintenanceWindow: "Mon:00:00-Mon:01:00",
+		}
+		c.Create(dbconfig)
+
+		// Create our database.
+		instance.Spec.DbConfigRef.Name = helpers.OperatorNamespace
+		instance.Spec.DbConfigRef.Namespace = helpers.OperatorNamespace
+		c.Create(instance)
+
+		// Get our RDS cluster and advance it to ready.
+		rds := &dbv1beta1.RDSInstance{}
+		c.EventuallyGet(helpers.Name(randomName+"-dev"), rds)
+		rds.Status.Status = dbv1beta1.StatusReady
+		rds.Status.Connection = *conn
+		c.Status().Update(rds)
+
+		// Wait for our database to become ready.
+		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
+
+		// Check the output connection.
+		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
+
+		// Try to connect.
+		ctx := components.NewTestContext(instance, nil)
+		ctx.Client = helpers.Client
+		db, err := postgres.Open(ctx, &instance.Status.Connection)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Make a table.
+		_, err = db.Exec(`CREATE TABLE testing (id SERIAL, str VARCHAR)`)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
+		Expect(err).ToNot(HaveOccurred())
+		row := db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
+		var rowId int
+		err = row.Scan(&rowId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rowId).To(Equal(1))
 	})
 })
