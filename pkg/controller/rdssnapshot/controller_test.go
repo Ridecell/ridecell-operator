@@ -132,7 +132,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
-		}, time.Minute).ShouldNot(Succeed())
+		}, time.Minute*7).ShouldNot(Succeed())
 
 		Eventually(func() bool {
 			return snapshotExists(snapshotID)
