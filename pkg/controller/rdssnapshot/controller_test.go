@@ -112,13 +112,15 @@ var _ = Describe("rdssnapshot controller", func() {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
 		}, time.Minute*10).ShouldNot(Succeed())
 
-		Expect(snapshotExists()).To(BeFalse())
+		Eventually(func() bool {
+			return snapshotExists()
+		}, time.Minute*5).Should(BeFalse())
 	})
 
 	It("creates snapshot with a ttl", func() {
 		c := helpers.TestClient
-		rdsSnapshot.Name = fmt.Sprintf("ten-minute-ttl")
-		rdsSnapshot.Spec.TTL = time.Minute * 10
+		rdsSnapshot.Name = fmt.Sprintf("five-minute-ttl")
+		rdsSnapshot.Spec.TTL = time.Minute * 5
 		c.Create(rdsSnapshot)
 
 		fetchSnapshot := &dbv1beta1.RDSSnapshot{}
@@ -130,7 +132,9 @@ var _ = Describe("rdssnapshot controller", func() {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
 		}, time.Minute*10).ShouldNot(Succeed())
 
-		Expect(snapshotExists()).To(BeFalse())
+		Eventually(func() bool {
+			return snapshotExists()
+		}, time.Minute*5).Should(BeFalse())
 	})
 
 })
