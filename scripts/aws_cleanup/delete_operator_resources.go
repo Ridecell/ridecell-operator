@@ -400,7 +400,7 @@ func deleteParameterGroup(rdssvc *rds.RDS, parameterGroupName *string) error {
 }
 
 func getSnapshotsToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) {
-	regexString := fmt.Sprintf(`^(%s-test-rds-.*|%s-snapshot-controller-.*)`, prefix, prefix)
+	regexString := fmt.Sprintf(`^%s-.*`, prefix)
 	var snapshotsToDelete []*string
 	err := rdssvc.DescribeDBSnapshotsPages(&rds.DescribeDBSnapshotsInput{}, func(page *rds.DescribeDBSnapshotsOutput, lastPage bool) bool {
 		for _, snapshot := range page.DBSnapshots {
