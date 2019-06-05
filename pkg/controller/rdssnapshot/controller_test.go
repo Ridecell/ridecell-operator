@@ -42,6 +42,7 @@ var rdsSnapshot *dbv1beta1.RDSSnapshot
 var testHelpers *test_helpers.TestHelpers
 var rdssvc *rds.RDS
 var rdsInstanceID *string
+var rdsSnapshotID *string
 
 var _ = Describe("rdssnapshot controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -107,6 +108,9 @@ var _ = Describe("rdssnapshot controller", func() {
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 		Expect(snapshotExists()).To(BeTrue())
 
+		snapshotID := rdsSnapshot.Spec.SnapshotID
+		rdsSnapshotID = &snapshotID
+
 		c.Delete(rdsSnapshot)
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
@@ -114,7 +118,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 		Eventually(func() bool {
 			return snapshotExists()
-		}, time.Minute*5).Should(BeFalse())
+		}, time.Minute*5, time.Second*10).Should(BeFalse())
 	})
 
 	It("creates snapshot with a ttl", func() {
@@ -128,20 +132,23 @@ var _ = Describe("rdssnapshot controller", func() {
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 		Expect(snapshotExists()).To(BeTrue())
 
+		snapshotID := rdsSnapshot.Spec.SnapshotID
+		rdsSnapshotID = &snapshotID
+
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
 		}, time.Minute*10).ShouldNot(Succeed())
 
 		Eventually(func() bool {
 			return snapshotExists()
-		}, time.Minute*5).Should(BeFalse())
+		}, time.Minute*5, time.Second*10).Should(BeFalse())
 	})
 
 })
 
 func snapshotExists() bool {
 	_, err := rdssvc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{
-		DBInstanceIdentifier: aws.String(rdsSnapshot.Spec.SnapshotID),
+		DBInstanceIdentifier: rdsSnapshotID,
 	})
 	if err != nil {
 		return false
