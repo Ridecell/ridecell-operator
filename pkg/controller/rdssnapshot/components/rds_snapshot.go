@@ -105,9 +105,7 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 
 		// Check if our object needs to be cleaned up
 		if metav1.Now().After(deletionTime) {
-			currentTime := metav1.Now()
-			instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
-			err := ctx.Client.Update(ctx.Context, instance.DeepCopy())
+			err := ctx.Client.Delete(ctx.Context, instance)
 			if err != nil {
 				return components.Result{}, errors.Wrap(err, "rds_snapshot: failed to delete itself")
 			}
