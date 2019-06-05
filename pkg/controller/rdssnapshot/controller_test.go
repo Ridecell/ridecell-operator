@@ -42,7 +42,6 @@ var rdsSnapshot *dbv1beta1.RDSSnapshot
 var testHelpers *test_helpers.TestHelpers
 var rdssvc *rds.RDS
 var rdsInstanceID *string
-var rdsSnapshotID *string
 
 var _ = Describe("rdssnapshot controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -106,10 +105,8 @@ var _ = Describe("rdssnapshot controller", func() {
 		fetchSnapshot := &dbv1beta1.RDSSnapshot{}
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusCreating))
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
-		Expect(snapshotExists()).To(BeTrue())
-
-		snapshotID := fetchSnapshot.Spec.SnapshotID
-		rdsSnapshotID = &snapshotID
+		snapshotID := &fetchSnapshot.Spec.SnapshotID
+		Expect(snapshotExists(snapshotID)).To(BeTrue())
 
 		c.Delete(rdsSnapshot)
 		Eventually(func() error {
@@ -117,7 +114,7 @@ var _ = Describe("rdssnapshot controller", func() {
 		}, time.Minute*10).ShouldNot(Succeed())
 
 		Eventually(func() bool {
-			return snapshotExists()
+			return snapshotExists(snapshotID)
 		}, time.Minute*5, time.Second*10).Should(BeFalse())
 	})
 
@@ -130,23 +127,21 @@ var _ = Describe("rdssnapshot controller", func() {
 		fetchSnapshot := &dbv1beta1.RDSSnapshot{}
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusCreating))
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
-		Expect(snapshotExists()).To(BeTrue())
-
-		snapshotID := fetchSnapshot.Spec.SnapshotID
-		rdsSnapshotID = &snapshotID
+		snapshotID := &fetchSnapshot.Spec.SnapshotID
+		Expect(snapshotExists(snapshotID)).To(BeTrue())
 
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
 		}, time.Minute*10).ShouldNot(Succeed())
 
 		Eventually(func() bool {
-			return snapshotExists()
+			return snapshotExists(snapshotID)
 		}, time.Minute*5, time.Second*10).Should(BeFalse())
 	})
 
 })
 
-func snapshotExists() bool {
+func snapshotExists(rdsSnapshotID *string) bool {
 	_, err := rdssvc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{
 		DBInstanceIdentifier: rdsSnapshotID,
 	})
