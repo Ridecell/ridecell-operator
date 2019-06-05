@@ -31,11 +31,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/pkg/errors"
-	//"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 
-	//dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	rdssnapshotcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot/components"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -90,19 +91,21 @@ var _ = Describe("rdssnapshot db Component", func() {
 
 	It("reconciles with expired TTL", func() {
 		instance.ObjectMeta.Finalizers = []string{"rdssnapshot.finalizer"}
-		instance.Spec.TTL = time.Second * 5
-		// Reconcile to add deletion timestamp
+		instance.ObjectMeta.CreationTimestamp = metav1.Now()
+		delay := time.Second * 2
+		instance.Spec.TTL = delay
+		// Sleep to expire TTL
+		time.Sleep(delay)
+
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
-		// Handles actual deletion
-		Expect(comp).To(ReconcileContext(ctx))
-		Expect(mockRDS.snapshotDeleted).To(BeTrue())
-		Expect(instance.ObjectMeta.Finalizers).To(HaveLen(0))
+		// Fake client doesn't wait for finalizers, check if the object was deleted as expected
+		fetchObject := &dbv1beta1.RDSSnapshot{}
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test", Namespace: "default"}, fetchObject)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("reconciles with non-expired TTL", func() {
 		instance.ObjectMeta.Finalizers = []string{"rdssnapshot.finalizer"}
-		// Reset the creation timestamp
 		instance.ObjectMeta.CreationTimestamp = metav1.Now()
 		instance.Spec.TTL = time.Second * 5
 		Expect(comp).To(ReconcileContext(ctx))
