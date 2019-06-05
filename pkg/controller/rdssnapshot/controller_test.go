@@ -108,7 +108,7 @@ var _ = Describe("rdssnapshot controller", func() {
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 		Expect(snapshotExists()).To(BeTrue())
 
-		snapshotID := rdsSnapshot.Spec.SnapshotID
+		snapshotID := fetchSnapshot.Spec.SnapshotID
 		rdsSnapshotID = &snapshotID
 
 		c.Delete(rdsSnapshot)
@@ -132,7 +132,7 @@ var _ = Describe("rdssnapshot controller", func() {
 		c.EventuallyGet(helpers.Name(rdsSnapshot.Name), fetchSnapshot, c.EventuallyStatus(dbv1beta1.StatusReady), c.EventuallyTimeout(time.Minute*10))
 		Expect(snapshotExists()).To(BeTrue())
 
-		snapshotID := rdsSnapshot.Spec.SnapshotID
+		snapshotID := fetchSnapshot.Spec.SnapshotID
 		rdsSnapshotID = &snapshotID
 
 		Eventually(func() error {
