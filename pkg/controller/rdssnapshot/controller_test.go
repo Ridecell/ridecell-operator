@@ -143,7 +143,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 func snapshotExists(rdsSnapshotID *string) bool {
 	_, err := rdssvc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{
-		DBInstanceIdentifier: rdsSnapshotID,
+		DBSnapshotIdentifier: rdsSnapshotID,
 	})
 	if err != nil {
 		return false
