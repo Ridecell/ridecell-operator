@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -68,7 +69,7 @@ func (comp *postgresComponent) WatchMap(obj handler.MapObject, c client.Client) 
 	}
 
 	requests := []reconcile.Request{}
-	// If we are in exclusive mode, check if the change is a linked DbConfig.
+	// If we are in PostgresDatabase, check if the change is a linked DbConfig.
 	_, isDbConfig := obj.Object.(*dbv1beta1.DbConfig)
 	if comp.mode == "Exclusive" && isDbConfig {
 		dbs := &dbv1beta1.PostgresDatabaseList{}
@@ -78,13 +79,9 @@ func (comp *postgresComponent) WatchMap(obj handler.MapObject, c client.Client) 
 		}
 
 		for _, db := range dbs.Items {
-			// TODO Can do this with a list option once that API stabilizes
-			if db.Namespace != obj.Meta.GetNamespace() {
-				continue
-			}
-
 			// Check the DbConfig field.
-			if (db.Spec.DbConfig == "" && obj.Meta.GetName() == db.Namespace) || db.Spec.DbConfig == obj.Meta.GetName() {
+			dbConfigRef := comp.dbConfigRefFor(&db)
+			if dbConfigRef.Name == obj.Meta.GetName() && dbConfigRef.Namespace == obj.Meta.GetNamespace() {
 				requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: db.Name, Namespace: db.Namespace}})
 			}
 		}
@@ -102,10 +99,11 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if comp.mode == "Exclusive" {
 		// This is a PostgresDatabase so try to load the relevant DbConfig.
 		pqdb := ctx.Top.(*dbv1beta1.PostgresDatabase)
+		dbconfigRef := comp.dbConfigRefFor(pqdb)
 		dbconfig = &dbv1beta1.DbConfig{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: pqdb.Spec.DbConfig, Namespace: pqdb.Namespace}, dbconfig)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: dbconfigRef.Name, Namespace: dbconfigRef.Namespace}, dbconfig)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "postgres: error getting dbconfig %s/%s for PostgresDatabase %s", pqdb.Namespace, pqdb.Spec.DbConfig, pqdb.Name)
+			return components.Result{}, errors.Wrapf(err, "postgres: error getting dbconfig %s/%s for PostgresDatabase %s", dbconfigRef.Namespace, dbconfigRef.Name, pqdb.Name)
 		}
 		// Do nothing in shared mode, DB is already provisioned.
 		if dbconfig.Spec.Postgres.Mode == "Shared" {
@@ -223,4 +221,16 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 		Database: "postgres",
 	}
 	return res, existing.Status.String(), conn, nil
+}
+
+func (comp *postgresComponent) dbConfigRefFor(db *dbv1beta1.PostgresDatabase) *corev1.ObjectReference {
+	name := db.Spec.DbConfigRef.Name
+	if name == "" {
+		name = db.Namespace
+	}
+	namespace := db.Spec.DbConfigRef.Namespace
+	if namespace == "" {
+		namespace = db.Namespace
+	}
+	return &corev1.ObjectReference{Name: name, Namespace: namespace}
 }

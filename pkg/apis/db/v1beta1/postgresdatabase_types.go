@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,9 +32,9 @@ type PostgresDatabaseSpec struct {
 	// Name of the user to own this database. Defaults to a user with the same name as `DatabaseName`.
 	// +optional
 	Owner string `json:"owner,omitempty"`
-	// An optional name of a DbConfig object in this namespace to use for configuration. Defaults to the name of the namespace.
+	// An optional ref to a DbConfig object to use for configuration. Defaults to the name of the namespace.
 	// +optional
-	DbConfig string `json:"dbConfig,omitempty"`
+	DbConfigRef corev1.ObjectReference `json:"dbConfigRef,omitempty"`
 	// A map of extensions to versions to install. If the version is "" then the latest version will be used.
 	// +optional
 	Extensions map[string]string `json:"extensions,omitempty"`
