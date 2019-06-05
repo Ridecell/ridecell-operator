@@ -313,6 +313,7 @@ func deleteRDSInstance(rdssvc *rds.RDS, instanceIdentifier *string) error {
 		if aws.StringValue(describeDBInstancesOutput.DBInstances[0].DBInstanceStatus) == "deleting" {
 			match := regexp.MustCompile(`^.*-snapshot-controller.*$`).MatchString(*instanceIdentifier)
 			if match {
+				fmt.Printf("- RDS Instance deleted\n")
 				return nil
 			}
 			time.Sleep(time.Second * 30)
