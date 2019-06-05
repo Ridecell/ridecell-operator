@@ -111,11 +111,11 @@ var _ = Describe("rdssnapshot controller", func() {
 		c.Delete(rdsSnapshot)
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
-		}, time.Minute*10).ShouldNot(Succeed())
+		}, time.Minute).ShouldNot(Succeed())
 
 		Eventually(func() bool {
 			return snapshotExists(snapshotID)
-		}, time.Minute*5, time.Second*10).Should(BeFalse())
+		}, time.Minute, time.Second*10).Should(BeFalse())
 	})
 
 	It("creates snapshot with a ttl", func() {
@@ -132,11 +132,11 @@ var _ = Describe("rdssnapshot controller", func() {
 
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsSnapshot.Name), fetchSnapshot)
-		}, time.Minute*10).ShouldNot(Succeed())
+		}, time.Minute).ShouldNot(Succeed())
 
 		Eventually(func() bool {
 			return snapshotExists(snapshotID)
-		}, time.Minute*5, time.Second*10).Should(BeFalse())
+		}, time.Minute, time.Second*10).Should(BeFalse())
 	})
 
 })

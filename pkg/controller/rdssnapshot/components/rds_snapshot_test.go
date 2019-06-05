@@ -80,7 +80,7 @@ var _ = Describe("rdssnapshot db Component", func() {
 		Expect(mockRDS.snapshotTags).To(HaveLen(2))
 	})
 
-	It("adds deletiontimestamp to object", func() {
+	It("tests finalizer behavior", func() {
 		instance.ObjectMeta.Finalizers = []string{"rdssnapshot.finalizer"}
 		currentTime := metav1.Now()
 		instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
@@ -109,7 +109,6 @@ var _ = Describe("rdssnapshot db Component", func() {
 		instance.ObjectMeta.CreationTimestamp = metav1.Now()
 		instance.Spec.TTL = time.Second * 5
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 		Expect(mockRDS.snapshotDeleted).To(BeFalse())
 	})
 })
