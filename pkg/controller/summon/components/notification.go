@@ -17,9 +17,14 @@ limitations under the License.
 package components
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/nlopes/slack"
@@ -50,12 +55,61 @@ type realSlackClient struct {
 }
 
 func (c *realSlackClient) PostMessage(channel string, msg slack.Attachment) (string, string, error) {
-	return c.client.PostMessage(channel, slack.MsgOptionAttachments(msg))
+	if c.client != nil {
+		return c.client.PostMessage(channel, slack.MsgOptionAttachments(msg))
+	} else {
+		return "", "", nil
+	}
+}
+
+// Interface for Deployment status client
+//go:generate moq -out zz_generated.mock_deploystatusclient_test.go . DeployStatusClient
+type DeployStatusClient interface {
+	PostStatus(name string, env string, tag string) error
+}
+
+type realDeployStatusClient struct{}
+
+// Real implementation of PostStatus for deployStatusTool
+func (c *realDeployStatusClient) PostStatus(name string, env string, tag string) error {
+	url := os.Getenv("DEPLOY_STAT_URL")
+
+	if url == "" {
+		return nil
+	}
+
+	postBody := map[string]string{
+		"customer_name": name,
+		"environment":   env,
+		"deploy_user":   "ridecell-operator", // better candidate user?
+		"tag":           tag,
+	}
+
+	postJson, err := json.Marshal(postBody)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(postJson))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		bodyContent, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return errors.Errorf("error from deployment status %v: %s", resp.StatusCode, bodyContent)
+	}
+	return nil
 }
 
 type notificationComponent struct {
-	slackClient SlackClient
-	dupCache    sync.Map
+	slackClient        SlackClient
+	deployStatusClient DeployStatusClient
+	dupCache           sync.Map
 }
 
 func NewNotification() *notificationComponent {
@@ -64,8 +118,10 @@ func NewNotification() *notificationComponent {
 	if slackApiKey != "" {
 		slackClient = slack.New(slackApiKey)
 	}
+
 	return &notificationComponent{
-		slackClient: &realSlackClient{client: slackClient},
+		slackClient:        &realSlackClient{client: slackClient},
+		deployStatusClient: &realDeployStatusClient{},
 	}
 }
 
@@ -73,13 +129,16 @@ func (c *notificationComponent) InjectSlackClient(client SlackClient) {
 	c.slackClient = client
 }
 
+func (c *notificationComponent) InjectDeployStatusClient(client DeployStatusClient) {
+	c.deployStatusClient = client
+}
+
 func (_ *notificationComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{}
 }
 
-func (_ *notificationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	return instance.Spec.Notifications.SlackChannel != ""
+func (_ *notificationComponent) IsReconcilable(_ *components.ComponentContext) bool {
+	return true
 }
 
 func (c *notificationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
@@ -110,6 +169,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		// Already notified about this version, we're good.
 		return components.Result{}, nil
 	}
+
 	// Check if this is a duplicate slipping through due to concurrency.
 	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
 	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
@@ -119,10 +179,23 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 
 	// Send to Slack.
-	attachment := c.formatSuccessNotification(instance)
-	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
+	if instance.Spec.Notifications.SlackChannel != "" {
+		attachment := c.formatSuccessNotification(instance)
+		_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
+		if err != nil {
+			return components.Result{}, err
+		}
+	}
+
+	// Send to Deployment Status Tool
+	deployEnv := instance.Namespace
+	if strings.HasPrefix(deployEnv, "summon-") {
+		deployEnv = deployEnv[7:]
+	}
+
+	err := c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
 	if err != nil {
-		return components.Result{}, err
+		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
 	}
 
 	// Update status. Close over `version` in case it changes during a collision.
@@ -146,10 +219,12 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 	}
 
 	// Send to Slack.
-	attachment := c.formatErrorNotification(instance, errorMessage)
-	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
-	if err != nil {
-		return components.Result{}, err
+	if instance.Spec.Notifications.SlackChannel != "" {
+		attachment := c.formatErrorNotification(instance, errorMessage)
+		_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
+		if err != nil {
+			return components.Result{}, err
+		}
 	}
 
 	// Update status.
