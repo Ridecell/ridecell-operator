@@ -437,17 +437,6 @@ var _ = Describe("Summon controller", func() {
 		It("does not send post request for deploy when something went wrong", func() {
 			c := helpers.TestClient
 
-			// Change up tag expectation.
-			instance.Spec.Version = "1.2.3"
-			// Set up verification handler to check our request body.
-			deployStatusServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/"),
-					ghttp.VerifyJSON(fmt.Sprintf(`{"customer_name": "notifytest", "deploy_user": "ridecell-operator","environment": "%s","tag": "1.2.3"}`, helpers.Namespace)),
-					ghttp.RespondWith(http.StatusOK, ""),
-				),
-			)
-
 			// Create the SummonPlatform.
 			c.Create(instance)
 
