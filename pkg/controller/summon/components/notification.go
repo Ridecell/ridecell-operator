@@ -55,7 +55,11 @@ type realSlackClient struct {
 }
 
 func (c *realSlackClient) PostMessage(channel string, msg slack.Attachment) (string, string, error) {
-	return c.client.PostMessage(channel, slack.MsgOptionAttachments(msg))
+	if c.client != nil {
+		return c.client.PostMessage(channel, slack.MsgOptionAttachments(msg))
+	} else {
+		return "", "", nil
+	}
 }
 
 // Interface for Deployment status client
@@ -64,13 +68,13 @@ type DeployStatusClient interface {
 	PostStatus(name string, env string, tag string) error
 }
 
-type realDeployStatusClient struct {
-	url string
-}
+type realDeployStatusClient struct{}
 
 // Real implementation of PostStatus for deployStatusTool
 func (c *realDeployStatusClient) PostStatus(name string, env string, tag string) error {
-	if c.url == "" {
+	url := os.Getenv("DEPLOY_STAT_URL")
+
+	if url == "" {
 		return nil
 	}
 
@@ -86,7 +90,7 @@ func (c *realDeployStatusClient) PostStatus(name string, env string, tag string)
 		return err
 	}
 
-	resp, err := http.Post(c.url, "application/json", bytes.NewBuffer(postJson))
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(postJson))
 	if err != nil {
 		return err
 	}
@@ -117,7 +121,7 @@ func NewNotification() *notificationComponent {
 
 	return &notificationComponent{
 		slackClient:        &realSlackClient{client: slackClient},
-		deployStatusClient: &realDeployStatusClient{url: os.Getenv("DEPLOY_STAT_URL")},
+		deployStatusClient: &realDeployStatusClient{},
 	}
 }
 
@@ -133,9 +137,8 @@ func (_ *notificationComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{}
 }
 
-func (_ *notificationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	return instance.Spec.Notifications.SlackChannel != ""
+func (_ *notificationComponent) IsReconcilable(_ *components.ComponentContext) bool {
+	return true
 }
 
 func (c *notificationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
@@ -166,6 +169,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		// Already notified about this version, we're good.
 		return components.Result{}, nil
 	}
+
 	// Check if this is a duplicate slipping through due to concurrency.
 	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
 	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
@@ -175,10 +179,12 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 
 	// Send to Slack.
-	attachment := c.formatSuccessNotification(instance)
-	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
-	if err != nil {
-		return components.Result{}, err
+	if instance.Spec.Notifications.SlackChannel != "" {
+		attachment := c.formatSuccessNotification(instance)
+		_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
+		if err != nil {
+			return components.Result{}, err
+		}
 	}
 
 	//*********************************************
@@ -188,7 +194,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		deployEnv = deployEnv[7:]
 	}
 
-	err = c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
+	err := c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
 	}
@@ -216,25 +222,25 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 	}
 
 	// Send to Slack.
-	attachment := c.formatErrorNotification(instance, errorMessage)
-	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
-	if err != nil {
-		return components.Result{}, err
-	}
-
-	// Only post to deploy status tool on first error occurred (don't want one entry per unique error)
-	if !ok {
-		// Create entry for Deployment Status Tool
-		deployEnv := instance.Namespace
-		if strings.HasPrefix(deployEnv, "summon-") {
-			deployEnv = deployEnv[7:]
-		}
-
-		err = c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
+	if instance.Spec.Notifications.SlackChannel != "" {
+		attachment := c.formatErrorNotification(instance, errorMessage)
+		_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
 		if err != nil {
-			return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
+			return components.Result{}, err
 		}
 	}
+
+	// Create entry for Deployment Status Tool
+	deployEnv := instance.Namespace
+	if strings.HasPrefix(deployEnv, "summon-") {
+		deployEnv = deployEnv[7:]
+	}
+
+	err := c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
+	}
+
 	// Update status.
 	c.dupCache.Store(dupCacheKey, dupCacheValue)
 	return components.Result{}, nil
