@@ -434,7 +434,7 @@ var _ = Describe("Summon controller", func() {
 			Expect(deployStatusServer.ReceivedRequests()).Should(HaveLen(2))
 		})
 
-		It("sends a single post request for deploy even when something went wrong", func() {
+		It("does not send post request for deploy when something went wrong", func() {
 			c := helpers.TestClient
 
 			// Change up tag expectation.
@@ -463,7 +463,7 @@ var _ = Describe("Summon controller", func() {
 			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusError))
 
 			// Check that exactly deployment status post occurred.
-			Expect(deployStatusServer.ReceivedRequests()).Should(HaveLen(1))
+			Expect(deployStatusServer.ReceivedRequests()).Should(HaveLen(0))
 		})
 	})
 })

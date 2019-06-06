@@ -187,7 +187,6 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		}
 	}
 
-	//*********************************************
 	// Send to Deployment Status Tool
 	deployEnv := instance.Namespace
 	if strings.HasPrefix(deployEnv, "summon-") {
@@ -198,8 +197,6 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
 	}
-
-	//*********************************************
 
 	// Update status. Close over `version` in case it changes during a collision.
 	c.dupCache.Store(dupCacheKey, dupCacheValue)
@@ -228,17 +225,6 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 		if err != nil {
 			return components.Result{}, err
 		}
-	}
-
-	// Create entry for Deployment Status Tool
-	deployEnv := instance.Namespace
-	if strings.HasPrefix(deployEnv, "summon-") {
-		deployEnv = deployEnv[7:]
-	}
-
-	err := c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
-	if err != nil {
-		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
 	}
 
 	// Update status.
