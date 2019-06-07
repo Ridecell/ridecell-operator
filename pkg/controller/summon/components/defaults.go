@@ -108,6 +108,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		defConfig("FIREBASE_APP", "ridecell")
 	}
 
+	if instance.Spec.NewRelic == nil && instance.Spec.Environment == "prod" {
+		val := true
+		instance.Spec.NewRelic = &val
+	}
+
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
@@ -140,6 +145,12 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		val := true
 		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+	}
+
+	// Enable NewRelic if requested.
+	if instance.Spec.NewRelic != nil && *instance.Spec.NewRelic {
+		val := true
+		instance.Spec.Config["ENABLE_NEW_RELIC"] = summonv1beta1.ConfigValue{Bool: &val}
 	}
 
 	return components.Result{}, nil
