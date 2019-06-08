@@ -115,7 +115,7 @@ type SummonPlatformSpec struct {
 	Environment string `json:"environment,omitempty"`
 	// Enable NewRelic APM.
 	// +optional
-	NewRelic *bool `json:"newRelic,omitempty"`
+	EnableNewRelic *bool `json:"enableNewRelic,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

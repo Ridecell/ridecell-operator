@@ -20,34 +20,29 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-type secretComponent struct {
-	templatePath string
-	limitFn      func(*components.ComponentContext) bool
+type newRelicComponent struct{}
+
+func NewNewRelic() *newRelicComponent {
+	return &newRelicComponent{}
 }
 
-func NewSecret(templatePath string, fn func(*components.ComponentContext) bool) *secretComponent {
-	return &secretComponent{templatePath: templatePath, limitFn: fn}
-}
-
-func (comp *secretComponent) WatchTypes() []runtime.Object {
+func (comp *newRelicComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&corev1.Secret{},
 	}
 }
 
-func (comp *secretComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	if comp.limitFn != nil {
-		return comp.limitFn(ctx)
-	} else {
-		return true
-	}
+func (comp *newRelicComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	return instance.Spec.EnableNewRelic != nil && *instance.Spec.EnableNewRelic
 }
 
-func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+func (comp *newRelicComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	res, _, err := ctx.CreateOrUpdate("newrelic.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*corev1.Secret)
 		existing := existingObj.(*corev1.Secret)
 		if goal.Data == nil && goal.StringData != nil {

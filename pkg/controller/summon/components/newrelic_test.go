@@ -30,12 +30,12 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("SummonPlatform Secret Component", func() {
+var _ = Describe("SummonPlatform NewRelic Component", func() {
 	var comp components.Component
 
 	Context("with newrelic template", func() {
 		BeforeEach(func() {
-			comp = summoncomponents.NewSecret("newrelic.yml.tpl", nil)
+			comp = summoncomponents.NewNewRelic()
 			os.Setenv("NEW_RELIC_LICENSE_KEY", "1234asdf")
 		})
 

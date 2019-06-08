@@ -47,10 +47,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewSecretKey(),
 		summoncomponents.NewFernetRotate(),
 		summoncomponents.NewAppSecret(),
-		summoncomponents.NewSecret("newrelic.yml.tpl", func(ctx *components.ComponentContext) bool {
-			instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-			return instance.Spec.NewRelic != nil && *instance.Spec.NewRelic
-		}),
+		summoncomponents.NewNewRelic(),
 
 		summoncomponents.NewConfigMap("configmap.yml.tpl"),
 		summoncomponents.NewMigrations("migrations.yml.tpl"),

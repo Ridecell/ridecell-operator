@@ -108,9 +108,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		defConfig("FIREBASE_APP", "ridecell")
 	}
 
-	if instance.Spec.NewRelic == nil && instance.Spec.Environment == "prod" {
+	if instance.Spec.EnableNewRelic == nil && instance.Spec.Environment == "prod" {
 		val := true
-		instance.Spec.NewRelic = &val
+		instance.Spec.EnableNewRelic = &val
 	}
 
 	// Fill in static default config values.
@@ -148,7 +148,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	// Enable NewRelic if requested.
-	if instance.Spec.NewRelic != nil && *instance.Spec.NewRelic {
+	if instance.Spec.EnableNewRelic != nil && *instance.Spec.EnableNewRelic {
 		val := true
 		instance.Spec.Config["ENABLE_NEW_RELIC"] = summonv1beta1.ConfigValue{Bool: &val}
 	}
