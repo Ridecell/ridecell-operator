@@ -197,6 +197,7 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 -----END PUBLIC KEY-----`)
 	defConfig("CARSHARING_V1_API_DISABLED", false)
 	defConfig("CLOUDFRONT_DISTRIBUTION", "")
+	defConfig("CONN_MAX_AGE", float64(60))
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
 	defConfig("DATA_PIPELINE_SQS_QUEUE_NAME", "master-data-pipeline")
