@@ -43,7 +43,7 @@ spec:
             cpu: 500m
           limits:
             memory: 2G
-        {{ if .Instance.Spec.NewRelic }}
+        {{ if .Instance.Spec.EnableNewRelic }}
         env:
         - name: NEW_RELIC_LICENSE_KEY
           valueFrom:
@@ -58,7 +58,7 @@ spec:
           mountPath: /etc/config
         - name: app-secrets
           mountPath: /etc/secrets
-        {{ if .Instance.Spec.NewRelic }}
+        {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           mountPath: /home/ubuntu/summon-platform
         {{ end }}
@@ -69,7 +69,7 @@ spec:
         - name: app-secrets
           secret:
             secretName: {{ .Instance.Name }}.app-secrets
-        {{ if .Instance.Spec.NewRelic }}
+        {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           secret:
             secretName: {{ .Instance.Name }}.newrelic
