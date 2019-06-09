@@ -72,6 +72,7 @@ spec:
       name: beat-state
     spec:
       accessModes: [ReadWriteOnce]
+      storageClassName: gp2
       resources:
         requests:
           storage: 1Gi # This only actually needs about 1Mb
