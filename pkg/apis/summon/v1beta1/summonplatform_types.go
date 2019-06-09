@@ -36,6 +36,9 @@ type NotificationsSpec struct {
 	// Name of the slack channel for notifications. If not set, no notifications will be sent.
 	// +optional
 	SlackChannel string `json:"slackChannel,omitempty"`
+	// Override for the global default deployment-status server to use.
+	// +optional
+	DeploymentStatusUrl string `json:"deploymentStatusUrl,omitempty"`
 }
 
 // DatabaseSpec is used to specify whether we are using a shared database or not.

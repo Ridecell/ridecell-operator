@@ -332,7 +332,7 @@ var _ = Describe("Summon controller", func() {
 
 		BeforeEach(func() {
 			deployStatusServer = ghttp.NewServer()
-			os.Setenv("DEPLOY_STAT_URL", deployStatusServer.URL())
+			instance.Spec.Notifications.DeploymentStatusUrl = deployStatusServer.URL()
 		})
 
 		AfterEach(func() {
