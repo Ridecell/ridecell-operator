@@ -65,15 +65,13 @@ func (c *realSlackClient) PostMessage(channel string, msg slack.Attachment) (str
 // Interface for Deployment status client
 //go:generate moq -out zz_generated.mock_deploystatusclient_test.go . DeployStatusClient
 type DeployStatusClient interface {
-	PostStatus(name string, env string, tag string) error
+	PostStatus(url string, name string, env string, tag string) error
 }
 
 type realDeployStatusClient struct{}
 
 // Real implementation of PostStatus for deployStatusTool
-func (c *realDeployStatusClient) PostStatus(name string, env string, tag string) error {
-	url := os.Getenv("DEPLOY_STAT_URL")
-
+func (c *realDeployStatusClient) PostStatus(url string, name string, env string, tag string) error {
 	if url == "" {
 		return nil
 	}
@@ -193,7 +191,11 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		deployEnv = deployEnv[7:]
 	}
 
-	err := c.deployStatusClient.PostStatus(instance.Name, deployEnv, instance.Spec.Version)
+	deploymentStatusUrl := os.Getenv("DEPLOY_STAT_URL")
+	if instance.Spec.Notifications.DeploymentStatusUrl != "" {
+		deploymentStatusUrl = instance.Spec.Notifications.DeploymentStatusUrl
+	}
+	err := c.deployStatusClient.PostStatus(deploymentStatusUrl, instance.Name, deployEnv, instance.Spec.Version)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
 	}

@@ -45,7 +45,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 		instance.Spec.Notifications.SlackChannel = "#test-channel"
 
 		mockedDeployStatusClient = &summoncomponents.DeployStatusClientMock{
-			PostStatusFunc: func(_, _, _ string) error {
+			PostStatusFunc: func(_, _, _, _ string) error {
 				return nil
 			},
 		}
