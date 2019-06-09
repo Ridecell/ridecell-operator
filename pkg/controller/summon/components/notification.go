@@ -220,6 +220,12 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 		return components.Result{}, nil
 	}
 
+	// Check if this is one of the "the object has been modified; please apply your changes to the latest version and try again" errors.
+	if strings.Contains(errorMessage, "the object has been modified; please apply your changes to the latest version and try again") {
+		// TODO warning log should go here.
+		return components.Result{}, nil
+	}
+
 	// Send to Slack.
 	if instance.Spec.Notifications.SlackChannel != "" {
 		attachment := c.formatErrorNotification(instance, errorMessage)
