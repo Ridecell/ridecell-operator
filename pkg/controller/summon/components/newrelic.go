@@ -30,18 +30,22 @@ func NewNewRelic() *newRelicComponent {
 	return &newRelicComponent{}
 }
 
-func (comp *newRelicComponent) WatchTypes() []runtime.Object {
+func (_ *newRelicComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&corev1.Secret{},
 	}
 }
 
-func (comp *newRelicComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	return instance.Spec.EnableNewRelic != nil && *instance.Spec.EnableNewRelic
+func (_ *newRelicComponent) IsReconcilable(_ *components.ComponentContext) bool {
+	return true
 }
 
 func (comp *newRelicComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	if instance.Spec.EnableNewRelic == nil || !*instance.Spec.EnableNewRelic {
+		return components.Result{}, nil
+	}
+
 	res, _, err := ctx.CreateOrUpdate("newrelic.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*corev1.Secret)
 		existing := existingObj.(*corev1.Secret)
