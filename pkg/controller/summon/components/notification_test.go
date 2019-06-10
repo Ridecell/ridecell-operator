@@ -36,8 +36,9 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 	BeforeEach(func() {
 		comp = summoncomponents.NewNotification()
 		mockedSlackClient = &summoncomponents.SlackClientMock{
-			PostMessageFunc: func(_ string, _ slack.Attachment) (string, string, error) {
-				return "", "", nil
+			PostMessageFunc: func(channel string, _ slack.Attachment) (string, string, error) {
+				// at least mock response of returning the slack channel where it would have posted for test validation
+				return channel, "", nil
 			},
 		}
 		comp.InjectSlackClient(mockedSlackClient)
@@ -100,7 +101,31 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(deployPost.Tag).To(Equal("1234-eb6b515-master"))
 		})
 
+		It("sends a success notification on a new deployment to additional slack channels", func() {
+			instance.Spec.Notifications.SlackChannels = []string{"#test-channel-2"}
+			instance.Spec.Version = "1234-eb6b515-master"
+			instance.Status.Notification.NotifyVersion = ""
+			instance.Status.Status = summonv1beta1.StatusReady
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
+
+			for index, post := range mockedSlackClient.PostMessageCalls() {
+				if index == 0 {
+					Expect(post.In1).To(Equal("#test-channel"))
+				} else {
+					Expect(post.In1).To(Equal("#test-channel-2"))
+				}
+				Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+				Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+				Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
+			}
+
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
+		})
+
 		It("does not send a success notification on an existing deployment", func() {
+			instance.Spec.Notifications.SlackChannels = []string{"#test-channel-2", "#test-channel-3"}
 			instance.Spec.Version = "1234-eb6b515-master"
 			instance.Status.Notification.NotifyVersion = "1234-eb6b515-master"
 			instance.Status.Status = summonv1beta1.StatusReady
@@ -128,15 +153,22 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(deployPost.Tag).To(Equal("1234"))
 		})
 
-		It("sends an error notification on a new error", func() {
+		FIt("sends an error notification on a new error", func() {
+			instance.Spec.Notifications.SlackChannels = []string{"#test-channel-2", "#test-channel-3"}
 			instance.Status.Message = "Someone set us up the bomb"
 			instance.Status.Status = summonv1beta1.StatusError
 			Expect(comp).To(ReconcileContext(ctx))
-			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
-			post := mockedSlackClient.PostMessageCalls()[0]
-			Expect(post.In1).To(Equal("#test-channel"))
-			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
-			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(3))
+			for index, post := range mockedSlackClient.PostMessageCalls() {
+				fmt.Printf("%s\n", post.In1)
+				if index == 0 {
+					Expect(post.In1).To(Equal("#test-channel"))
+				} else {
+					Expect(post.In1).To(Equal("#test-channel-" + string(index+1)))
+				}
+				Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+				Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
+			}
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 
@@ -172,16 +204,19 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 		})
 
 		It("does not send an error the second time for the same error", func() {
+			instance.Spec.Notifications.SlackChannels = []string{"#tchannel-2", "#tchannel-3"}
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
-			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(3))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 
 		It("sends two error notifications for two different errors", func() {
+			instance.Spec.Notifications.SlackChannels = []string{"#otherchannel"}
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("You have no chance to survive")))
-			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
+			// 2 errors to primary channel, 2 errors two additional channel
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(4))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 	})

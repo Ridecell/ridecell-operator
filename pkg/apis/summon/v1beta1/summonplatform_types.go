@@ -36,6 +36,9 @@ type NotificationsSpec struct {
 	// Name of the slack channel for notifications. If not set, no notifications will be sent.
 	// +optional
 	SlackChannel string `json:"slackChannel,omitempty"`
+	// list of additional slack channels for notifications
+	// +optional
+	SlackChannels []string `json:"slackChannels,omitempty"`
 	// Override for the global default deployment-status server to use.
 	// +optional
 	DeploymentStatusUrl string `json:"deploymentStatusUrl,omitempty"`
