@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/nlopes/slack"
 	. "github.com/onsi/ginkgo"
@@ -153,18 +154,17 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(deployPost.Tag).To(Equal("1234"))
 		})
 
-		FIt("sends an error notification on a new error", func() {
+		It("sends an error notification on a new error", func() {
 			instance.Spec.Notifications.SlackChannels = []string{"#test-channel-2", "#test-channel-3"}
 			instance.Status.Message = "Someone set us up the bomb"
 			instance.Status.Status = summonv1beta1.StatusError
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(3))
 			for index, post := range mockedSlackClient.PostMessageCalls() {
-				fmt.Printf("%s\n", post.In1)
 				if index == 0 {
 					Expect(post.In1).To(Equal("#test-channel"))
 				} else {
-					Expect(post.In1).To(Equal("#test-channel-" + string(index+1)))
+					Expect(post.In1).To(Equal("#test-channel-" + strconv.Itoa(index+1)))
 				}
 				Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
 				Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
