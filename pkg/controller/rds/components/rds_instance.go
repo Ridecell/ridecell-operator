@@ -225,7 +225,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "rds: failed to open db connection")
 		}
-		_, err = db.Query(`SELECT 1;`)
+		databaseRows, err := db.Query(`SELECT 1;`)
 		if err != nil {
 			// If the error is invalid password update the database to reflect the expected password
 			// 28P01 == Invalid Password
@@ -236,6 +236,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 				return components.Result{}, errors.Wrap(err, "rds: failed to query database")
 			}
 		}
+		defer databaseRows.Close()
 	}
 
 	dbStatus := aws.StringValue(database.DBInstanceStatus)
