@@ -108,6 +108,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		defConfig("FIREBASE_APP", "ridecell")
 	}
 
+	if instance.Spec.EnableNewRelic == nil && instance.Spec.Environment == "prod" {
+		val := true
+		instance.Spec.EnableNewRelic = &val
+	}
+
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
@@ -140,6 +145,12 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		val := true
 		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+	}
+
+	// Enable NewRelic if requested.
+	if instance.Spec.EnableNewRelic != nil && *instance.Spec.EnableNewRelic {
+		val := true
+		instance.Spec.Config["ENABLE_NEW_RELIC"] = summonv1beta1.ConfigValue{Bool: &val}
 	}
 
 	return components.Result{}, nil
@@ -186,6 +197,7 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 -----END PUBLIC KEY-----`)
 	defConfig("CARSHARING_V1_API_DISABLED", false)
 	defConfig("CLOUDFRONT_DISTRIBUTION", "")
+	defConfig("CONN_MAX_AGE", float64(60))
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
 	defConfig("DATA_PIPELINE_SQS_QUEUE_NAME", "master-data-pipeline")

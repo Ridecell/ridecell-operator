@@ -19,11 +19,13 @@ package summon_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/nlopes/slack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ghttp "github.com/onsi/gomega/ghttp"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -41,37 +43,15 @@ import (
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.SummonPlatform
-	var slackClient *slack.Client
-	var lastMessage slack.Message
-
-	// The ID of the private group to send to.
-	slackChannel := "GFLUB5A49"
 
 	BeforeEach(func() {
-		// Check for both Slack API tokens. If not present, don't run these tests.
-		// Allows for easier devX, only need to install the credentials if you are
-		// debugging these tests or whatever.
-		if os.Getenv("SLACK_API_KEY") == "" {
-			Skip("$SLACK_API_KEY not set, skipping Slack tests")
-		}
-		if os.Getenv("SLACK_API_KEY_TESTUSER") == "" {
-			Skip("$SLACK_API_KEY_TESTUSER not set, skipping Slack tests")
-		}
-
-		// Set up Slack client with the test user credentials and find the most recent message.
-		slackClient = slack.New(os.Getenv("SLACK_API_KEY_TESTUSER"))
-		historyParams := slack.NewHistoryParameters()
-		historyParams.Count = 1
-		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
-		Expect(err).ToNot(HaveOccurred())
-		lastMessage = history.Messages[0]
-
 		helpers = testHelpers.SetupTest()
 		pullSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace},
 			Type:       "kubernetes.io/dockerconfigjson",
 			StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
 		helpers.TestClient.Create(pullSecret)
+
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
@@ -86,9 +66,6 @@ var _ = Describe("Summon controller", func() {
 				Secrets: []string{"testsecret"},
 				Database: summonv1beta1.DatabaseSpec{
 					ExclusiveDatabase: true,
-				},
-				Notifications: summonv1beta1.NotificationsSpec{
-					SlackChannel: slackChannel,
 				},
 			},
 		}
@@ -110,7 +87,6 @@ var _ = Describe("Summon controller", func() {
 				}
 			}
 		}
-
 		helpers.TeardownTest()
 	})
 
@@ -164,14 +140,29 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Status().Update(db)
 
-		// Set the Postgres extensions to ready.
-		ext := &dbv1beta1.PostgresExtension{}
-		c.EventuallyGet(helpers.Name(name+"-postgis"), ext)
-		ext.Status.Status = dbv1beta1.StatusReady
-		c.Status().Update(ext)
-		c.EventuallyGet(helpers.Name(name+"-postgis-topology"), ext)
-		ext.Status.Status = dbv1beta1.StatusReady
-		c.Status().Update(ext)
+		// Set up RabbitMQ.
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: name + ".rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		c.Create(rmqSecret)
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		c.EventuallyGet(helpers.Name(name), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: name + "-user",
+				Vhost:    name,
+				PasswordSecretRef: apihelpers.SecretRef{
+					Name: name + ".rabbitmq-user-password",
+					Key:  "password",
+				},
+			},
+		}
+		c.Status().Update(rmqVhost)
 
 		// Check that a migration Job was created.
 		job := &batchv1.Job{}
@@ -204,104 +195,264 @@ var _ = Describe("Summon controller", func() {
 		c.Status().Update(statefulset)
 	}
 
-	It("sends a single success notification on deploy", func() {
-		c := helpers.TestClient
+	Context("for Slack", func() {
+		var slackClient *slack.Client
+		var lastMessage slack.Message
 
-		// Advance all the various things.
-		deployInstance("notifytest")
+		// The ID of the private group to send to.
+		slackChannel := "GFLUB5A49"
 
-		// Check that things are ready.
-		fetchInstance := &summonv1beta1.SummonPlatform{}
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+		BeforeEach(func() {
+			// Check for both Slack API tokens. If not present, don't run these tests.
+			// Allows for easier devX, only need to install the credentials if you are
+			// debugging these tests or whatever.
+			if os.Getenv("SLACK_API_KEY") == "" {
+				Skip("$SLACK_API_KEY not set, skipping Slack tests")
+			}
+			if os.Getenv("SLACK_API_KEY_TESTUSER") == "" {
+				Skip("$SLACK_API_KEY_TESTUSER not set, skipping Slack tests")
+			}
 
-		// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
-			return obj.(*summonv1beta1.SummonPlatform).Status.Notification.NotifyVersion, nil
-		}))
+			// Set up Slack client with the test user credentials and find the most recent message.
+			slackClient = slack.New(os.Getenv("SLACK_API_KEY_TESTUSER"))
+			historyParams := slack.NewHistoryParameters()
+			historyParams.Count = 1
+			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			Expect(err).ToNot(HaveOccurred())
+			lastMessage = history.Messages[0]
 
-		// Find all messages since the start of the test.
-		historyParams := slack.NewHistoryParameters()
-		historyParams.Oldest = lastMessage.Timestamp
-		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(history.Messages).To(HaveLen(1))
-		Expect(history.Messages[0].Attachments).To(HaveLen(1))
-		Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
+			// Configure the instance.
+			instance.Spec.Notifications.SlackChannel = slackChannel
+		})
+
+		It("sends a single success notification on deploy", func() {
+			c := helpers.TestClient
+
+			// Advance all the various things.
+			deployInstance("notifytest")
+
+			// Check that things are ready.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+
+			// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
+				return obj.(*summonv1beta1.SummonPlatform).Status.Notification.NotifyVersion, nil
+			}))
+
+			// Find all messages since the start of the test.
+			historyParams := slack.NewHistoryParameters()
+			historyParams.Oldest = lastMessage.Timestamp
+			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(history.Messages).To(HaveLen(1))
+			Expect(history.Messages[0].Attachments).To(HaveLen(1))
+			Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
+		})
+
+		It("sends a single success notification on deploy, even with subsequent reconciles", func() {
+			c := helpers.TestClient
+
+			// Advance all the various things.
+			deployInstance("notifytest")
+
+			// Check that things are ready.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+
+			// Simulate a pod delete.
+			deployment := &appsv1.Deployment{}
+			c.Get(helpers.Name("notifytest-web"), deployment)
+			deployment.Status.ReadyReplicas = 0
+			deployment.Status.AvailableReplicas = 0
+			c.Status().Update(deployment)
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusDeploying))
+			deployment.Status.ReadyReplicas = 1
+			deployment.Status.AvailableReplicas = 1
+			c.Status().Update(deployment)
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+
+			// Find all messages since the start of the test.
+			historyParams := slack.NewHistoryParameters()
+			historyParams.Oldest = lastMessage.Timestamp
+			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(history.Messages).To(HaveLen(1))
+		})
+
+		It("sends two success notifications for two different clusters", func() {
+			c := helpers.TestClient
+
+			// Advance all the various things.
+			deployInstance("notifytest")
+			deployInstance("notifytest2")
+
+			// Check that things are ready.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+			c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+
+			// Find all messages since the start of the test.
+			historyParams := slack.NewHistoryParameters()
+			historyParams.Oldest = lastMessage.Timestamp
+			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(history.Messages).To(HaveLen(2))
+		})
+
+		It("sends a single error notification on something going wrong", func() {
+			c := helpers.TestClient
+
+			// Create the SummonPlatform.
+			c.Create(instance)
+
+			// Simulate a Postgres error.
+			postgres := &postgresv1.Postgresql{}
+			c.EventuallyGet(helpers.Name("notifytest"), postgres)
+			postgres.Status = postgresv1.ClusterStatusSyncFailed
+			c.Status().Update(postgres)
+
+			// Wait.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusError))
+
+			// Check that exactly one message happened
+			historyParams := slack.NewHistoryParameters()
+			historyParams.Oldest = lastMessage.Timestamp
+			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(history.Messages).To(HaveLen(1))
+			Expect(history.Messages[0].Attachments).To(HaveLen(1))
+			Expect(history.Messages[0].Attachments[0].Color).To(Equal("a30200"))
+		})
 	})
 
-	It("sends a single success notification on deploy, even with subsequent reconciles", func() {
-		c := helpers.TestClient
+	Context("for deployment-status", func() {
+		var deployStatusServer *ghttp.Server
 
-		// Advance all the various things.
-		deployInstance("notifytest")
+		BeforeEach(func() {
+			deployStatusServer = ghttp.NewServer()
+			instance.Spec.Notifications.DeploymentStatusUrl = deployStatusServer.URL()
+		})
 
-		// Check that things are ready.
-		fetchInstance := &summonv1beta1.SummonPlatform{}
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+		AfterEach(func() {
+			deployStatusServer.Close()
+		})
 
-		// Simulate a pod delete.
-		deployment := &appsv1.Deployment{}
-		c.Get(helpers.Name("notifytest-web"), deployment)
-		deployment.Status.ReadyReplicas = 0
-		deployment.Status.AvailableReplicas = 0
-		c.Status().Update(deployment)
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusDeploying))
-		deployment.Status.ReadyReplicas = 1
-		deployment.Status.AvailableReplicas = 1
-		c.Status().Update(deployment)
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+		It("sends a single post request on deploy", func() {
+			c := helpers.TestClient
 
-		// Find all messages since the start of the test.
-		historyParams := slack.NewHistoryParameters()
-		historyParams.Oldest = lastMessage.Timestamp
-		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(history.Messages).To(HaveLen(1))
-	})
+			// Set up verification handler to check our request body.
+			deployStatusServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/"),
+					ghttp.VerifyJSON(fmt.Sprintf(`{"customer_name": "notifytest", "deploy_user": "ridecell-operator","environment": "%s","tag": "80813-eb6b515-master"}`, helpers.Namespace)),
+					ghttp.RespondWith(http.StatusOK, ""),
+				),
+			)
 
-	It("sends two success notifications for two different clusters", func() {
-		c := helpers.TestClient
+			// Advance all the various things.
+			deployInstance("notifytest")
 
-		// Advance all the various things.
-		deployInstance("notifytest")
-		deployInstance("notifytest2")
+			// Check that things are ready.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
-		// Check that things are ready.
-		fetchInstance := &summonv1beta1.SummonPlatform{}
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
-		c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+			// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
+				return obj.(*summonv1beta1.SummonPlatform).Status.Notification.NotifyVersion, nil
+			}))
 
-		// Find all messages since the start of the test.
-		historyParams := slack.NewHistoryParameters()
-		historyParams.Oldest = lastMessage.Timestamp
-		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(history.Messages).To(HaveLen(2))
-	})
+			// Check post request was actually made to deployment status tool.
+			Expect(deployStatusServer.ReceivedRequests()).Should(HaveLen(1))
+		})
 
-	It("sends a single error notification on something going wrong", func() {
-		c := helpers.TestClient
+		It("sends a single post request on deploy, even with subsequent reconciles", func() {
+			c := helpers.TestClient
 
-		// Create the SummonPlatform.
-		c.Create(instance)
+			// Set up verification handler to check our request body.
+			deployStatusServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/"),
+					ghttp.VerifyJSON(fmt.Sprintf(`{"customer_name": "notifytest2", "deploy_user": "ridecell-operator","environment": "%s","tag": "80813-eb6b515-master"}`, helpers.Namespace)),
+					ghttp.RespondWith(http.StatusOK, ""),
+				),
+			)
 
-		// Simulate a Postgres error.
-		postgres := &postgresv1.Postgresql{}
-		c.EventuallyGet(helpers.Name("notifytest-database"), postgres)
-		postgres.Status = postgresv1.ClusterStatusSyncFailed
-		c.Status().Update(postgres)
+			// Advance all the various things.
+			deployInstance("notifytest2")
 
-		// Wait.
-		fetchInstance := &summonv1beta1.SummonPlatform{}
-		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusError))
+			// Check that things are ready.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
-		// Check that exactly one message happened
-		historyParams := slack.NewHistoryParameters()
-		historyParams.Oldest = lastMessage.Timestamp
-		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(history.Messages).To(HaveLen(1))
-		Expect(history.Messages[0].Attachments).To(HaveLen(1))
-		Expect(history.Messages[0].Attachments[0].Color).To(Equal("a30200"))
+			// Simulate a pod delete.
+			deployment := &appsv1.Deployment{}
+			c.Get(helpers.Name("notifytest2-web"), deployment)
+			deployment.Status.ReadyReplicas = 0
+			deployment.Status.AvailableReplicas = 0
+			c.Status().Update(deployment)
+			c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusDeploying))
+			deployment.Status.ReadyReplicas = 1
+			deployment.Status.AvailableReplicas = 1
+			c.Status().Update(deployment)
+			c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+
+			// Expect single deployment status post request.
+			Expect(deployStatusServer.ReceivedRequests()).Should(HaveLen(1))
+		})
+
+		It("sends two post requests for two deploys, each in different clusters", func() {
+			c := helpers.TestClient
+
+			// Set up verification handler to check our request body.
+			deployStatusServer.AppendHandlers(
+				// Verifications for first request (notifytest).
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/"),
+					ghttp.VerifyJSON(fmt.Sprintf(`{"customer_name": "notifytest", "deploy_user": "ridecell-operator","environment": "%s","tag": "80813-eb6b515-master"}`, helpers.Namespace)),
+					ghttp.RespondWith(http.StatusOK, ""),
+				),
+				// Verifications for second request (notifytest2).
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/"),
+					ghttp.VerifyJSON(fmt.Sprintf(`{"customer_name": "notifytest2", "deploy_user": "ridecell-operator","environment": "%s","tag": "80813-eb6b515-master"}`, helpers.Namespace)),
+					ghttp.RespondWith(http.StatusOK, ""),
+				),
+			)
+
+			// Advance all the various things.
+			deployInstance("notifytest")
+			deployInstance("notifytest2")
+
+			// Check that things are ready.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+			c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+
+			// Expect two deployment status post request.
+			Expect(deployStatusServer.ReceivedRequests()).Should(HaveLen(2))
+		})
+
+		It("does not send post request for deploy when something went wrong", func() {
+			c := helpers.TestClient
+
+			// Create the SummonPlatform.
+			c.Create(instance)
+
+			// Simulate a Postgres error.
+			postgres := &dbv1beta1.PostgresDatabase{}
+			c.EventuallyGet(helpers.Name("notifytest"), postgres)
+			postgres.Status.Status = dbv1beta1.StatusError
+			postgres.Status.Message = "It go boom"
+			c.Status().Update(postgres)
+
+			// Wait.
+			fetchInstance := &summonv1beta1.SummonPlatform{}
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusError))
+
+			// Check that exactly deployment status post occurred.
+			Expect(deployStatusServer.ReceivedRequests()).Should(HaveLen(0))
+		})
 	})
 })
