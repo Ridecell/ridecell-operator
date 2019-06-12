@@ -75,15 +75,16 @@ var _ = Describe("iam_user aws Component", func() {
 		fetchAccessKey := &corev1.Secret{}
 		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("1234567890123456"))
+		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("test_access_key"))
 		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("FakeSecretKey00123"))
 		Expect(mockIAM.mockUserTagged).To(BeTrue())
 	})
 
-	It("reconciles with existing user and credentials", func() {
+	It("reconciles with invalid credentials", func() {
 		mockIAM.mockUserExists = true
 		mockIAM.mockhasUserPolicies = true
 		mockIAM.mockUserHasTags = true
+		mockIAM.mockHasAccessKey = true
 
 		instance.Spec.InlinePolicies = map[string]string{
 			"test_all": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
@@ -92,8 +93,8 @@ var _ = Describe("iam_user aws Component", func() {
 		accessKey := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-user.aws-credentials", Namespace: "default"},
 			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("test_access_key"),
-				"AWS_SECRET_ACCESS_KEY": []byte("test_secret_key"),
+				"AWS_ACCESS_KEY_ID":     []byte("asdlkfjalsdjf"),
+				"AWS_SECRET_ACCESS_KEY": []byte("asjldjfskajdfkl"),
 			},
 		}
 		ctx.Client = fake.NewFakeClient(accessKey)
@@ -103,7 +104,7 @@ var _ = Describe("iam_user aws Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("test_access_key"))
-		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("test_secret_key"))
+		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("FakeSecretKey00123"))
 		Expect(mockIAM.mockUserTagged).To(BeFalse())
 	})
 
@@ -284,7 +285,7 @@ func (m *mockIAMClient) CreateAccessKey(input *iam.CreateAccessKeyInput) (*iam.C
 	curTime := time.Now()
 	return &iam.CreateAccessKeyOutput{
 		AccessKey: &iam.AccessKey{
-			AccessKeyId:     aws.String("1234567890123456"),
+			AccessKeyId:     aws.String("test_access_key"),
 			CreateDate:      &curTime,
 			SecretAccessKey: aws.String("FakeSecretKey00123"),
 			Status:          aws.String("Active"),
@@ -297,7 +298,7 @@ func (m *mockIAMClient) DeleteAccessKey(input *iam.DeleteAccessKeyInput) (*iam.D
 	if aws.StringValue(input.UserName) != instance.Spec.UserName {
 		return &iam.DeleteAccessKeyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_deleteaccesskey: username did not match spec", errors.New(""))
 	}
-	if aws.StringValue(input.AccessKeyId) == "123456789" || m.finalizerTest {
+	if aws.StringValue(input.AccessKeyId) == "test_access_key" || m.finalizerTest {
 		return &iam.DeleteAccessKeyOutput{}, nil
 	}
 	return &iam.DeleteAccessKeyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_deleteaccesskey: access key does not exist", errors.New(""))
@@ -308,7 +309,7 @@ func (m *mockIAMClient) ListAccessKeys(input *iam.ListAccessKeysInput) (*iam.Lis
 		return &iam.ListAccessKeysOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_listaccesskeys: username did not match spec", errors.New(""))
 	}
 	if m.mockHasAccessKey {
-		return &iam.ListAccessKeysOutput{AccessKeyMetadata: []*iam.AccessKeyMetadata{&iam.AccessKeyMetadata{AccessKeyId: aws.String("123456789")}}}, nil
+		return &iam.ListAccessKeysOutput{AccessKeyMetadata: []*iam.AccessKeyMetadata{&iam.AccessKeyMetadata{AccessKeyId: aws.String("test_access_key")}}}, nil
 	}
 	return &iam.ListAccessKeysOutput{}, nil
 }
