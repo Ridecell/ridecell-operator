@@ -58,7 +58,7 @@ func (comp *iamUserComponent) InjectIAMAPI(iamapi iamiface.IAMAPI) {
 }
 
 func (_ *iamUserComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{&corev1.Secret{}}
 }
 
 func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
@@ -75,7 +75,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(iamUserFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while adding finalizer")
+				return components.Result{}, errors.Wrapf(err, "iamuser: failed to update instance while adding finalizer")
 			}
 			return components.Result{Requeue: true}, nil
 		}
@@ -89,7 +89,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(iamUserFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance)
 			if err != nil {
-				return components.Result{Requeue: true}, errors.Wrapf(err, "iamuser: failed to update instance while removing finalizer")
+				return components.Result{}, errors.Wrapf(err, "iamuser: failed to update instance while removing finalizer")
 			}
 			return components.Result{}, nil
 		}
@@ -227,17 +227,24 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}}
 	}
 
-	_, ok0 := fetchAccessKey.Data["AWS_ACCESS_KEY_ID"]
+	fetchAccessKeyID, ok0 := fetchAccessKey.Data["AWS_ACCESS_KEY_ID"]
 	_, ok1 := fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"]
 
+	existingAccessKeys, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: user.UserName})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "iam_user: failed to list access keys")
+	}
+
 	if !ok0 || !ok1 {
-		// Find any unrelated access keys attached to this user
-		existingAccessKeys, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: user.UserName})
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "iam_user: failed to list access keys")
-		}
-		// Delete access keys if they exist
-		for _, accessKeyMeta := range existingAccessKeys.AccessKeyMetadata {
+		fetchAccessKeyID = []byte{}
+	}
+
+	var foundAccessKeyID bool
+	for _, accessKeyMeta := range existingAccessKeys.AccessKeyMetadata {
+		if aws.StringValue(accessKeyMeta.AccessKeyId) == string(fetchAccessKeyID) {
+			foundAccessKeyID = true
+		} else {
+			// If the access key isn't known to the controller delete it
 			_, err := comp.iamAPI.DeleteAccessKey(&iam.DeleteAccessKeyInput{
 				AccessKeyId: accessKeyMeta.AccessKeyId,
 				UserName:    user.UserName,
@@ -246,7 +253,9 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 				return components.Result{}, errors.Wrapf(err, "iam_user: failed to delete access keys")
 			}
 		}
+	}
 
+	if !foundAccessKeyID {
 		// Make new access key and put it in a secret
 		createAccessKeyOutput, err := comp.iamAPI.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: user.UserName})
 		if err != nil {
