@@ -444,6 +444,7 @@
     "format",
     "gbytes",
     "gexec",
+    "ghttp",
     "gstruct",
     "gstruct/errors",
     "internal/assertion",
@@ -768,13 +769,12 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "repeatable"
-  digest = "1:793142251a81c1dd8d4eda2d238715d42ccc97a85fcc98a3ba58d4dc15a93882"
+  digest = "1:c9b4276d0f084ebc1c0b046a792e77d665b062cd0520143d90846c0f268815f5"
   name = "gopkg.in/DATA-DOG/go-sqlmock.v1"
   packages = ["."]
   pruneopts = "T"
-  revision = "fbb34b2830ba62acf5dd956a871a53f0e54b97c6"
-  source = "https://github.com/coderanger/go-sqlmock.git"
+  revision = "3f9954f6f6697845b082ca57995849ddf614f450"
+  version = "v1.3.3"
 
 [[projects]]
   digest = "1:7fc160b460a6fc506b37fcca68332464c3f2cd57b6e3f111f26c5bbfd2d5518e"
@@ -1153,6 +1153,7 @@
     "github.com/nlopes/slack",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/onsi/gomega/ghttp",
     "github.com/onsi/gomega/gstruct",
     "github.com/onsi/gomega/types",
     "github.com/pkg/errors",

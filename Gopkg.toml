@@ -20,11 +20,6 @@ required = [
   go-tests = true
 
 [[override]]
-name = "gopkg.in/DATA-DOG/go-sqlmock.v1"
-source = "https://github.com/coderanger/go-sqlmock.git"
-branch = "repeatable"
-
-[[override]]
 name = "sigs.k8s.io/controller-runtime"
 source = "https://github.com/coderanger/controller-runtime.git"
 branch = "crd-update-0.1"
