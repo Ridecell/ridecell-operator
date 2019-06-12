@@ -235,8 +235,9 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			} else {
 				return components.Result{}, errors.Wrap(err, "rds: failed to query database")
 			}
+		} else {
+			defer databaseRows.Close()
 		}
-		defer databaseRows.Close()
 	}
 
 	dbStatus := aws.StringValue(database.DBInstanceStatus)
