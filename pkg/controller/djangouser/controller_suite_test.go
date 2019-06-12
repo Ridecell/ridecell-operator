@@ -30,7 +30,7 @@ var testHelpers *test_helpers.TestHelpers
 
 func TestTemplates(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "DjangoUser controller Suite")
+	ginkgo.RunSpecs(t, "DjangoUser controller Suite @controller")
 }
 
 var _ = ginkgo.BeforeSuite(func() {
