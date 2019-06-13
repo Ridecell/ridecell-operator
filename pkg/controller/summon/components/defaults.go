@@ -132,15 +132,17 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.Config[key] = summonv1beta1.ConfigValue{String: &value}
 		}
 	}
+
+	webURL := instance.Spec.Hostname
+	if instance.Spec.Aliases != nil && len(instance.Spec.Aliases) > 0 {
+		webURL = instance.Spec.Aliases[0]
+	}
+	defVal("WEB_URL", "https://%s", webURL)
+
 	defVal("ASGI_URL", "redis://%s-redis/0", instance.Name)
 	defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
 	defVal("FIREBASE_ROOT_NODE", "%s", instance.Name)
 	defVal("TENANT_ID", "%s", instance.Name)
-	if instance.Spec.Aliases != nil {
-		defVal("WEB_URL", "https://%s", instance.Spec.Aliases[0])
-	} else {
-		defVal("WEB_URL", "https://%s", instance.Spec.Hostname)
-	}
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
