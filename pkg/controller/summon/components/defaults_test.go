@@ -137,4 +137,14 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(instance.Spec.Environment).To(Equal("dev"))
 	})
+
+	It("Set WEB_URL as the first value in aliases", func() {
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		comp := summoncomponents.NewDefaults()
+		instance.Spec.Aliases = []string{"xyz.ridecell.com", "abc.ridecell.com"}
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		value := instance.Spec.Config["WEB_URL"].String
+		Expect(*value).To(Equal("https://xyz.ridecell.com"))
+	})
 })
