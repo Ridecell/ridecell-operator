@@ -136,7 +136,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
 	defVal("FIREBASE_ROOT_NODE", "%s", instance.Name)
 	defVal("TENANT_ID", "%s", instance.Name)
-	defVal("WEB_URL", "https://%s", instance.Spec.Hostname)
+	if instance.Spec.Aliases != nil {
+		defVal("WEB_URL", "https://%s", instance.Spec.Aliases[0])
+	} else {
+		defVal("WEB_URL", "https://%s", instance.Spec.Hostname)
+	}
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
