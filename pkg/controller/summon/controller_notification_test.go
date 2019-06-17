@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	ghttp "github.com/onsi/gomega/ghttp"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -200,24 +199,18 @@ var _ = Describe("Summon controller", func() {
 		var lastMessage slack.Message
 
 		// The ID of the private group to send to.
-		slackChannel := "GFLUB5A49"
+		slackChannel := "CKEV56KKJ" // #rcoperator-test
 
 		BeforeEach(func() {
-			// Check for both Slack API tokens. If not present, don't run these tests.
-			// Allows for easier devX, only need to install the credentials if you are
-			// debugging these tests or whatever.
 			if os.Getenv("SLACK_API_KEY") == "" {
 				Skip("$SLACK_API_KEY not set, skipping Slack tests")
 			}
-			if os.Getenv("SLACK_API_KEY_TESTUSER") == "" {
-				Skip("$SLACK_API_KEY_TESTUSER not set, skipping Slack tests")
-			}
 
 			// Set up Slack client with the test user credentials and find the most recent message.
-			slackClient = slack.New(os.Getenv("SLACK_API_KEY_TESTUSER"))
+			slackClient = slack.New(os.Getenv("SLACK_API_KEY"))
 			historyParams := slack.NewHistoryParameters()
 			historyParams.Count = 1
-			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
 			Expect(err).ToNot(HaveOccurred())
 			lastMessage = history.Messages[0]
 
@@ -230,9 +223,9 @@ var _ = Describe("Summon controller", func() {
 
 			// Advance all the various things.
 			deployInstance("notifytest")
-
 			// Check that things are ready.
 			fetchInstance := &summonv1beta1.SummonPlatform{}
+			fetchInstance.Spec.Notifications.SlackChannel = slackChannel
 			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 			// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
@@ -243,7 +236,7 @@ var _ = Describe("Summon controller", func() {
 			// Find all messages since the start of the test.
 			historyParams := slack.NewHistoryParameters()
 			historyParams.Oldest = lastMessage.Timestamp
-			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(history.Messages).To(HaveLen(1))
 			Expect(history.Messages[0].Attachments).To(HaveLen(1))
@@ -275,7 +268,7 @@ var _ = Describe("Summon controller", func() {
 			// Find all messages since the start of the test.
 			historyParams := slack.NewHistoryParameters()
 			historyParams.Oldest = lastMessage.Timestamp
-			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(history.Messages).To(HaveLen(1))
 		})
@@ -295,9 +288,11 @@ var _ = Describe("Summon controller", func() {
 			// Find all messages since the start of the test.
 			historyParams := slack.NewHistoryParameters()
 			historyParams.Oldest = lastMessage.Timestamp
-			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(history.Messages).To(HaveLen(2))
+			Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
+			Expect(history.Messages[1].Attachments[0].Color).To(Equal("2eb886"))
 		})
 
 		It("sends a single error notification on something going wrong", func() {
@@ -307,9 +302,10 @@ var _ = Describe("Summon controller", func() {
 			c.Create(instance)
 
 			// Simulate a Postgres error.
-			postgres := &postgresv1.Postgresql{}
+			postgres := &dbv1beta1.PostgresDatabase{}
 			c.EventuallyGet(helpers.Name("notifytest"), postgres)
-			postgres.Status = postgresv1.ClusterStatusSyncFailed
+			postgres.Status.Status = dbv1beta1.StatusError
+			postgres.Status.Message = "Simulated DB error"
 			c.Status().Update(postgres)
 
 			// Wait.
@@ -319,7 +315,7 @@ var _ = Describe("Summon controller", func() {
 			// Check that exactly one message happened
 			historyParams := slack.NewHistoryParameters()
 			historyParams.Oldest = lastMessage.Timestamp
-			history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+			history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(history.Messages).To(HaveLen(1))
 			Expect(history.Messages[0].Attachments).To(HaveLen(1))
