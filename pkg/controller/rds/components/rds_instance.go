@@ -90,7 +90,6 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 				// if the instance is not currently being deleted, attempt a delete and exit accordingly.
 				//result, err := comp.deleteDependencies(ctx)
 				//return result, err
-				return components.Result{}, nil
 			}
 
 			// All operations complete, remove finalizer
