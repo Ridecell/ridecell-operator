@@ -118,7 +118,7 @@ var _ = Describe("rds controller", func() {
 		fetchRDSInstance := &dbv1beta1.RDSInstance{}
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsInstance.Name), fetchRDSInstance)
-		}, time.Second*30).ShouldNot(Succeed())
+		}, time.Minute*5).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})
