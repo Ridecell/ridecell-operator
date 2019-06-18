@@ -20,15 +20,28 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-func (pe *AlertManagerConfig) GetStatus() components.Status {
-	return pe.Status
+func (amc *AlertManagerConfig) GetStatus() components.Status {
+	return amc.Status
 }
 
-func (pe *AlertManagerConfig) SetStatus(status components.Status) {
-	pe.Status = status.(AlertManagerConfigStatus)
+func (amc *AlertManagerConfig) SetStatus(status components.Status) {
+	amc.Status = status.(AlertManagerConfigStatus)
 }
 
-func (pe *AlertManagerConfig) SetErrorStatus(errorMsg string) {
-	pe.Status.Status = StatusError
-	pe.Status.Message = errorMsg
+func (amc *AlertManagerConfig) SetErrorStatus(errorMsg string) {
+	amc.Status.Status = StatusError
+	amc.Status.Message = errorMsg
+}
+
+func (mon *Monitor) GetStatus() components.Status {
+	return mon.Status
+}
+
+func (mon *Monitor) SetStatus(status components.Status) {
+	mon.Status = status.(MonitorStatus)
+}
+
+func (mon *Monitor) SetErrorStatus(errorMsg string) {
+	mon.Status.Status = StatusError
+	mon.Status.Message = errorMsg
 }

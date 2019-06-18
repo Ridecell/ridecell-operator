@@ -17,23 +17,25 @@ limitations under the License.
 package v1beta1
 
 import (
+	// pov1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// AlertManagerConfigSpec defines the desired state of AlertManagerConfig
-type AlertManagerConfigSpec struct {
+// MonitorSpec defines the desired state of Monitor
+type MonitorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Data                  map[string]string `json:"data,omitempty"`
-	AlertManagerName      string            `json:"alertManagerName,omitempty"`
-	AlertManagerNamespace string            `json:"alertMangerNamespace,omitempty,"`
+	Notify           Notify            `json:"notify,omitempty"`
+	MetricAlertRules []MetricAlertRule `json:"metricsAlerts,omitempty"`
+	LogAlertRules    []LogAlertRule    `json:"logAlerts,omitempty"`
 }
 
-// AlertManagerConfigStatus defines the observed state of AlertManagerConfig
-type AlertManagerConfigStatus struct {
+// MonitorStatus defines the observed state of Monitor
+type MonitorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Status  string `json:"status"`
@@ -43,26 +45,48 @@ type AlertManagerConfigStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AlertManagerConfig is the Schema for the alertmanagerconfigs API
+// Monitor is the Schema for the monitors API
 // +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
-type AlertManagerConfig struct {
+type Monitor struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AlertManagerConfigSpec   `json:"spec,omitempty"`
-	Status AlertManagerConfigStatus `json:"status,omitempty"`
+	Spec   MonitorSpec   `json:"spec,omitempty"`
+	Status MonitorStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AlertManagerConfigList contains a list of AlertManagerConfig
-type AlertManagerConfigList struct {
+// MonitorList contains a list of Monitor
+type MonitorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AlertManagerConfig `json:"items"`
+	Items           []Monitor `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&AlertManagerConfig{}, &AlertManagerConfigList{})
+	SchemeBuilder.Register(&Monitor{}, &MonitorList{})
+}
+
+type MetricAlertRule struct {
+	Alert       string             `json:"alert"`
+	Expr        intstr.IntOrString `json:"expr"`
+	For         string             `json:"for"`
+	Labels      map[string]string  `json:"labels,omitempty"`
+	Annotations map[string]string  `json:"annotations,omitempty"`
+}
+
+type Notify struct {
+	Slack     []string `json:"slack,omitempty"`
+	Pagerduty []string `json:"pagerduty,omitempty"`
+}
+
+type LogAlertRule struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Query       string `json:"query"`
+	Condition   string `json:"condition"`
+	Threshold   int64  `json:"threshold"`
+	Schedule    string `json:"schedule"`
+	Range       string `json:"range"`
 }
