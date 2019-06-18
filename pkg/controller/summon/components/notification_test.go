@@ -37,9 +37,8 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 	BeforeEach(func() {
 		comp = summoncomponents.NewNotification()
 		mockedSlackClient = &summoncomponents.SlackClientMock{
-			PostMessageFunc: func(channel string, _ slack.Attachment) (string, string, error) {
-				// at least mock response of returning the slack channel where it would have posted for test validation
-				return channel, "", nil
+			PostMessageFunc: func(_ string, _ slack.Attachment) (string, string, error) {
+				return "", "", nil
 			},
 		}
 		comp.InjectSlackClient(mockedSlackClient)
