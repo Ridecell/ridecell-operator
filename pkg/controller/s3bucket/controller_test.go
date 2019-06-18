@@ -57,7 +57,7 @@ var _ = Describe("s3bucket controller", func() {
 
 		var err error
 		sess, err = session.NewSession(&aws.Config{
-			Region: aws.String("us-west-2"),
+			Region: aws.String("us-west-1"),
 		})
 		Expect(err).NotTo(HaveOccurred())
 
