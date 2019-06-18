@@ -88,8 +88,9 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 					return components.Result{RequeueAfter: time.Minute * 1}, nil
 				}
 				// if the instance is not currently being deleted, attempt a delete and exit accordingly.
-				result, err := comp.deleteDependencies(ctx)
-				return result, err
+				//result, err := comp.deleteDependencies(ctx)
+				//return result, err
+				return components.Result{}, nil
 			}
 
 			// All operations complete, remove finalizer
@@ -304,28 +305,28 @@ func (comp *rdsInstanceComponent) modifyRDSInstance(modifyInput *rds.ModifyDBIns
 	return nil
 }
 
-func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*dbv1beta1.RDSInstance)
-
-	_, err := comp.rdsAPI.DeleteDBInstance(&rds.DeleteDBInstanceInput{
-		DBInstanceIdentifier:      aws.String(instance.Spec.InstanceID),
-		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Spec.InstanceID, time.Now().UTC().Format("2006-01-02-15-04"))),
-	})
-
-	if err != nil {
-		// This obnoxious block of error checking reduces api calls and error spam.
-		aerr, ok := err.(awserr.Error)
-		if ok {
-			if aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
-				// If the instance isn't ready to be deleted wait a minute and try again
-				if aerr.Code() == rds.ErrCodeInvalidDBInstanceStateFault {
-					return components.Result{RequeueAfter: time.Minute * 1}, nil
-				}
-				return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
-			}
-		} else {
-			return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
-		}
-	}
-	return components.Result{Requeue: true}, nil
-}
+//func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+//	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+//
+//	_, err := comp.rdsAPI.DeleteDBInstance(&rds.DeleteDBInstanceInput{
+//		DBInstanceIdentifier:      aws.String(instance.Spec.InstanceID),
+//		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Spec.InstanceID, time.Now().UTC().Format("2006-01-02-15-04"))),
+//	})
+//
+//	if err != nil {
+//		// This obnoxious block of error checking reduces api calls and error spam.
+//		aerr, ok := err.(awserr.Error)
+//		if ok {
+//			if aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
+//				// If the instance isn't ready to be deleted wait a minute and try again
+//				if aerr.Code() == rds.ErrCodeInvalidDBInstanceStateFault {
+//					return components.Result{RequeueAfter: time.Minute * 1}, nil
+//				}
+//				return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
+//			}
+//		} else {
+//			return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
+//		}
+//	}
+//	return components.Result{Requeue: true}, nil
+//}
