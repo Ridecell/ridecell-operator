@@ -109,18 +109,16 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			instance.Status.Status = summonv1beta1.StatusReady
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
-
-			for index, post := range mockedSlackClient.PostMessageCalls() {
-				if index == 0 {
-					Expect(post.In1).To(Equal("#test-channel"))
-				} else {
-					Expect(post.In1).To(Equal("#test-channel-2"))
-				}
-				Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
-				Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
-				Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
-			}
-
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
+			post2 := mockedSlackClient.PostMessageCalls()[1]
+			Expect(post2.In1).To(Equal("#test-channel-2"))
+			Expect(post2.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post2.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+			Expect(post2.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
 			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 		})
@@ -188,6 +186,14 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			instance.Status.Message = "You have no chance to survive"
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
+			post2 := mockedSlackClient.PostMessageCalls()[1]
+			Expect(post2.In1).To(Equal("#test-channel"))
+			Expect(post2.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post2.In2.Fallback).To(Equal("foo.ridecell.us has error: You have no chance to survive"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 	})
@@ -211,12 +217,28 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 
-		It("sends two error notifications for two different errors", func() {
+		It("sends two error notifications for two different errors (to both primary and additional slack channels)", func() {
 			instance.Spec.Notifications.SlackChannels = []string{"#otherchannel"}
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("You have no chance to survive")))
-			// 2 errors to primary channel, 2 errors two additional channel
+			// 2 errors to primary channel, 2 errors to additional channel
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(4))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
+			post2 := mockedSlackClient.PostMessageCalls()[1]
+			Expect(post2.In1).To(Equal("#otherchannel"))
+			Expect(post2.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post2.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
+			post3 := mockedSlackClient.PostMessageCalls()[2]
+			Expect(post3.In1).To(Equal("#test-channel"))
+			Expect(post3.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post3.In2.Fallback).To(Equal("foo.ridecell.us has error: You have no chance to survive"))
+			post4 := mockedSlackClient.PostMessageCalls()[3]
+			Expect(post4.In1).To(Equal("#otherchannel"))
+			Expect(post4.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post4.In2.Fallback).To(Equal("foo.ridecell.us has error: You have no chance to survive"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 	})
