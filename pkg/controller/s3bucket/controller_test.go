@@ -77,7 +77,7 @@ var _ = Describe("s3bucket controller", func() {
 				Namespace: helpers.Namespace,
 			},
 			Spec: awsv1beta1.S3BucketSpec{
-				Region: "us-west-2",
+				Region: "us-west-1",
 			},
 		}
 	})
