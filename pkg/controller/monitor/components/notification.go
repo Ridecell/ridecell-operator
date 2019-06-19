@@ -32,12 +32,14 @@ import (
 type notificationComponent struct {
 }
 
-func Newnotification() *notificationComponent {
+func NewNotification() *notificationComponent {
 	return &notificationComponent{}
 }
 
 func (_ *notificationComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&monitoringv1beta1.AlertManagerConfig{},
+	}
 }
 
 func (_ *notificationComponent) IsReconcilable(_ *components.ComponentContext) bool {
@@ -84,8 +86,10 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	marshled, _ = yaml.Marshal(receiver)
 	extras["receiver"] = base64.StdEncoding.EncodeToString(marshled)
 
-	res, _, err := ctx.CreateOrUpdate("alertmanagerconfig.yml.tpl", extras, func(_goalObj, existingObj runtime.Object) error {
-		_ = existingObj.(*monitoringv1beta1.AlertManagerConfig)
+	res, _, err := ctx.CreateOrUpdate("alertmanagerconfig.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*monitoringv1beta1.AlertManagerConfig)
+		existing := existingObj.(*monitoringv1beta1.AlertManagerConfig)
+		existing.Spec = goal.Spec
 		return nil
 	})
 	if err != nil {

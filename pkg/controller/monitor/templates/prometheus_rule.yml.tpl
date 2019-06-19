@@ -3,10 +3,9 @@ kind: PrometheusRule
 metadata:
   labels:
     role: prometheus-infra-rules
-  name: {{ .Instance.Name| quote }}
+  name: {{ .Instance.Name | quote }}
   namespace: {{ .Instance.Namespace | quote }}
 spec:
   groups: 
-  - name: {{ .Instance.Name + "rules"| quote }} 
-    rules: 
-{{ .Extra.alerts | indent 4  }}
+  - name: {{ .Instance.Name + "rules" | quote }} 
+    rules: {{ .Instance.Spec.MetricAlertRules | toJson }}

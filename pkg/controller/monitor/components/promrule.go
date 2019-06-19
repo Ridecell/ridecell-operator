@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,8 +49,10 @@ func (comp *promrulComponent) Reconcile(ctx *components.ComponentContext) (compo
 	rules, _ := yaml.Marshal(instance.Spec.MetricAlertRules)
 	extras := map[string]interface{}{}
 	extras["alerts"] = string(rules)
-	res, _, err := ctx.CreateOrUpdate("prometheus_rule.yml.tpl", extras, func(_goalObj, existingObj runtime.Object) error {
-		_ = existingObj.(*monitoringv1beta1.Monitor)
+	res, _, err := ctx.CreateOrUpdate("prometheus_rule.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*pomonitoringv1.PrometheusRule)
+		existing := existingObj.(*pomonitoringv1.PrometheusRule)
+		existing.Spec = goal.Spec
 		return nil
 	})
 	if err != nil {
