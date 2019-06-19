@@ -48,9 +48,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Owner == "" {
 		instance.Spec.Owner = instance.Spec.DatabaseName
 	}
-	if instance.Spec.DbConfig == "" {
-		instance.Spec.DbConfig = instance.Namespace
-	}
 
 	return components.Result{}, nil
 }

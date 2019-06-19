@@ -36,6 +36,9 @@ type NotificationsSpec struct {
 	// Name of the slack channel for notifications. If not set, no notifications will be sent.
 	// +optional
 	SlackChannel string `json:"slackChannel,omitempty"`
+	// Override for the global default deployment-status server to use.
+	// +optional
+	DeploymentStatusUrl string `json:"deploymentStatusUrl,omitempty"`
 }
 
 // DatabaseSpec is used to specify whether we are using a shared database or not.
@@ -60,6 +63,9 @@ type SummonPlatformSpec struct {
 	// Hostname to use for the instance. Defaults to $NAME.ridecell.us.
 	// +optional
 	Hostname string `json:"hostname,omitempty"`
+	// Hostname aliases (for vanity purposes)
+	// +optional
+	Aliases []string `json:"aliases,omitempty"`
 	// Summon image version to deploy.
 	Version string `json:"version"`
 	// Name of the secret to use for secret values.
@@ -110,6 +116,9 @@ type SummonPlatformSpec struct {
 	// Environment setting.
 	// +optional
 	Environment string `json:"environment,omitempty"`
+	// Enable NewRelic APM.
+	// +optional
+	EnableNewRelic *bool `json:"enableNewRelic,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

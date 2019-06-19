@@ -15,6 +15,11 @@ test: generate fmt vet manifests
 	ginkgo --randomizeAllSpecs --randomizeSuites --cover --trace --progress ${GINKGO_ARGS} ${CI_GINKGO_ARGS} -r ./pkg ./cmd
 	gover
 
+# Run unit tests
+unit: generate fmt vet
+	grep -l -R @unit ./cmd ./pkg | xargs -n 1 dirname | sort | uniq | xargs ginkgo -focus @unit --randomizeAllSpecs --randomizeSuites --cover --trace --progress ${GINKGO_ARGS} ${CI_GINKGO_ARGS}
+	gover
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager github.com/Ridecell/ridecell-operator/cmd/manager
