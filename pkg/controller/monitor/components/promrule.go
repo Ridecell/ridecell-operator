@@ -17,39 +17,32 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
-
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 )
 
-type promrulComponent struct {
+type promruleComponent struct {
 }
 
-func NewPromrule() *promrulComponent {
-	return &promrulComponent{}
+func NewPromrule() *promruleComponent {
+	return &promruleComponent{}
 }
 
-func (_ *promrulComponent) WatchTypes() []runtime.Object {
+func (_ *promruleComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{}
 }
 
-func (_ *promrulComponent) IsReconcilable(_ *components.ComponentContext) bool {
+func (_ *promruleComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *promrulComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	fmt.Println("in promrule")
+func (comp *promruleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*monitoringv1beta1.Monitor)
-	rules, _ := yaml.Marshal(instance.Spec.MetricAlertRules)
-	extras := map[string]interface{}{}
-	extras["alerts"] = string(rules)
-	res, _, err := ctx.CreateOrUpdate("prometheus_rule.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate("prometheus_rule.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*pomonitoringv1.PrometheusRule)
 		existing := existingObj.(*pomonitoringv1.PrometheusRule)
 		existing.Spec = goal.Spec

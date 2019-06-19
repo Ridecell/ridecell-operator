@@ -19,7 +19,6 @@ package v1beta1
 import (
 	// pov1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -69,11 +68,11 @@ func init() {
 }
 
 type MetricAlertRule struct {
-	Alert       string             `json:"alert"`
-	Expr        intstr.IntOrString `json:"expr"`
-	For         string             `json:"for"`
-	Labels      map[string]string  `json:"labels,omitempty"`
-	Annotations map[string]string  `json:"annotations,omitempty"`
+	Alert       string            `json:"alert"`
+	Expr        string            `json:"expr"`
+	For         string            `json:"for"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type Notify struct {

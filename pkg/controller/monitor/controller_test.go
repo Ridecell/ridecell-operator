@@ -17,57 +17,52 @@ limitations under the License.
 package monitor_test
 
 import (
-	"time"
-
+	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
-	alertconfig "github.com/prometheus/alertmanager/config"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var _ = Describe("alertmanagerconfig controller", func() {
+var _ = Describe("monitor controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
-		c := helpers.TestClient
-		// Make a default config.
-		defaultConfig := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: "alertmanagerconfig-default", Namespace: helpers.Namespace},
-			Data: map[string]string{
-				"alertmanager.yml": "asdfasdfasdf",
-			},
-		}
-		c.Create(defaultConfig)
-
 	})
 
 	AfterEach(func() {
+		if CurrentGinkgoTestDescription().Failed {
+			helpers.DebugList(&monitoringv1beta1.MonitorList{})
+			helpers.DebugList(&pomonitoringv1.PrometheusRuleList{})
+		}
+
 		helpers.TeardownTest()
 	})
 
 	It("does a thing", func() {
 		c := helpers.TestClient
-		instance := &monitoringv1beta1.AlertManagerConfig{
+		instance := &monitoringv1beta1.Monitor{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
-			Spec:       monitoringv1beta1.AlertManagerConfigSpec{
-				// Stuff goes here.
+			Spec: monitoringv1beta1.MonitorSpec{
+				MetricAlertRules: []monitoringv1beta1.MetricAlertRule{
+					{
+						Alert:       "HighErrorRate",
+						Expr:        `job:request_latency_seconds:mean5m{job=", "} > 0.5`,
+						Labels:      map[string]string{"severity": "page"},
+						Annotations: map[string]string{"summary": "High request latency"},
+					},
+				},
 			},
 		}
 		c.Create(instance)
 
-		time.Sleep(5 * time.Second)
-
-		output := &corev1.ConfigMap{}
-		c.Get(helpers.Name("alertmanagerconfig-output"), output)
-		config, err := alertconfig.Load(output.Data["alertmanager.yml"])
-		Expect(err).ToNot(HaveOccurred())
-		Expect(config.Route).ToNot(BeNil())
-		Expect(config.Route.Routes).To(HaveLen(1))
+		rule := &pomonitoringv1.PrometheusRule{}
+		c.EventuallyGet(helpers.Name("foo"), rule)
+		Expect(rule.Spec.Groups).To(HaveLen(1))
+		Expect(rule.Spec.Groups[0].Rules).To(HaveLen(1))
+		Expect(rule.Spec.Groups[0].Rules[0].Alert).To(Equal("HighErrorRate"))
 	})
 })

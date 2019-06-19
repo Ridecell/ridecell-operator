@@ -21,20 +21,23 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
 
-	"github.com/Ridecell/ridecell-operator/pkg/controller/alertmanagerconfig"
+	"github.com/Ridecell/ridecell-operator/pkg/apis"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/monitor"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
 var testHelpers *test_helpers.TestHelpers
 
 func TestController(t *testing.T) {
+	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "alertmanagerconfig controller Suite")
+	ginkgo.RunSpecs(t, "monitor controller Suite")
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start(alertmanagerconfig.Add, false)
+	testHelpers = test_helpers.Start(monitor.Add, false)
 })
 
 var _ = ginkgo.AfterSuite(func() {

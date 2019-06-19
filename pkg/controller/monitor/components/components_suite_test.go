@@ -30,7 +30,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/controller/monitor"
 )
 
-var instance *monitoringv1beta1.Montitor
+var instance *monitoringv1beta1.Monitor
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {

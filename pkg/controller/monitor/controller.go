@@ -28,7 +28,7 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("monitor-controller", mgr, &monitoringv1beta1.Monitor{}, Templates, []components.Component{
-		mccomponents.Newnotification(),
+		// mccomponents.NewNotification(),
 		mccomponents.NewPromrule(),
 		//mccomponents.NewLogrule(),
 	})
