@@ -118,7 +118,7 @@ jobs:
     - *kube-apiserver
     - *kube-controller-manager
     environment:
-      GINKGO_ARGS: -focus @aws -skip '@(rds|rdssnapshot)'
+      GINKGO_ARGS: -focus @aws -skip '@(rds|snapshot)'
     steps:
     - rc_test:
         cover: aws
@@ -132,7 +132,7 @@ jobs:
     - *kube-apiserver
     - *kube-controller-manager
     environment:
-      GINKGO_ARGS: -focus @rds -skip @rdssnapshot
+      GINKGO_ARGS: -focus @rds
     steps:
     - rc_test:
         cover: rds
@@ -147,7 +147,7 @@ jobs:
     - *kube-apiserver
     - *kube-controller-manager
     environment:
-      GINKGO_ARGS: -focus @rdssnapshot
+      GINKGO_ARGS: -focus @snapshot
     steps:
     - rc_test:
         cover: rdssnapshot
@@ -180,7 +180,7 @@ jobs:
     - *kube-controller-manager
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      GINKGO_ARGS: -skip '@(postgres|aws|rds|rdssnapshot|rabbitmq|unit)'
+      GINKGO_ARGS: -skip '@(postgres|aws|rds|snapshot|rabbitmq|unit)'
     steps:
     - rc_test:
         cover: other

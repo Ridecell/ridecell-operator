@@ -32,7 +32,7 @@ import (
 
 func TestTemplates(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "rdssnapshot controller Suite @aws @rdssnapshot")
+	ginkgo.RunSpecs(t, "rdssnapshot controller Suite @aws @snapshot")
 }
 
 var _ = ginkgo.BeforeSuite(func() {
