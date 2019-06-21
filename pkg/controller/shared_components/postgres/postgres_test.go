@@ -67,6 +67,8 @@ var _ = Describe("Postgres Shared Component", func() {
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-database", Namespace: "summon-dev"}, postgres)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Spec.TeamID).To(Equal("summon-dev"))
+			Expect(postgres.Spec.NumberOfInstances).To(BeNumerically("==", 2))
+			Expect(postgres.Spec.Users).To(HaveKeyWithValue("ridecell-admin", BeEquivalentTo([]string{"superuser"})))
 			Expect(dbconfig.Status.Postgres.Connection.Host).To(Equal("summon-dev-database"))
 		})
 
@@ -80,6 +82,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			rds := &dbv1beta1.RDSInstance{}
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev", Namespace: "summon-dev"}, rds)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(rds.Spec.MaintenanceWindow).To(Equal("Mon:00:00-Mon:01:00"))
 		})
 	})
 

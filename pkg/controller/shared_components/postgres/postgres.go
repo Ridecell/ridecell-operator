@@ -157,11 +157,15 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	return res, nil
 }
 
-func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {
+func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {
+	extras := map[string]interface{}{
+		"DbConfig": dbconfig,
+	}
 	var existing *dbv1beta1.RDSInstance
-	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("rds.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("rds.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*dbv1beta1.RDSInstance)
 		existing = existingObj.(*dbv1beta1.RDSInstance)
-		existing.Spec = *config.Spec.Postgres.RDS
+		existing.Spec = goal.Spec
 		return nil
 	})
 	if err != nil {
@@ -171,40 +175,15 @@ func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, co
 }
 
 func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {
+	extras := map[string]interface{}{
+		"DbConfig": dbconfig,
+	}
+
 	var existing *postgresv1.Postgresql
-	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("local.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("local.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*postgresv1.Postgresql)
 		existing = existingObj.(*postgresv1.Postgresql)
-		// Copy over fields.
-		local := dbconfig.Spec.Postgres.Local
-		existing.Spec.PostgresqlParam.PgVersion = local.PostgresqlParam.PgVersion
-		existing.Spec.PostgresqlParam.Parameters = local.PostgresqlParam.Parameters
-		existing.Spec.Volume = local.Volume
-		// existing.Spec.Patroni = local.Patroni
-		existing.Spec.Resources = local.Resources
-		existing.Spec.DockerImage = local.DockerImage
-		existing.Spec.EnableMasterLoadBalancer = local.EnableMasterLoadBalancer
-		existing.Spec.EnableReplicaLoadBalancer = local.EnableReplicaLoadBalancer
-		existing.Spec.AllowedSourceRanges = local.AllowedSourceRanges
-		existing.Spec.NumberOfInstances = local.NumberOfInstances
-		existing.Spec.Users = local.Users
-		existing.Spec.MaintenanceWindows = local.MaintenanceWindows
-		existing.Spec.Clone = local.Clone
-		existing.Spec.Databases = local.Databases
-		existing.Spec.Tolerations = local.Tolerations
-		existing.Spec.Sidecars = local.Sidecars
-		existing.Spec.PodPriorityClassName = local.PodPriorityClassName
-		// existing.Spec.InitContainers = local.InitContainers // Newer version of postgres-operator?
-		// existing.Spec.ShmVolume = local.ShmVolume
-		// Standard fields
-		instanceMeta := ctx.Top.(metav1.Object)
-		existing.Spec.TeamID = instanceMeta.GetName()
-		if existing.Spec.NumberOfInstances == 0 {
-			existing.Spec.NumberOfInstances = 2
-		}
-		if existing.Spec.Users == nil {
-			existing.Spec.Users = map[string]postgresv1.UserFlags{}
-		}
-		existing.Spec.Users["ridecell-admin"] = postgresv1.UserFlags{"superuser"}
+		existing.Spec = goal.Spec
 		return nil
 	})
 	if err != nil {
