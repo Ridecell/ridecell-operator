@@ -53,25 +53,27 @@ func Add(mgr manager.Manager) error {
 }
 
 func watchTTL(watchChannel chan event.GenericEvent, k8sClient client.Client) {
-	rdsSnapshots := &dbv1beta1.RDSSnapshotList{}
-	err := k8sClient.List(context.TODO(), &client.ListOptions{}, rdsSnapshots)
-	if err != nil {
-		// Make this do something useful or ignore it.
-		panic(err)
-	}
-
-	for _, rdsSnapshot := range rdsSnapshots.Items {
-		// ignore object early if object has no TTL set
-		if rdsSnapshot.Spec.TTL == 0 {
-			continue
+	for {
+		rdsSnapshots := &dbv1beta1.RDSSnapshotList{}
+		err := k8sClient.List(context.TODO(), &client.ListOptions{}, rdsSnapshots)
+		if err != nil {
+			// Make this do something useful or ignore it.
+			panic(err)
 		}
 
-		// Check if our object is expired
-		deletionTime := rdsSnapshot.ObjectMeta.CreationTimestamp.Add(rdsSnapshot.Spec.TTL)
-		if time.Now().After(deletionTime) {
-			// Send a generic event to our watched channel to cause a reconcile of specified object
-			watchChannel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}
+		for _, rdsSnapshot := range rdsSnapshots.Items {
+			// ignore object early if object has no TTL set
+			if rdsSnapshot.Spec.TTL == 0 {
+				continue
+			}
+
+			// Check if our object is expired
+			deletionTime := rdsSnapshot.ObjectMeta.CreationTimestamp.Add(rdsSnapshot.Spec.TTL)
+			if time.Now().After(deletionTime) {
+				// Send a generic event to our watched channel to cause a reconcile of specified object
+				watchChannel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}
+			}
 		}
+		time.Sleep(time.Minute)
 	}
-	time.Sleep(time.Minute)
 }
