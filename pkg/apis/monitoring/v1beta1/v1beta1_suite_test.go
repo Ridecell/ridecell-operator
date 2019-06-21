@@ -19,8 +19,8 @@ package v1beta1_test
 import (
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
@@ -28,14 +28,16 @@ import (
 var testHelpers *test_helpers.TestHelpers
 
 func TestTemplates(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "AlertManagerConfig types")
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "AlertManagerConfig types")
+	RunSpecs(t, "Monitor types")
+
 }
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	testHelpers = test_helpers.Start(nil, false)
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 	testHelpers.Stop()
 })

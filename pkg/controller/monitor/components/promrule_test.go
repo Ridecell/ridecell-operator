@@ -19,20 +19,23 @@ package components_test
 import (
 	"context"
 
-	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"k8s.io/apimachinery/pkg/types"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
-	// . "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	mcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/monitor/components"
+	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 var _ = Describe("Monitor Promrule Component", func() {
-	// var comp components.Component
+	var comp components.Component
 
 	BeforeEach(func() {
-		// comp = mcomponents.NewPromrule()
+		comp = mcomponents.NewPromrule()
 	})
 
 	It("creates a prometheus rule", func() {
@@ -45,7 +48,7 @@ var _ = Describe("Monitor Promrule Component", func() {
 			},
 		}
 
-		// Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 
 		rule := &pomonitoringv1.PrometheusRule{}
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo", Namespace: "default"}, rule)

@@ -19,8 +19,8 @@ package alertmanagerconfig_test
 import (
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/Ridecell/ridecell-operator/pkg/controller/alertmanagerconfig"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -29,14 +29,14 @@ import (
 var testHelpers *test_helpers.TestHelpers
 
 func TestController(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "alertmanagerconfig controller Suite")
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "alertmanagerconfig controller Suite")
 }
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	testHelpers = test_helpers.Start(alertmanagerconfig.Add, false)
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = AfterSuite(func() {
 	testHelpers.Stop()
 })

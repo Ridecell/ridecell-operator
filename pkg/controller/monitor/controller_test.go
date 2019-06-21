@@ -17,13 +17,17 @@ limitations under the License.
 package monitor_test
 
 import (
-	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	"encoding/base64"
+
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"gopkg.in/yaml.v2"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	alertmconfig "github.com/prometheus/alertmanager/config"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("monitor controller", func() {
@@ -37,12 +41,13 @@ var _ = Describe("monitor controller", func() {
 		if CurrentGinkgoTestDescription().Failed {
 			helpers.DebugList(&monitoringv1beta1.MonitorList{})
 			helpers.DebugList(&pomonitoringv1.PrometheusRuleList{})
+
 		}
 
 		helpers.TeardownTest()
 	})
 
-	It("does a thing", func() {
+	It("Creating monitor kind", func() {
 		c := helpers.TestClient
 		instance := &monitoringv1beta1.Monitor{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
@@ -55,14 +60,39 @@ var _ = Describe("monitor controller", func() {
 						Annotations: map[string]string{"summary": "High request latency"},
 					},
 				},
+				Notify: monitoringv1beta1.Notify{
+					Slack: []string{
+						"#test-alert",
+						"#test",
+					},
+				},
 			},
 		}
 		c.Create(instance)
 
+		// Check Prom rules from here
 		rule := &pomonitoringv1.PrometheusRule{}
 		c.EventuallyGet(helpers.Name("foo"), rule)
 		Expect(rule.Spec.Groups).To(HaveLen(1))
 		Expect(rule.Spec.Groups[0].Rules).To(HaveLen(1))
 		Expect(rule.Spec.Groups[0].Rules[0].Alert).To(Equal("HighErrorRate"))
+
+		// Check alert config from here
+		alertConfig := &monitoringv1beta1.AlertManagerConfig{}
+		c.EventuallyGet(helpers.Name("alertmanagerconfig-foo"), alertConfig)
+		Expect(alertConfig.Spec.Data).To(HaveKey("receiver"))
+		// Check receiver correct slack channel name
+		receiver := &alertmconfig.Receiver{}
+		receive, _ := base64.StdEncoding.DecodeString(alertConfig.Spec.Data["receiver"])
+		err := yaml.Unmarshal([]byte(receive), receiver)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(receiver.SlackConfigs[0].Channel).To(Equal("#test-alert"))
+		//Check Route have correct Receiver name
+		Expect(alertConfig.Spec.Data).To(HaveKey("routes"))
+		route := &alertmconfig.Route{}
+		routes, _ := base64.StdEncoding.DecodeString(alertConfig.Spec.Data["routes"])
+		err = yaml.Unmarshal([]byte(routes), route)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(route.Receiver).To(Equal("foo"))
 	})
 })

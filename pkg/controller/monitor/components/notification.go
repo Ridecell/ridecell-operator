@@ -18,7 +18,6 @@ package components
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
@@ -38,7 +37,7 @@ func NewNotification() *notificationComponent {
 
 func (_ *notificationComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&monitoringv1beta1.AlertManagerConfig{},
+		&monitoringv1beta1.Monitor{},
 	}
 }
 
@@ -50,7 +49,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	instance := ctx.Top.(*monitoringv1beta1.Monitor)
 	// slack config
 	if len(instance.Spec.Notify.Slack) <= 0 {
-		return components.Result{}, errors.New(fmt.Sprintf("No slack chanel defined  for %s", instance.Name))
+		return components.Result{}, errors.Errorf("No slack chanel defined  for %s", instance.Name)
 	}
 	slackconfigs := []*alertmconfig.SlackConfig{}
 	for _, channel := range instance.Spec.Notify.Slack {

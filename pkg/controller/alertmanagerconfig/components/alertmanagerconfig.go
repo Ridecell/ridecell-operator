@@ -117,6 +117,11 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	if err != nil {
 		glog.Infof("creating config as secret for %s", instance.Spec.AlertManagerName)
 		alertConfigFinal.Data = map[string][]byte{"alertmanager.yml": []byte(finalConfig)}
+		// Remove "alertmanager.yaml" key from DefaultData  adding rest DefaultData. So we can keep rest of the templates.
+		delete(defaultConfigSecret.Data, "alertmanager.yaml")
+		for k, v := range defaultConfigSecret.Data {
+			alertConfigFinal.Data[k] = v
+		}
 		err = ctx.Create(ctx.Context, alertConfigFinal)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "Failed to create secret as config for %s", instance.Spec.AlertManagerName)
@@ -125,6 +130,11 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	}
 	// Update secret with finalconfig
 	alertConfigFinal.Data = map[string][]byte{"alertmanager.yml": []byte(finalConfig)}
+	// Remove "alertmanager.yaml" key from DefaultData  adding rest DefaultData. So we can keep rest of the templates.
+	delete(defaultConfigSecret.Data, "alertmanager.yaml")
+	for k, v := range defaultConfigSecret.Data {
+		alertConfigFinal.Data[k] = v
+	}
 	err = ctx.Update(ctx.Context, alertConfigFinal)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "Failed to update secret as config for %s", instance.Spec.AlertManagerName)

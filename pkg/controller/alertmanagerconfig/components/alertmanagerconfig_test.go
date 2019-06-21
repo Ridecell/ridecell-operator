@@ -18,12 +18,15 @@ package components_test
 
 import (
 	"context"
+
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	monitorv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	amccomponents "github.com/Ridecell/ridecell-operator/pkg/controller/alertmanagerconfig/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -73,12 +76,16 @@ receivers:
 			},
 		}
 		_ = ctx.Create(context.TODO(), defaultConfig)
+
 	})
 
-	It("reconciles with empty data", func() {
+	It("creates a alertmanager config secret rule", func() {
 		instance.Spec = spec
 		Expect(comp).To(ReconcileContext(ctx))
-	})
-	It("does not reconcile without default config", func() {
+		fconfig := &corev1.Secret{}
+		err := ctx.Get(context.Background(), types.NamespacedName{Name: "alertmanager-alertmanager-infra", Namespace: "default"}, fconfig)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fconfig.Data).To(HaveKey("alertmanager.yml"))
+
 	})
 })

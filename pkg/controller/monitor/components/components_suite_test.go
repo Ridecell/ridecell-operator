@@ -19,15 +19,15 @@ package components_test
 import (
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
-
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
-	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/monitor"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
+
+	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var instance *monitoringv1beta1.Monitor
@@ -42,10 +42,7 @@ func TestComponents(t *testing.T) {
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &monitoringv1beta1.Monitor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-		},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 	}
 	ctx = components.NewTestContext(instance, monitor.Templates)
 })

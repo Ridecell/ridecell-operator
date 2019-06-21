@@ -18,11 +18,11 @@ package components
 
 import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
+	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 type promruleComponent struct {
@@ -33,7 +33,9 @@ func NewPromrule() *promruleComponent {
 }
 
 func (_ *promruleComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&monitoringv1beta1.Monitor{},
+	}
 }
 
 func (_ *promruleComponent) IsReconcilable(_ *components.ComponentContext) bool {

@@ -17,15 +17,12 @@ limitations under the License.
 package alertmanagerconfig_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	alertconfig "github.com/prometheus/alertmanager/config"
-
-	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -37,10 +34,35 @@ var _ = Describe("alertmanagerconfig controller", func() {
 		helpers = testHelpers.SetupTest()
 		c := helpers.TestClient
 		// Make a default config.
-		defaultConfig := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: "alertmanagerconfig-default", Namespace: helpers.Namespace},
-			Data: map[string]string{
-				"alertmanager.yml": "asdfasdfasdf",
+		defaultConfig := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "alertmanager-infra-default", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"alertmanager.yaml": []byte(`
+global:
+  resolve_timeout: 5m
+  slack_api_url: https://hooks.slack.com/services/test123/test123
+route:
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 2h
+  receiver: 'test-alert'
+  group_by: [alertname, pod]
+receivers:
+- name: 'test-alert'
+  slack_configs:
+  - channel: '#test-alert'
+    send_resolved: true
+    icon_url: "https://avatars3.githubusercontent.com/u/3380462"
+    title: |-
+    text: >-
+      {{ range .Alerts -}}
+        *Alert:* {{ .Annotations.title }}{{ if .Labels.severity }} - {{ .Labels.severity }}{{ end }}
+      *Description:* {{ .Annotations.description }}
+      *Details:*
+        {{ range .Labels.SortedPairs }} • *{{ .Name }}:* {{ .Value }}
+        {{ end }}
+      {{ end }}
+        `),
 			},
 		}
 		c.Create(defaultConfig)
@@ -48,26 +70,33 @@ var _ = Describe("alertmanagerconfig controller", func() {
 	})
 
 	AfterEach(func() {
+		if CurrentGinkgoTestDescription().Failed {
+			helpers.DebugList(&monitoringv1beta1.AlertManagerConfigList{})
+
+		}
 		helpers.TeardownTest()
 	})
 
 	It("does a thing", func() {
 		c := helpers.TestClient
 		instance := &monitoringv1beta1.AlertManagerConfig{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
-			Spec:       monitoringv1beta1.AlertManagerConfigSpec{
-				// Stuff goes here.
+			ObjectMeta: metav1.ObjectMeta{Name: "alertmanager-alertmanager-infra", Namespace: helpers.Namespace},
+			Spec: monitoringv1beta1.AlertManagerConfigSpec{
+				AlertManagerName:      "alertmanager-infra",
+				AlertManagerNamespace: helpers.Namespace,
+				Data: map[string]string{
+					"routes":   "bWF0Y2hfcmU6CiAgc2VydmljZTogXihmb28xfGZvbzJ8YmF6KSQKcmVjZWl2ZXI6IHRlc3QtYWxlcnQKcm91dGVzOgotIG1hdGNoOgogICAgc2V2ZXJpdHk6IGNyaXRpY2FsCnJlY2VpdmVyOiB0ZXN0LWFsZXJ0",
+					"receiver": "bmFtZTogJ3Rlc3QtYWxlcnQyJwpzbGFja19jb25maWdzOiAKICAgIC0gc2VuZF9yZXNvbHZlZDogdHJ1ZQo=",
+				},
 			},
 		}
 		c.Create(instance)
+		fconfig := &corev1.Secret{}
+		c.EventuallyGet(helpers.Name("alertmanager-alertmanager-infra"), fconfig)
+		Expect(fconfig.Data).To(HaveKey("alertmanager.yml"))
+		config, _ := alertconfig.Load(string(fconfig.Data["alertmanager.yml"]))
+		Expect(config.Receivers).To(HaveLen(2))
+		Expect(config.Route.Routes[0].Receiver).To(Equal("test-alert"))
 
-		time.Sleep(5 * time.Second)
-
-		output := &corev1.ConfigMap{}
-		c.Get(helpers.Name("alertmanagerconfig-output"), output)
-		config, err := alertconfig.Load(output.Data["alertmanager.yml"])
-		Expect(err).ToNot(HaveOccurred())
-		Expect(config.Route).ToNot(BeNil())
-		Expect(config.Route.Routes).To(HaveLen(1))
 	})
 })

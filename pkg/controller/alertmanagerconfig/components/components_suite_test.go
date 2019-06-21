@@ -19,14 +19,15 @@ package components_test
 import (
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
-	monitorv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"k8s.io/client-go/kubernetes/scheme"
+
+	monitorv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var instance *monitorv1beta1.AlertManagerConfig
@@ -34,14 +35,22 @@ var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "AlertManagerConfig Components Suite @unit")
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "AlertManagerConfig Components Suite @unit")
 }
 
-var _ = ginkgo.BeforeEach(func() {
+var _ = BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &monitorv1beta1.AlertManagerConfig{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "alertmanager-auth", Namespace: "default"},
+		Spec: monitorv1beta1.AlertManagerConfigSpec{
+			AlertManagerName:      "alertmanager-infra",
+			AlertManagerNamespace: "default",
+			Data: map[string]string{
+				"routes":   "bWF0Y2hfcmU6CiAgc2VydmljZTogXihmb28xfGZvbzJ8YmF6KSQKcmVjZWl2ZXI6IHRlc3QtYWxlcnQKcm91dGVzOgotIG1hdGNoOgogICAgc2V2ZXJpdHk6IGNyaXRpY2FsCnJlY2VpdmVyOiB0ZXN0LWFsZXJ0",
+				"receiver": "bmFtZTogJ3Rlc3QtYWxlcnQyJwpzbGFja19jb25maWdzOiAKICAgIC0gc2VuZF9yZXNvbHZlZDogdHJ1ZQo=",
+			},
+		},
 	}
 	ctx = components.NewTestContext(instance, nil)
 })
