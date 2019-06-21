@@ -27,9 +27,8 @@ import (
 
 var testHelpers *test_helpers.TestHelpers
 
-func TestTemplates(t *testing.T) {
+func TestObject(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "AlertManagerConfig types")
 	RunSpecs(t, "Monitor types")
 
 }

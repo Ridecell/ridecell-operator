@@ -17,8 +17,6 @@ limitations under the License.
 package components
 
 import (
-	"encoding/base64"
-
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -81,9 +79,9 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 
 	extras := map[string]interface{}{}
 	marshled, _ := yaml.Marshal(routes)
-	extras["routes"] = base64.StdEncoding.EncodeToString(marshled)
+	extras["routes"] = string(marshled)
 	marshled, _ = yaml.Marshal(receiver)
-	extras["receiver"] = base64.StdEncoding.EncodeToString(marshled)
+	extras["receiver"] = string(marshled)
 
 	res, _, err := ctx.CreateOrUpdate("alertmanagerconfig.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*monitoringv1beta1.AlertManagerConfig)

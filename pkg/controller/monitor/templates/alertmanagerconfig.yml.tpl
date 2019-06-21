@@ -7,5 +7,5 @@ spec:
   alertManagerName: alertmanager-infra
   alertMangerNamespace: alertmanager
   data: 
-    routes: {{ .Extra.routes  }}
-    receiver:  {{ .Extra.receiver  }}
+    routes: {{ .Extra.routes | toJson  }}
+    receiver:  {{ .Extra.receiver  | toJson }}

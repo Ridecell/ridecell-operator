@@ -29,7 +29,7 @@ type AlertManagerConfigSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	Data                  map[string]string `json:"data,omitempty"`
 	AlertManagerName      string            `json:"alertManagerName,omitempty"`
-	AlertManagerNamespace string            `json:"alertMangerNamespace,omitempty,"`
+	AlertManagerNamespace string            `json:"alertMangerNamespace,omitempty"`
 }
 
 // AlertManagerConfigStatus defines the observed state of AlertManagerConfig

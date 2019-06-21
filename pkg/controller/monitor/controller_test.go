@@ -17,8 +17,6 @@ limitations under the License.
 package monitor_test
 
 import (
-	"encoding/base64"
-
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -83,15 +81,13 @@ var _ = Describe("monitor controller", func() {
 		Expect(alertConfig.Spec.Data).To(HaveKey("receiver"))
 		// Check receiver correct slack channel name
 		receiver := &alertmconfig.Receiver{}
-		receive, _ := base64.StdEncoding.DecodeString(alertConfig.Spec.Data["receiver"])
-		err := yaml.Unmarshal([]byte(receive), receiver)
+		err := yaml.Unmarshal([]byte(alertConfig.Spec.Data["receiver"]), receiver)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(receiver.SlackConfigs[0].Channel).To(Equal("#test-alert"))
 		//Check Route have correct Receiver name
 		Expect(alertConfig.Spec.Data).To(HaveKey("routes"))
 		route := &alertmconfig.Route{}
-		routes, _ := base64.StdEncoding.DecodeString(alertConfig.Spec.Data["routes"])
-		err = yaml.Unmarshal([]byte(routes), route)
+		err = yaml.Unmarshal([]byte(alertConfig.Spec.Data["routes"]), route)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(route.Receiver).To(Equal("foo"))
 	})

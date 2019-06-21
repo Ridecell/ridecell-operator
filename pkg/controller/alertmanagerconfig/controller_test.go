@@ -85,8 +85,16 @@ receivers:
 				AlertManagerName:      "alertmanager-infra",
 				AlertManagerNamespace: helpers.Namespace,
 				Data: map[string]string{
-					"routes":   "bWF0Y2hfcmU6CiAgc2VydmljZTogXihmb28xfGZvbzJ8YmF6KSQKcmVjZWl2ZXI6IHRlc3QtYWxlcnQKcm91dGVzOgotIG1hdGNoOgogICAgc2V2ZXJpdHk6IGNyaXRpY2FsCnJlY2VpdmVyOiB0ZXN0LWFsZXJ0",
-					"receiver": "bmFtZTogJ3Rlc3QtYWxlcnQyJwpzbGFja19jb25maWdzOiAKICAgIC0gc2VuZF9yZXNvbHZlZDogdHJ1ZQo=",
+					"routes": `match_re:
+				service: ^(foo1|foo2|baz)$
+			  receiver: test-alert
+			  routes:
+			  - match:
+				  severity: critical
+			  receiver: test-alert`,
+					"receiver": `name: 'test-alert2'
+				slack_configs: 
+					- send_resolved: true`,
 				},
 			},
 		}

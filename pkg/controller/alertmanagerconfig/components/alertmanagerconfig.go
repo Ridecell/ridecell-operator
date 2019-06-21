@@ -17,7 +17,6 @@ limitations under the License.
 package components
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -72,20 +71,18 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	}
 	// Merge  all AlertManagerConfig's
 	for _, config := range alertList.Items {
-		var route, receiver, inhibitRule []byte
 		routetype := &alertconfig.Route{}
 		receivertype := &alertconfig.Receiver{}
 		inhibitRuletype := &alertconfig.InhibitRule{}
 		if config.Spec.AlertManagerName == instance.Spec.AlertManagerName {
-			route, _ = base64.StdEncoding.DecodeString(config.Spec.Data["routes"])
-			receiver, _ = base64.StdEncoding.DecodeString(config.Spec.Data["receiver"])
-			inhibitRule, _ = base64.StdEncoding.DecodeString(config.Spec.Data["inhibitRule"])
-			errRo := yaml.Unmarshal(route, routetype)
-			errRe := yaml.Unmarshal(receiver, receivertype)
-			errIn := yaml.Unmarshal(inhibitRule, inhibitRuletype)
+			errRo := yaml.Unmarshal([]byte(config.Spec.Data["routes"]), routetype)
+			errRe := yaml.Unmarshal([]byte(config.Spec.Data["receiver"]), receivertype)
+			errIn := yaml.Unmarshal([]byte(config.Spec.Data["receiver"]), inhibitRuletype)
 			if errRo != nil || errRe != nil || errIn != nil {
 				glog.Errorf("failed to load yaml for %s in %s", config.Name, config.Namespace)
-				continue
+				if instance.UID == config.UID {
+					return components.Result{}, errors.Errorf("failed to load yaml for %s in %s", config.Name, config.Namespace)
+				}
 			}
 			defaultConfig.Route.Routes = append(defaultConfig.Route.Routes, routetype)
 			defaultConfig.Receivers = append(defaultConfig.Receivers, receivertype)

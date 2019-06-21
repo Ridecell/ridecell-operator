@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	// pov1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,8 +28,8 @@ type MonitorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Notify           Notify            `json:"notify,omitempty"`
-	MetricAlertRules []MetricAlertRule `json:"metricsAlerts,omitempty"`
-	LogAlertRules    []LogAlertRule    `json:"logAlerts,omitempty"`
+	MetricAlertRules []MetricAlertRule `json:"metricAlertRules,omitempty"`
+	LogAlertRules    []LogAlertRule    `json:"logAlertRules,omitempty"`
 }
 
 // MonitorStatus defines the observed state of Monitor
