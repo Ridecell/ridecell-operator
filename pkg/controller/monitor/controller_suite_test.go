@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,27 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package djangouser_test
+package monitor_test
 
 import (
 	"testing"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
 
-	"github.com/Ridecell/ridecell-operator/pkg/controller/djangouser"
+	"github.com/Ridecell/ridecell-operator/pkg/apis"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/monitor"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
 var testHelpers *test_helpers.TestHelpers
 
-func TestTemplates(t *testing.T) {
+func TestController(t *testing.T) {
+	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "DjangoUser controller Suite @controller")
+	ginkgo.RunSpecs(t, "monitor controller Suite")
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start(djangouser.Add, false)
+	testHelpers = test_helpers.Start(monitor.Add, false)
 })
 
 var _ = ginkgo.AfterSuite(func() {

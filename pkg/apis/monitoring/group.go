@@ -14,29 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package djangouser_test
-
-import (
-	"testing"
-
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-
-	"github.com/Ridecell/ridecell-operator/pkg/controller/djangouser"
-	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
-)
-
-var testHelpers *test_helpers.TestHelpers
-
-func TestTemplates(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "DjangoUser controller Suite @controller")
-}
-
-var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start(djangouser.Add, false)
-})
-
-var _ = ginkgo.AfterSuite(func() {
-	testHelpers.Stop()
-})
+// Package monitor contains monitor API versions
+package monitoring
