@@ -130,6 +130,21 @@ var _ = Describe("Postgres Shared Component", func() {
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, rds)
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		It("uses the RDS instance ID override", func() {
+			dbconfig.Spec.Postgres.Mode = "Exclusive"
+			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+				MaintenanceWindow: "Mon:00:00-Mon:01:00",
+			}
+			dbconfig.Spec.Postgres.RDSOverride = map[string]string{"foo-dev": "rds-1234"}
+			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
+			Expect(comp).To(ReconcileContext(ctx))
+
+			rds := &dbv1beta1.RDSInstance{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, rds)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(rds.Spec.InstanceID).To(Equal("rds-1234"))
+		})
 	})
 
 })

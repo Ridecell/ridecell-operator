@@ -62,9 +62,10 @@ type LocalPostgresSpec struct {
 
 type PostgresDbConfig struct {
 	// +kubebuilder:validation:Enum=Exclusive,Shared
-	Mode  string             `json:"mode"`
-	RDS   *RDSInstanceSpec   `json:"rds,omitempty"`
-	Local *LocalPostgresSpec `json:"local,omitempty"`
+	Mode        string             `json:"mode"`
+	RDS         *RDSInstanceSpec   `json:"rds,omitempty"`
+	RDSOverride map[string]string  `json:"rdsOverride,omitempty"`
+	Local       *LocalPostgresSpec `json:"local,omitempty"`
 }
 
 // DbConfigSpec defines the desired state of DbConfig

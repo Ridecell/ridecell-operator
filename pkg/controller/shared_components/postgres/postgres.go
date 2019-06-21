@@ -161,6 +161,14 @@ func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, db
 	extras := map[string]interface{}{
 		"DbConfig": dbconfig,
 	}
+
+	// If an override is present, insert it into the RDSSpec.
+	metaObj := ctx.Top.(metav1.Object)
+	id, ok := dbconfig.Spec.Postgres.RDSOverride[metaObj.GetName()]
+	if ok {
+		dbconfig.Spec.Postgres.RDS.InstanceID = id
+	}
+
 	var existing *dbv1beta1.RDSInstance
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("rds.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.RDSInstance)
