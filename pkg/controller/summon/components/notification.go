@@ -186,13 +186,11 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 
 	// Send to additional slack channels.
-	if len(instance.Spec.Notifications.SlackChannels) != 0 {
-		for _, channel := range instance.Spec.Notifications.SlackChannels {
-			attachment := c.formatSuccessNotification(instance)
-			_, _, err := c.slackClient.PostMessage(channel, attachment)
-			if err != nil {
-				return components.Result{}, err
-			}
+	for _, channel := range instance.Spec.Notifications.SlackChannels {
+		attachment := c.formatSuccessNotification(instance)
+		_, _, err := c.slackClient.PostMessage(channel, attachment)
+		if err != nil {
+			return components.Result{}, err
 		}
 	}
 
