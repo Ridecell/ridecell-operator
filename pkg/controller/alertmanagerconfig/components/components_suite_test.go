@@ -47,16 +47,18 @@ var _ = BeforeEach(func() {
 			AlertManagerName:      "alertmanager-infra",
 			AlertManagerNamespace: "default",
 			Data: map[string]string{
-				"routes": `match_re:
-				service: ^(foo1|foo2|baz)$
-			  receiver: test-alert
-			  routes:
-			  - match:
-				  severity: critical
-			  receiver: test-alert`,
-				"receiver": `name: 'test-alert2'
-				slack_configs: 
-					- send_resolved: true`,
+				"routes": `
+match_re:
+service: ^(foo1|foo2|baz)$
+receiver: test-alert
+routes:
+- match:
+  severity: critical
+receiver: test-alert`,
+				"receiver": `
+name: 'test-alert2'
+slack_configs: 
+  - send_resolved: true`,
 			},
 		},
 	}

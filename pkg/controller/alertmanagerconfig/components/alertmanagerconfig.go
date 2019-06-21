@@ -83,6 +83,7 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 				if instance.UID == config.UID {
 					return components.Result{}, errors.Errorf("failed to load yaml for %s in %s", config.Name, config.Namespace)
 				}
+				continue
 			}
 			defaultConfig.Route.Routes = append(defaultConfig.Route.Routes, routetype)
 			defaultConfig.Receivers = append(defaultConfig.Receivers, receivertype)
