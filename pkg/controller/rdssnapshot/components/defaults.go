@@ -44,7 +44,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	instance := ctx.Top.(*dbv1beta1.RDSSnapshot)
 
 	if instance.Spec.SnapshotID == "" {
+		// Add 0 seconds to convert creationTimestamp from metav1.Timestamp to time.Time
 		creationTimestamp := instance.ObjectMeta.CreationTimestamp.Add(time.Second * 0)
+		// Reformat the timestamp to be friendly with rds snapshot naming restrictions
 		curTimeString := time.Time.Format(creationTimestamp, CustomTimeLayout)
 		instance.Spec.SnapshotID = fmt.Sprintf("%s-%s", instance.Name, curTimeString)
 	}

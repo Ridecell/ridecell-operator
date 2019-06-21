@@ -17,23 +17,34 @@ limitations under the License.
 package components_test
 
 import (
+	"time"
+
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	rdssnapshotcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("rds Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
 		comp := rdssnapshotcomponents.NewDefaults()
-
+		instance.Spec.SnapshotID = "test-name"
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.SnapshotID).To(Equal("test-name"))
+
 	})
 
 	It("sets defaults", func() {
 		comp := rdssnapshotcomponents.NewDefaults()
+		timeLocationUTC, err := time.LoadLocation("UTC")
+		Expect(err).ToNot(HaveOccurred())
+		// Set creationTimestamp to a predictable value
+		currentTime := metav1.Date(2000, time.January, 1, 0, 0, 0, 0, timeLocationUTC)
+		instance.ObjectMeta.SetCreationTimestamp(currentTime)
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.SnapshotID).To(Equal("test-2000-01-01-00-00-00"))
 	})
 
 })
