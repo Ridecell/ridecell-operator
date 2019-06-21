@@ -72,7 +72,7 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !helpers.ContainsFinalizer(RDSSnapshotFinalizer, instance) {
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(RDSSnapshotFinalizer, instance)
-			err := ctx.Update(ctx.Context, instance.DeepCopy())
+			err := ctx.Update(ctx.Context, instance)
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while adding finalizer")
 			}
