@@ -26,7 +26,7 @@ type RDSSnapshotSpec struct {
 	RDSInstanceID string `json:"rdsInstanceID"`
 	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$
 	// +optional
-	SnapshotID string `json:"SnapshotID,omitempty"`
+	SnapshotID string `json:"snapshotID,omitempty"`
 	// +optional
 	TTL time.Duration `json:"ttl,omitempty"`
 }
