@@ -202,9 +202,10 @@ var _ = Describe("Summon controller notifications", func() {
 		slackChannel := "CKEV56KKJ" // #rcoperator-test
 
 		BeforeEach(func() {
-			// Check for both Slack API tokens. If not present, don't run these tests.
+			// Check for Slack API key. If not present, don't run these tests.
 			// Allows for easier devX, only need to install the credentials if you are
-			// debugging these tests or whatever.
+			// debugging these tests or whatever. Test slack api key available in lastpass
+			// under Slack RCOperatorPseudoBot.
 			if os.Getenv("SLACK_API_KEY") == "" {
 				Skip("$SLACK_API_KEY not set, skipping Slack tests")
 			}
