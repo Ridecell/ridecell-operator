@@ -24,6 +24,12 @@ name = "sigs.k8s.io/controller-runtime"
 source = "https://github.com/coderanger/controller-runtime.git"
 branch = "crd-update-0.1"
 
+[[override]]
+name = "github.com/coreos/prometheus-operator"
+source = "https://github.com/coderanger/prometheus-operator.git"
+branch = "openapi-wat"
+
+
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
 [[constraint]]
