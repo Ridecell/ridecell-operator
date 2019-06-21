@@ -14,29 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package djangouser_test
-
-import (
-	"testing"
-
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-
-	"github.com/Ridecell/ridecell-operator/pkg/controller/djangouser"
-	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
-)
-
-var testHelpers *test_helpers.TestHelpers
-
-func TestTemplates(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "DjangoUser controller Suite @controller")
-}
-
-var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start(djangouser.Add, false)
-})
-
-var _ = ginkgo.AfterSuite(func() {
-	testHelpers.Stop()
-})
+// Package v1beta1 contains API Schema definitions for the monitor v1beta1 API group
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=github.com/Ridecell/ridecell-operator/pkg/apis/monitoring
+// +k8s:defaulter-gen=TypeMeta
+// +groupName=monitoring.ridecell.io
+package v1beta1

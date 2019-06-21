@@ -128,7 +128,7 @@ var _ = Describe("rds aws Component", func() {
 		mockRDS.hasTags = true
 		mockRDS.dbStatus = "available"
 
-		dbMock.ExpectQuery("SELECT 1;").WillReturnRows()
+		dbMock.ExpectQuery("SELECT 1;").WillReturnRows(sqlmock.NewRows([]string{"test"}).AddRow(1)).RowsWillBeClosed()
 
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -146,7 +146,7 @@ var _ = Describe("rds aws Component", func() {
 		mockRDS.hasTags = true
 		mockRDS.dbStatus = "pending-reboot"
 
-		dbMock.ExpectQuery("SELECT 1;").WillReturnRows()
+		dbMock.ExpectQuery("SELECT 1;").WillReturnRows(sqlmock.NewRows([]string{"test"}).AddRow(1)).RowsWillBeClosed()
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
