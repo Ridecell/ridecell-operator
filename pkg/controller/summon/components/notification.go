@@ -245,13 +245,11 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 	}
 
 	// Send to additonal slack channels
-	if len(instance.Spec.Notifications.SlackChannels) != 0 {
-		for _, channel := range instance.Spec.Notifications.SlackChannels {
-			attachment := c.formatErrorNotification(instance, errorMessage)
-			_, _, err := c.slackClient.PostMessage(channel, attachment)
-			if err != nil {
-				return components.Result{}, err
-			}
+	for _, channel := range instance.Spec.Notifications.SlackChannels {
+		attachment := c.formatErrorNotification(instance, errorMessage)
+		_, _, err := c.slackClient.PostMessage(channel, attachment)
+		if err != nil {
+			return components.Result{}, err
 		}
 	}
 

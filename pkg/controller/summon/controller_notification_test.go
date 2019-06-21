@@ -25,6 +25,7 @@ import (
 	"github.com/nlopes/slack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ghttp "github.com/onsi/gomega/ghttp"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +39,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var _ = FDescribe("Summon controller notifications", func() {
+var _ = Describe("Summon controller notifications", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.SummonPlatform
 
