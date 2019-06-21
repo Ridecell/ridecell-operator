@@ -85,16 +85,18 @@ receivers:
 				AlertManagerName:      "alertmanager-infra",
 				AlertManagerNamespace: helpers.Namespace,
 				Data: map[string]string{
-					"routes": `match_re:
-				service: ^(foo1|foo2|baz)$
-			  receiver: test-alert
-			  routes:
-			  - match:
-				  severity: critical
-			  receiver: test-alert`,
-					"receiver": `name: 'test-alert2'
-				slack_configs: 
-					- send_resolved: true`,
+					"routes": `
+match_re:
+service: ^(foo1|foo2|baz)$
+receiver: test-alert
+routes:
+- match:
+  severity: critical
+receiver: test-alert`,
+					"receiver": `
+name: 'test-alert2'
+slack_configs: 
+  - send_resolved: true`,
 				},
 			},
 		}
