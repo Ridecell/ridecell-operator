@@ -185,6 +185,15 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		}
 	}
 
+	// Send to additional slack channels.
+	for _, channel := range instance.Spec.Notifications.SlackChannels {
+		attachment := c.formatSuccessNotification(instance)
+		_, _, err := c.slackClient.PostMessage(channel, attachment)
+		if err != nil {
+			return components.Result{}, err
+		}
+	}
+
 	// Send to Deployment Status Tool
 	deployEnv := instance.Namespace
 	if strings.HasPrefix(deployEnv, "summon-") {
@@ -230,6 +239,15 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 	if instance.Spec.Notifications.SlackChannel != "" {
 		attachment := c.formatErrorNotification(instance, errorMessage)
 		_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
+		if err != nil {
+			return components.Result{}, err
+		}
+	}
+
+	// Send to additonal slack channels
+	for _, channel := range instance.Spec.Notifications.SlackChannels {
+		attachment := c.formatErrorNotification(instance, errorMessage)
+		_, _, err := c.slackClient.PostMessage(channel, attachment)
 		if err != nil {
 			return components.Result{}, err
 		}
