@@ -20,8 +20,10 @@ import (
 	"context"
 	"fmt"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -121,7 +123,6 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			return components.Result{}, nil
 		}
 	}
-
 	var res components.Result
 	var status string
 	var conn *dbv1beta1.PostgresConnection
@@ -136,7 +137,18 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return res, err
 	}
-
+	_, err = comp.reconcileExporter(ctx, conn)
+	if err != nil {
+		return res, errors.Wrap(err, "error while reconciling exporter deployment")
+	}
+	_, err = comp.reconcileService(ctx)
+	if err != nil {
+		return res, errors.Wrap(err, "error while reconciling exporter service")
+	}
+	_, err = comp.reconcileServiceMonitor(ctx)
+	if err != nil {
+		return res, errors.Wrap(err, "error while reconciling exporter service monitor")
+	}
 	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
 		res.StatusModifier = func(obj runtime.Object) error {
@@ -221,6 +233,49 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 		Database: "postgres",
 	}
 	return res, existing.Status.String(), conn, nil
+}
+
+func (comp *postgresComponent) reconcileExporter(ctx *components.ComponentContext, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
+	extras := map[string]interface{}{}
+	extras["Conn"] = conn
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("postgres-exporter.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+		existing := existingObj.(*appsv1.Deployment)
+		goal := goalObj.(*appsv1.Deployment)
+		existing.Spec = goal.Spec
+		return nil
+	})
+	if err != nil {
+		return res, err
+	}
+	return res, err
+}
+
+func (comp *postgresComponent) reconcileService(ctx *components.ComponentContext) (components.Result, error) {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("postgres-service.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+		existing := existingObj.(*corev1.Service)
+		goal := goalObj.(*corev1.Service)
+		// Special case: Services mutate the ClusterIP value in the Spec and it should be preserved.
+		goal.Spec.ClusterIP = existing.Spec.ClusterIP
+		existing.Spec = goal.Spec
+		return nil
+	})
+	if err != nil {
+		return res, err
+	}
+	return res, err
+}
+
+func (comp *postgresComponent) reconcileServiceMonitor(ctx *components.ComponentContext) (components.Result, error) {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("service-monitor.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+		existing := existingObj.(*monitoringv1.ServiceMonitor)
+		goal := goalObj.(*monitoringv1.ServiceMonitor)
+		existing.Spec = goal.Spec
+		return nil
+	})
+	if err != nil {
+		return res, err
+	}
+	return res, err
 }
 
 func (comp *postgresComponent) dbConfigRefFor(db *dbv1beta1.PostgresDatabase) *corev1.ObjectReference {
