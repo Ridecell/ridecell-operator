@@ -85,7 +85,7 @@ receivers:
 		fconfig := &corev1.Secret{}
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "alertmanager-alertmanager-infra", Namespace: "default"}, fconfig)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(fconfig.Data).To(HaveKey("alertmanager.yml"))
+		Expect(fconfig.Data).To(HaveKey("alertmanager.yaml"))
 
 	})
 })
