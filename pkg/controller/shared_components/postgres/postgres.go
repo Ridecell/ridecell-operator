@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -136,7 +137,18 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return res, err
 	}
-	comp.reconcileExporter(ctx, conn)
+	_, err = comp.reconcileExporter(ctx, conn)
+	if err != nil {
+		return res, err
+	}
+	_, err = comp.reconcileService(ctx)
+	if err != nil {
+		return res, err
+	}
+	_, err = comp.reconcileServiceMonitor(ctx)
+	if err != nil {
+		return res, err
+	}
 	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
 		res.StatusModifier = func(obj runtime.Object) error {
@@ -224,14 +236,37 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 }
 
 func (comp *postgresComponent) reconcileExporter(ctx *components.ComponentContext, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
-	var existing *appsv1.Deployment
-	var goal *appsv1.Deployment
 	extras := map[string]interface{}{}
 	extras["Conn"] = conn
-
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("postgres-exporter.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
-		existing = existingObj.(*appsv1.Deployment)
-		goal = goalObj.(*appsv1.Deployment)
+		existing := existingObj.(*appsv1.Deployment)
+		goal := goalObj.(*appsv1.Deployment)
+		existing.Spec = goal.Spec
+		return nil
+	})
+	if err != nil {
+		return res, err
+	}
+	return res, err
+}
+
+func (comp *postgresComponent) reconcileService(ctx *components.ComponentContext) (components.Result, error) {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("postgres-service.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+		existing := existingObj.(*corev1.Service)
+		goal := goalObj.(*corev1.Service)
+		existing.Spec = goal.Spec
+		return nil
+	})
+	if err != nil {
+		return res, err
+	}
+	return res, err
+}
+
+func (comp *postgresComponent) reconcileServiceMonitor(ctx *components.ComponentContext) (components.Result, error) {
+	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("service-monitor.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+		existing := existingObj.(*monitoringv1.ServiceMonitor)
+		goal := goalObj.(*monitoringv1.ServiceMonitor)
 		existing.Spec = goal.Spec
 		return nil
 	})

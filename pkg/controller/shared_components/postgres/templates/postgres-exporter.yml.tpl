@@ -23,14 +23,14 @@ spec:
         image: wrouesnel/postgres_exporter:v0.4.7
         env:
         - name: DATA_SOURCE_URI
-          value: "{{ .Extras.Conn.Host }}:{{ .Extras.Conn.Port }}/?sslmode=disable"
+          value: "{{ .Extra.Conn.Host }}:{{ .Extra.Conn.Port }}/?sslmode={{ .Extra.Conn.SSLMode | default "verify-full" }}"
         - name: DATA_SOURCE_USER
-          value: {{ .Extras.Conn.Username }}
+          value: {{ .Extra.Conn.Username }}
         - name: DATA_SOURCE_PASS
           valueFrom:
             secretKeyRef:
-              name: {{ .Extras.Conn.PasswordSecretRef.Name }}
-              key: {{ .Extras.Conn.PasswordSecretRef.Key }}
+              name: {{ .Extra.Conn.PasswordSecretRef.Name }}
+              key: {{ .Extra.Conn.PasswordSecretRef.Key }}
         ports:
         - name: metrics
           containerPort: 9187
