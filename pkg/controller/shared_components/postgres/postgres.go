@@ -139,15 +139,15 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	_, err = comp.reconcileExporter(ctx, conn)
 	if err != nil {
-		return res, errors.Wrap(err, "Error while reconciling context")
+		return res, errors.Wrap(err, "error while reconciling exporter deployment")
 	}
 	_, err = comp.reconcileService(ctx)
 	if err != nil {
-		return res, errors.Wrap(err, "Error while reconciling service")
+		return res, errors.Wrap(err, "error while reconciling exporter service")
 	}
 	_, err = comp.reconcileServiceMonitor(ctx)
 	if err != nil {
-		return res, errors.Wrap(err, "Error while reconciling service monitor")
+		return res, errors.Wrap(err, "error while reconciling exporter service monitor")
 	}
 	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
