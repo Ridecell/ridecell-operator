@@ -95,13 +95,27 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		return components.Result{}, nil
 	}
 
-	var scheduledDelete bool
-	var deletionTime time.Time
-	var deletionTimestamp string
+	snapshotTags := []*rds.Tag{
+		&rds.Tag{
+			Key:   aws.String("Ridecell-Operator"),
+			Value: aws.String("true"),
+		},
+		&rds.Tag{
+			Key:   aws.String("scheduled-for-deletion"),
+			Value: aws.String(fmt.Sprintf("%v", instance.Spec.TTL != 0)),
+		},
+	}
+
 	if instance.Spec.TTL != 0 {
-		scheduledDelete = true
-		deletionTime = instance.ObjectMeta.CreationTimestamp.Add(instance.Spec.TTL)
-		deletionTimestamp = time.Time.Format(deletionTime, CustomTimeLayout)
+		deletionTime := instance.ObjectMeta.CreationTimestamp.Add(instance.Spec.TTL)
+		deletionTimestamp := time.Time.Format(deletionTime, CustomTimeLayout)
+
+		deletionTimestampTag := &rds.Tag{
+			Key:   aws.String("deletion-timestamp"),
+			Value: aws.String(deletionTimestamp),
+		}
+
+		snapshotTags = append(snapshotTags, deletionTimestampTag)
 
 		// Check if our object needs to be cleaned up
 		if metav1.Now().After(deletionTime) {
@@ -111,24 +125,6 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 			}
 			return components.Result{Requeue: true}, nil
 		}
-	}
-
-	snapshotTags := []*rds.Tag{
-		&rds.Tag{
-			Key:   aws.String("Ridecell-Operator"),
-			Value: aws.String("true"),
-		},
-		&rds.Tag{
-			Key:   aws.String("scheduled-for-deletion"),
-			Value: aws.String(fmt.Sprintf("%v", scheduledDelete)),
-		},
-	}
-	if scheduledDelete {
-		deletionTimestampTag := &rds.Tag{
-			Key:   aws.String("deletion-timestamp"),
-			Value: aws.String(deletionTimestamp),
-		}
-		snapshotTags = append(snapshotTags, deletionTimestampTag)
 	}
 
 	var dbSnapshot *rds.DBSnapshot
@@ -176,7 +172,7 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		instance.Status.Status = dbv1beta1.StatusReady
 		instance.Status.Message = fmt.Sprintf("Snapshot is in state: %s", aws.StringValue(dbSnapshot.Status))
 		return nil
-	}, RequeueAfter: time.Minute}, nil
+	}}, nil
 }
 
 func (comp *RDSSnapshotComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
