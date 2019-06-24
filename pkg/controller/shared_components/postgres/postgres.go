@@ -52,6 +52,9 @@ func (_ *postgresComponent) WatchTypes() []runtime.Object {
 		&dbv1beta1.RDSInstance{},
 		&postgresv1.Postgresql{},
 		&dbv1beta1.DbConfig{},
+		&corev1.Service{},
+		&appsv1.Deployment{},
+		&monitoringv1.ServiceMonitor{},
 	}
 }
 
