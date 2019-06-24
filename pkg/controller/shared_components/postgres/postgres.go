@@ -254,6 +254,8 @@ func (comp *postgresComponent) reconcileService(ctx *components.ComponentContext
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("postgres-service.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Service)
 		goal := goalObj.(*corev1.Service)
+		// Special case: Services mutate the ClusterIP value in the Spec and it should be preserved.
+		goal.Spec.ClusterIP = existing.Spec.ClusterIP
 		existing.Spec = goal.Spec
 		return nil
 	})
