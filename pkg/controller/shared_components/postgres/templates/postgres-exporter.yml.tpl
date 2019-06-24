@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: postgres-exporter
-        image: us.gcr.io/ridecell-public/postgres_exporter:v0.4.7
+        image: us.gcr.io/ridecell-public/postgres_exporter:v0.4.7-1
         env:
         - name: DATA_SOURCE_URI
           value: "{{ .Extra.Conn.Host }}:{{ .Extra.Conn.Port | default 5432 }}/?sslmode={{ .Extra.Conn.SSLMode | default "verify-full" }}"
