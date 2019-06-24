@@ -23,7 +23,7 @@ spec:
         image: us.gcr.io/ridecell-public/postgres_exporter:v0.4.7-1
         env:
         - name: DATA_SOURCE_URI
-          value: "{{ .Extra.Conn.Host }}:{{ .Extra.Conn.Port | default 5432 }}/?sslmode={{ .Extra.Conn.SSLMode | default "verify-full" }}"
+          value: "{{ .Extra.Conn.Host }}:{{ .Extra.Conn.Port | default 5432 }}/postgres?sslmode={{ .Extra.Conn.SSLMode | default "verify-full" }}"
         - name: DATA_SOURCE_USER
           value: {{ .Extra.Conn.Username }}
         - name: DATA_SOURCE_PASS
