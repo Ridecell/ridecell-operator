@@ -30,7 +30,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestTemplates(t *testing.T) {
+func TestRDSSnapshot(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "rdssnapshot controller Suite @aws @snapshot")
 }

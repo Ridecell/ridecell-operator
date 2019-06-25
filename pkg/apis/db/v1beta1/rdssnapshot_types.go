@@ -35,7 +35,7 @@ type RDSSnapshotSpec struct {
 type RDSSnapshotStatus struct {
 	Status     string `json:"status"`
 	Message    string `json:"message"`
-	SnapshotID string `json:"instanceID"`
+	SnapshotID string `json:"snapshotId"`
 }
 
 // +genclient

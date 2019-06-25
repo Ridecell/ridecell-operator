@@ -18,9 +18,19 @@ spec:
         app: postgres-exporter
         instance: {{ .Instance.Name }}
     spec:
+      initContainers:
+      - name: copy-certs
+        image: us.gcr.io/ridecell-1/postgres-exporter-certs:1
+        command:
+        - sh
+        - -c
+        - cp /*.pem /etc/ssl/certs
+        volumeMounts:
+        - name: certs
+          mountPath: /etc/ssl/certs
       containers:
       - name: postgres-exporter
-        image: us.gcr.io/ridecell-public/postgres_exporter:v0.4.7-1
+        image: wrouesnel/postgres_exporter:v0.4.7
         env:
         - name: DATA_SOURCE_URI
           value: "{{ .Extra.Conn.Host }}:{{ .Extra.Conn.Port | default 5432 }}/postgres?sslmode={{ .Extra.Conn.SSLMode | default "verify-full" }}"
@@ -34,3 +44,9 @@ spec:
         ports:
         - name: metrics
           containerPort: 9187
+        volumeMounts:
+        - name: certs
+          mountPath: /etc/ssl/certs
+      volumes:
+      - name: certs
+        emptyDir: {}
