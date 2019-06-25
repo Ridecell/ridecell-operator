@@ -74,13 +74,13 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 			if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
 				return components.Result{RequeueAfter: time.Minute * 1}, nil
 			}
-			result, err := comp.deleteDependencies(ctx)
-			if err != nil {
-				return result, err
-			}
+			//result, err := comp.deleteDependencies(ctx)
+			//if err != nil {
+			//	return result, err
+			//}
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(rdsInstanceParameterGroupFinalizer, instance)
-			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
 				return components.Result{}, errors.Wrap(err, "rds: failed to update instance while removing finalizer")
 			}
@@ -252,25 +252,25 @@ func (comp *dbParameterGroupComponent) Reconcile(ctx *components.ComponentContex
 	return components.Result{}, nil
 }
 
-func (comp *dbParameterGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*dbv1beta1.RDSInstance)
-	describeDBParameterGroupsOutput, err := comp.rdsAPI.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
-		DBParameterGroupName: aws.String(instance.Name),
-	})
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
-			return components.Result{}, nil
-		}
-		return components.Result{}, errors.Wrap(err, "rds: failed to describe parameter group for finalizer")
-	}
-
-	_, err = comp.rdsAPI.DeleteDBParameterGroup(&rds.DeleteDBParameterGroupInput{
-		DBParameterGroupName: describeDBParameterGroupsOutput.DBParameterGroups[0].DBParameterGroupName,
-	})
-	if err != nil {
-		return components.Result{}, errors.Wrap(err, "rds: failed to delete parameter group for finalizer")
-	}
-
-	// Our parameter group is in the process of being deleted
-	return components.Result{}, nil
-}
+//func (comp *dbParameterGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+//	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+//	describeDBParameterGroupsOutput, err := comp.rdsAPI.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
+//		DBParameterGroupName: aws.String(instance.Name),
+//	})
+//	if err != nil {
+//		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
+//			return components.Result{}, nil
+//		}
+//		return components.Result{}, errors.Wrap(err, "rds: failed to describe parameter group for finalizer")
+//	}
+//
+//	_, err = comp.rdsAPI.DeleteDBParameterGroup(&rds.DeleteDBParameterGroupInput{
+//		DBParameterGroupName: describeDBParameterGroupsOutput.DBParameterGroups[0].DBParameterGroupName,
+//	})
+//	if err != nil {
+//		return components.Result{}, errors.Wrap(err, "rds: failed to delete parameter group for finalizer")
+//	}
+//
+//	// Our parameter group is in the process of being deleted
+//	return components.Result{}, nil
+//}
