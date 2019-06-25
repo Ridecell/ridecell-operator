@@ -110,15 +110,15 @@ var _ = Describe("rds controller", func() {
 		c.Delete(rdsInstance)
 
 		// Database deletion may take a long time
-		Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
-		Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
-		Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
+		//Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
+		//Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
+		//Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
 
 		// Make sure the object is deleted
 		fetchRDSInstance := &dbv1beta1.RDSInstance{}
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(rdsInstance.Name), fetchRDSInstance)
-		}, time.Second*30).ShouldNot(Succeed())
+		}, time.Minute*5).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})

@@ -210,7 +210,7 @@ var _ = Describe("rds aws Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mockRDS.modifiedDB).To(BeFalse())
 		Expect(mockRDS.createdDB).To(BeFalse())
-		Expect(mockRDS.deletedDBInstance).To(BeTrue())
+		//Expect(mockRDS.deletedDBInstance).To(BeTrue())
 		Expect(fetchRDSInstance.ObjectMeta.Finalizers).To(HaveLen(0))
 	})
 })
