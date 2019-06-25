@@ -48,5 +48,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.New("Cannot specify both RDS and Local postgres configuration")
 	}
 
+	// Fill in defaults.
+	if instance.Spec.CreatePeriscopeUser == nil {
+		val := true
+		instance.Spec.CreatePeriscopeUser = &val
+	}
+
 	return components.Result{}, nil
 }
