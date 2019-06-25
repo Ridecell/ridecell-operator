@@ -65,6 +65,9 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Pull secret not ready yet.
 		return false
 	}
+	if instance.Status.BackupVersion != instance.Spec.Version {
+		return false
+	}
 	return true
 }
 

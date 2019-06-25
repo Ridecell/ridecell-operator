@@ -130,8 +130,10 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	var status string
 	var conn *dbv1beta1.PostgresConnection
 	var err error
+	var rdsInstanceID *string
 	if dbconfig.Spec.Postgres.RDS != nil {
-		res, status, conn, err = comp.reconcileRDS(ctx, dbconfig)
+		res, status, conn, rdsInstanceID, err = comp.reconcileRDS(ctx, dbconfig)
+
 	} else if dbconfig.Spec.Postgres.Local != nil {
 		res, status, conn, err = comp.reconcileLocal(ctx, dbconfig)
 	} else {
@@ -158,6 +160,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance := obj.(*dbv1beta1.PostgresDatabase)
 			instance.Status.DatabaseClusterStatus = status
 			instance.Status.AdminConnection = *conn
+			instance.Status.RDSInstanceID = rdsInstanceID
 			return nil
 		}
 	} else {
@@ -172,7 +175,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	return res, nil
 }
 
-func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {
+func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, *string, error) {
 	var existing *dbv1beta1.RDSInstance
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("rds.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
 		existing = existingObj.(*dbv1beta1.RDSInstance)
@@ -180,9 +183,9 @@ func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, co
 		return nil
 	})
 	if err != nil {
-		return res, "", nil, err
+		return res, "", nil, nil, err
 	}
-	return res, existing.Status.Status, &existing.Status.Connection, err
+	return res, existing.Status.Status, &existing.Status.Connection, &existing.Spec.InstanceID, err
 }
 
 func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig) (components.Result, string, *dbv1beta1.PostgresConnection, error) {

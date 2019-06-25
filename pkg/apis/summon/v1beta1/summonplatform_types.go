@@ -159,6 +159,9 @@ type SummonPlatformStatus struct {
 	// Previous version for which migrations ran successfully.
 	// +optional
 	MigrateVersion string `json:"migrateVersion,omitempty"`
+	// Previous version for which a backup was made.
+	// +optional
+	BackupVersion string `json:"backupVersion,omitempty"`
 	// Spec for Notification
 	// +optional
 	Notification NotificationStatus `json:"notification,omitempty"`
