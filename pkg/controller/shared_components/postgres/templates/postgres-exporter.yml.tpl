@@ -24,10 +24,10 @@ spec:
         command:
         - sh
         - -c
-        - cp /*.pem /etc/tls/certs
+        - cp /*.pem /etc/ssl/certs
         volumeMounts:
         - name: certs
-          mountPath: /etc/tls/certs
+          mountPath: /etc/ssl/certs
       containers:
       - name: postgres-exporter
         image: wrouesnel/postgres_exporter:v0.4.7
@@ -46,7 +46,7 @@ spec:
           containerPort: 9187
         volumeMounts:
         - name: certs
-          mountPath: /etc/tls/certs
+          mountPath: /etc/ssl/certs
       volumes:
       - name: certs
         emptyDir: {}
