@@ -68,7 +68,7 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 
 	// Exit early if versions match
 	// Exit early if there is no RDS instance
-	if instance.Status.BackupVersion == instance.Spec.Version || fetchPostgresDB.Status.RDSInstanceID == nil {
+	if instance.Status.BackupVersion == instance.Spec.Version || fetchPostgresDB.Status.RDSInstanceID == "" {
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)
 			instance.Status.Status = summonv1beta1.StatusDeploying
@@ -81,7 +81,7 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 	// Data to be copied over to template
 	extra := map[string]interface{}{}
 	extra["backupName"] = backupName
-	extra["rdsInstanceName"] = *fetchPostgresDB.Status.RDSInstanceID
+	extra["rdsInstanceName"] = fetchPostgresDB.Status.RDSInstanceID
 
 	_, _, err = ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.RDSSnapshot)

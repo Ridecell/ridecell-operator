@@ -39,7 +39,6 @@ var _ = Describe("SummonPlatform backup Component", func() {
 	postgresDatabase := &dbv1beta1.PostgresDatabase{}
 
 	BeforeEach(func() {
-		testRDSInstanceID := "test-rds-instance"
 		postgresDatabase = &dbv1beta1.PostgresDatabase{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      instance.Name,
@@ -52,7 +51,7 @@ var _ = Describe("SummonPlatform backup Component", func() {
 				},
 			},
 			Status: dbv1beta1.PostgresDatabaseStatus{
-				RDSInstanceID: &testRDSInstanceID,
+				RDSInstanceID: "test-rds-instance",
 			},
 		}
 		comp = summoncomponents.NewBackup("db/rdssnapshot.yml.tpl")

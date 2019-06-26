@@ -50,7 +50,7 @@ type PostgresDatabaseStatus struct {
 	UserStatus            string             `json:"userStatus"`
 	Connection            PostgresConnection `json:"connection"`
 	AdminConnection       PostgresConnection `json:"adminConnection"`
-	RDSInstanceID         *string            `json:"rdsInstanceId,omitempty"`
+	RDSInstanceID         string             `json:"rdsInstanceId,omitempty"`
 }
 
 // +genclient
