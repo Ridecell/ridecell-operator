@@ -51,6 +51,7 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 	if err != nil {
 		return nil, fmt.Errorf("unable to create controller: %v", err)
 	}
+	cr.Controller = c
 
 	// Watch for changes in the Top object.
 	err = c.Watch(&source.Kind{Type: cr.top}, &handler.EnqueueRequestForObject{})
@@ -311,4 +312,9 @@ var _ inject.Client = &componentReconciler{}
 func (v *componentReconciler) InjectClient(c client.Client) error {
 	v.client = c
 	return nil
+}
+
+// GetComponentClient Exposes the controller client
+func (cr *componentReconciler) GetComponentClient() client.Client {
+	return cr.client
 }

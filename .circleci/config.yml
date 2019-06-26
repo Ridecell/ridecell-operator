@@ -118,7 +118,7 @@ jobs:
     - *kube-apiserver
     - *kube-controller-manager
     environment:
-      GINKGO_ARGS: -focus @aws -skip @rds
+      GINKGO_ARGS: -focus @aws -skip '@(rds|snapshot)'
     steps:
     - rc_test:
         cover: aws
@@ -138,6 +138,21 @@ jobs:
         cover: rds
         aws: true
         timeout: 30m
+
+  test_rdssnapshot:
+    executor: rc_test
+    docker:
+    - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
+    environment:
+      GINKGO_ARGS: -focus @snapshot
+    steps:
+    - rc_test:
+        cover: rdssnapshot
+        aws: true
+        timeout: 25m
 
   test_rabbitmq:
     executor: rc_test
@@ -165,7 +180,7 @@ jobs:
     - *kube-controller-manager
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      GINKGO_ARGS: -skip '@(postgres|aws|rds|rabbitmq|unit)'
+      GINKGO_ARGS: -skip '@(postgres|aws|rds|snapshot|rabbitmq|unit)'
     steps:
     - rc_test:
         cover: other
@@ -238,6 +253,9 @@ workflows:
     - test_rds:
         requires:
         - test
+    - test_rdssnapshot:
+        requires:
+        - test
     - test_rabbitmq:
         requires:
         - test
@@ -250,6 +268,7 @@ workflows:
         - test_postgres
         - test_aws
         - test_rds
+        - test_rdssnapshot
         - test_rabbitmq
         - test_other
     - crds:
