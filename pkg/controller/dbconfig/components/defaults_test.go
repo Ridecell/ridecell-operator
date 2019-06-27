@@ -19,7 +19,6 @@ package components_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -37,24 +36,20 @@ var _ = Describe("DbConfig Defaults Component", func() {
 	It("does nothing with just an RDS config", func() {
 		instance.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{}
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.CreatePeriscopeUser).To(PointTo(Equal(true)))
 	})
 
 	It("does nothing with just a Local config", func() {
 		instance.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.CreatePeriscopeUser).To(PointTo(Equal(true)))
 	})
 
 	It("fails with neither postgres config", func() {
 		Expect(comp).ToNot(ReconcileContext(ctx))
-		Expect(instance.Spec.CreatePeriscopeUser).To(BeNil())
 	})
 
 	It("fails with both postgres configs", func() {
 		instance.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{}
 		instance.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 		Expect(comp).ToNot(ReconcileContext(ctx))
-		Expect(instance.Spec.CreatePeriscopeUser).To(BeNil())
 	})
 })
