@@ -57,10 +57,10 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 				VSendResolved: false,
 			},
 			Channel:   channel,
-			Title:     `'{{ template "slack.ridecell.title" . }}'`,
-			IconEmoji: `'{{ template "slack.ridecell.icon_emoji" . }}'`,
-			Color:     `'{{ template "slack.ridecell.color" . }}'`,
-			Text:      `'{{ template "slack.ridecell.text" . }}'`})
+			Title:     `{{ template "slack.ridecell.title" . }}`,
+			IconEmoji: `{{ template "slack.ridecell.icon_emoji" . }}`,
+			Color:     `{{ template "slack.ridecell.color" . }}`,
+			Text:      `{{ template "slack.ridecell.text" . }}`})
 	}
 	// Create receiver
 	receiver := &alertmconfig.Receiver{
