@@ -25,6 +25,7 @@ import (
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -152,6 +153,11 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return res, errors.Wrap(err, "error while reconciling exporter service monitor")
 	}
+	res, err = comp.reconcilePeriscopeUser(ctx, dbconfig, conn)
+	if err != nil {
+		return res, errors.Wrap(err, "error while reconciling periscope postgres user")
+	}
+
 	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
 		res.StatusModifier = func(obj runtime.Object) error {
@@ -279,6 +285,35 @@ func (comp *postgresComponent) reconcileServiceMonitor(ctx *components.Component
 		return res, err
 	}
 	return res, err
+}
+
+func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
+	var existing *dbv1beta1.PostgresUser
+	extras := map[string]interface{}{}
+	extras["Conn"] = conn
+	if !dbconfig.Spec.NoCreatePeriscopeUser {
+		res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("periscopeuser.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+			existing = existingObj.(*dbv1beta1.PostgresUser)
+			goal := goalObj.(*dbv1beta1.PostgresUser)
+			existing.Spec = goal.Spec
+			return nil
+		})
+		if err != nil {
+			return res, err
+		}
+		return res, err
+	} else {
+		// Check if periscope user already exists and delete it
+		user, err := ctx.WithTemplates(Templates).GetTemplate("periscopeuser.yml.tpl", extras)
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "unable to load periscope.yml.tpl to delete existing periscope user")
+		}
+		err = ctx.Delete(ctx.Context, user)
+		if err != nil && !kerrors.IsNotFound(err) {
+			return components.Result{Requeue: true}, errors.Wrap(err, "unable to find and delete periscopeuser")
+		}
+		return components.Result{}, err
+	}
 }
 
 func (comp *postgresComponent) dbConfigRefFor(db *dbv1beta1.PostgresDatabase) *corev1.ObjectReference {
