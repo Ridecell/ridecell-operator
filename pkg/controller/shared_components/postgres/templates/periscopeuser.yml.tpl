@@ -5,4 +5,4 @@ metadata:
   namespace: {{ .Instance.Namespace }}
 spec:
   username: periscope
-  connection: {{ .Extra.conn | toJson }}
+  connection: {{ .Extra.Conn | toJson }}
