@@ -21,9 +21,13 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const promruleFinalizer = "finalizer.promrule.monitoring.ridecell.io"
 
 type promruleComponent struct {
 }
@@ -44,6 +48,36 @@ func (_ *promruleComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *promruleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*monitoringv1beta1.Monitor)
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !helpers.ContainsFinalizer(promruleFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(promruleFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "failed to update instance while adding finalizer")
+			}
+		}
+	} else {
+		if helpers.ContainsFinalizer(promruleFinalizer, instance) {
+			promrule := &pomonitoringv1.PrometheusRule{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instance.Name,
+					Namespace: instance.Namespace,
+				}}
+			err := ctx.Delete(ctx.Context, promrule)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "failed to delete PrometheusRule ")
+			}
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(promruleFinalizer, instance)
+			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "failed to update PrometheusRule while removing finalizer")
+			}
+		}
+		return components.Result{}, nil
+	}
+
 	res, _, err := ctx.CreateOrUpdate("prometheus_rule.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*pomonitoringv1.PrometheusRule)
 		existing := existingObj.(*pomonitoringv1.PrometheusRule)
