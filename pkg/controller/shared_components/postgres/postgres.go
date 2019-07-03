@@ -312,7 +312,7 @@ func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentC
 		if err != nil && !kerrors.IsNotFound(err) {
 			return components.Result{Requeue: true}, errors.Wrap(err, "unable to find and delete periscopeuser")
 		}
-		return components.Result{}, err
+		return components.Result{}, nil
 	}
 }
 

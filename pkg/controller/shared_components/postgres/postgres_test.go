@@ -56,6 +56,11 @@ var _ = Describe("Postgres Shared Component", func() {
 			err := ctx.List(context.Background(), &client.ListOptions{}, postgres)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Items).To(BeEmpty())
+
+			// Check that periscope postgresuser was not created
+			pguser := &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("creates a local database", func() {
@@ -68,6 +73,11 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Spec.TeamID).To(Equal("summon-dev"))
 			Expect(dbconfig.Status.Postgres.Connection.Host).To(Equal("summon-dev-database"))
+
+			// Check that periscope postgresuser was created
+			pguser := &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("creates an RDS database", func() {
@@ -80,6 +90,32 @@ var _ = Describe("Postgres Shared Component", func() {
 			rds := &dbv1beta1.RDSInstance{}
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev", Namespace: "summon-dev"}, rds)
 			Expect(err).ToNot(HaveOccurred())
+
+			// Check that periscope postgresuser was created
+			pguser := &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
+		})
+
+		It("creates a local database without periscope user if NoCreatePeriscopeUser is true", func() {
+			dbconfig.Spec.Postgres.Mode = "Shared"
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
+			dbconfig.Spec.NoCreatePeriscopeUser = true
+			Expect(comp).To(ReconcileContext(ctx))
+
+			postgres := &postgresv1.Postgresql{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-database", Namespace: "summon-dev"}, postgres)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(postgres.Spec.TeamID).To(Equal("summon-dev"))
+			Expect(dbconfig.Status.Postgres.Connection.Host).To(Equal("summon-dev-database"))
+
+			// Check that periscope postgresuser was not created
+			pguser := &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).To(HaveOccurred())
+			// pguser still be unpopulated
+			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})
 	})
 
@@ -100,6 +136,13 @@ var _ = Describe("Postgres Shared Component", func() {
 			err := ctx.List(context.Background(), &client.ListOptions{}, postgres)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Items).To(BeEmpty())
+
+			// Check that periscope postgresuser was not created
+			pguser := &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			// pguser still be unpopulated
+			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("creates a local database", func() {
@@ -113,6 +156,12 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Spec.TeamID).To(Equal("foo-dev"))
 			Expect(pqdb.Status.AdminConnection.Host).To(Equal("foo-dev-database"))
+
+			// Check that periscope postgresuser was created
+			pguser := &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
 		})
 
 		It("creates an RDS database", func() {
@@ -126,6 +175,12 @@ var _ = Describe("Postgres Shared Component", func() {
 			rds := &dbv1beta1.RDSInstance{}
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, rds)
 			Expect(err).ToNot(HaveOccurred())
+
+			// Check that periscope postgresuser was created
+			pguser := &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
 		})
 	})
 
