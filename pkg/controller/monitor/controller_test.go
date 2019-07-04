@@ -91,4 +91,29 @@ var _ = Describe("monitor controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(route.Receiver).To(Equal("foo"))
 	})
+
+	It("Creating monitor kind without notification", func() {
+		c := helpers.TestClient
+		instance := &monitoringv1beta1.Monitor{
+			ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: helpers.Namespace},
+			Spec: monitoringv1beta1.MonitorSpec{
+				MetricAlertRules: []monitoringv1beta1.MetricAlertRule{
+					{
+						Alert:       "HighErrorRate",
+						Expr:        `job:request_latency_seconds:mean5m{job=", "} > 0.5`,
+						Labels:      map[string]string{"severity": "page"},
+						Annotations: map[string]string{"summary": "High request latency"},
+					},
+				},
+			},
+		}
+		c.Create(instance)
+
+		// Check Prom rules from here
+		rule := &pomonitoringv1.PrometheusRule{}
+		c.EventuallyGet(helpers.Name("bar"), rule)
+		Expect(rule.Spec.Groups).To(HaveLen(1))
+		Expect(rule.Spec.Groups[0].Rules).To(HaveLen(1))
+		Expect(rule.Spec.Groups[0].Rules[0].Alert).To(Equal("HighErrorRate"))
+	})
 })

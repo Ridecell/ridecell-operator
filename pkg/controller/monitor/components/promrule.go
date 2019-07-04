@@ -49,6 +49,11 @@ func (_ *promruleComponent) IsReconcilable(_ *components.ComponentContext) bool 
 func (comp *promruleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*monitoringv1beta1.Monitor)
 
+	// absence MetricAlertRules should not retrun error else other components will break
+	if len(instance.Spec.MetricAlertRules) <= 0 {
+		return components.Result{}, nil
+	}
+
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !helpers.ContainsFinalizer(promruleFinalizer, instance) {
 			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(promruleFinalizer, instance)
