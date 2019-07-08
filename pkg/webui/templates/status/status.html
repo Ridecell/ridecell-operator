@@ -1,0 +1,111 @@
+<header>
+  <div align="right">
+    You're logged in as <%= current_user.Name %> <a href="/logout">Logout</a>
+  </div>
+</header>
+
+<body>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="subtitle">
+        <div class="container">
+        <h3><%= instance.Name %></h3>
+        <%= form({action: "/pull-request", method: "POST"}) { %>
+          <p>Version:<%= f.TextArea({name: "Version", value: instance.Spec.Version, rows: 1}) %></p>
+          <button name="instance-name" value=<%= instance.Name %>>Create PR</button>
+        <% } %>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr text-align="left">
+              <th>
+                Status
+              </th>
+              <th>
+                Status Message
+              </th>
+              <th>
+                Postgres Status
+              </th>
+              <th>
+                RabbitMQ Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>
+              <%= instance.Status.Status %>
+            </td>
+            <td>
+              <%= instance.Status.Message %>
+            </td>
+            <td>
+              <%= instance.Status.PostgresStatus %>
+            </td>
+            <td>
+              <%= instance.Status.RabbitMQStatus %>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="subtitle">
+        <div class="container">
+        <h3>Deployments</h3>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr text-align="left">
+              <th>
+                Deployment Name
+              </th>
+              <th>
+                Desired replica count
+              </th>
+              <th>
+                Current replica count
+              </th>
+              <th>
+                Available Replica count
+              </th>
+              <th>
+                Up to date replica count
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for (d) in deployments { %>
+              <tr>
+                <td>
+                  <%= d.Name %>
+                </td>
+                <td>
+                  <%= d.Replicas %>
+                </td>
+                <td>
+                  <%= d.CurrentReplicas %>
+                </td>
+                <td>
+                  <%= d.UpdatedReplicas %>
+                </td>
+                <td>
+                  <%= d.AvailableReplicas %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>

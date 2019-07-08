@@ -31,3 +31,35 @@ vendor/
 # Ignore crd yamls
 config/crds/*.yaml
 helm/templates/crds/*.yaml
+
+# ignore webui stuff
+# This can be massively cleaned, i just copied/pasted with pkg/webui prepended for now.
+pkg/webui/vendor/
+pkg/webui/**/*.log
+pkg/webui/**/*.sqlite
+pkg/webui/.idea/
+pkg/webui/bin/
+pkg/webui/tmp/
+pkg/webui/node_modules/
+pkg/webui/.sass-cache/
+pkg/webui/*-packr.go
+pkg/webui/.vscode/
+pkg/webui/.grifter/
+pkg/webui/.env
+pkg/webui/**/.DS_Store
+pkg/webui/*.pid
+pkg/webui/coverage
+pkg/webui/coverage.data
+pkg/webui/.svn
+pkg/webui/.console_history
+pkg/webui/.sass-cache/*
+pkg/webui/.jhw-cache/
+pkg/webui/jhw.*
+pkg/webui/*.sublime*
+pkg/webui/node_modules/
+pkg/webui/dist/
+pkg/webui/generated/
+pkg/webui/.vendor/
+cmd/webui/tmp/
+cmd/webui/migrations
+cmd/webui/.env
