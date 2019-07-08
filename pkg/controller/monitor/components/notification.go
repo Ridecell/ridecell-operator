@@ -17,14 +17,20 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	alertmconfig "github.com/prometheus/alertmanager/config"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const notificationFinalizer = "finalizer.notification.monitoring.ridecell.io"
 
 type notificationComponent struct {
 }
@@ -45,10 +51,42 @@ func (_ *notificationComponent) IsReconcilable(_ *components.ComponentContext) b
 
 func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*monitoringv1beta1.Monitor)
+
 	// slack config
 	if len(instance.Spec.Notify.Slack) <= 0 {
-		return components.Result{}, errors.Errorf("No slack chanel defined  for %s", instance.Name)
+		//return components.Result{}, errors.Errorf("No slack chanel defined  for %s", instance.Name)
+		return components.Result{}, nil
 	}
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !helpers.ContainsFinalizer(notificationFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(notificationFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "failed to update instance while adding finalizer")
+			}
+		}
+	} else {
+		if helpers.ContainsFinalizer(notificationFinalizer, instance) {
+			promrule := &monitoringv1beta1.AlertManagerConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("alertmanagerconfig-%s", instance.Name),
+					Namespace: instance.Namespace,
+				}}
+			err := ctx.Delete(ctx.Context, promrule)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "failed to delete notification %s", instance.Name)
+			}
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(notificationFinalizer, instance)
+			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "failed to update notification  while removing finalizer")
+			}
+		}
+		return components.Result{}, nil
+	}
+
 	slackconfigs := []*alertmconfig.SlackConfig{}
 	for _, channel := range instance.Spec.Notify.Slack {
 		// add chanel
@@ -57,10 +95,10 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 				VSendResolved: false,
 			},
 			Channel:   channel,
-			Title:     `'{{ template "slack.ridecell.title" . }}'`,
-			IconEmoji: `'{{ template "slack.ridecell.icon_emoji" . }}'`,
-			Color:     `'{{ template "slack.ridecell.color" . }}'`,
-			Text:      `'{{ template "slack.ridecell.text" . }}'`})
+			Title:     `{{ template "slack.ridecell.title" . }}`,
+			IconEmoji: `{{ template "slack.ridecell.icon_emoji" . }}`,
+			Color:     `{{ template "slack.ridecell.color" . }}`,
+			Text:      `{{ template "slack.ridecell.text" . }}`})
 	}
 	// Create receiver
 	receiver := &alertmconfig.Receiver{
