@@ -61,9 +61,9 @@ type MIVSpec struct {
 
 // BackupSpec defines the configuration of the automatic RDS Snapshot feature.
 type BackupSpec struct {
-	// The ttl of the created rds snapshot.
+	// The ttl of the created rds snapshot in string form.
 	// +optional
-	TTL time.Duration `json:"ttl,omitempty"`
+	TTL string `json:"ttl,omitempty"`
 	// whether or not the backup process waits on the snapshot to finish
 	WaitUntilReady bool `json:"waitUntilReady,omitempty"`
 }

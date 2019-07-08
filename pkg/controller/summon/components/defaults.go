@@ -113,14 +113,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.EnableNewRelic = &val
 	}
 
-	if instance.Spec.Backup.TTL == 0 {
+	if instance.Spec.Backup.TTL == "" {
 		instance.Spec.Backup = summonv1beta1.BackupSpec{
-			TTL:            time.Hour * 720,
+			TTL:            "720h",
 			WaitUntilReady: true,
 		}
 		if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 			instance.Spec.Backup = summonv1beta1.BackupSpec{
-				TTL:            time.Hour * 72,
+				TTL:            "72h",
 				WaitUntilReady: false,
 			}
 		}

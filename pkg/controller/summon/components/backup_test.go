@@ -18,12 +18,12 @@ package components_test
 
 import (
 	"context"
-	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -36,12 +36,12 @@ import (
 )
 
 var _ = Describe("SummonPlatform backup Component", func() {
-	comp := summoncomponents.NewBackup("db/rdssnapshot.yml.tpl")
+	var comp components.Component
 	postgresDatabase := &dbv1beta1.PostgresDatabase{}
 
 	BeforeEach(func() {
 		instance.Spec.Backup = summonv1beta1.BackupSpec{
-			TTL:            time.Minute * 5,
+			TTL:            "5m",
 			WaitUntilReady: true,
 		}
 		postgresDatabase = &dbv1beta1.PostgresDatabase{
@@ -59,7 +59,7 @@ var _ = Describe("SummonPlatform backup Component", func() {
 				RDSInstanceID: "test-rds-instance",
 			},
 		}
-		comp = summoncomponents.NewBackup("db/rdssnapshot.yml.tpl")
+		comp = summoncomponents.NewBackup()
 	})
 
 	It("runs a basic reconcile", func() {
@@ -74,7 +74,7 @@ var _ = Describe("SummonPlatform backup Component", func() {
 		ctx.Client = fake.NewFakeClient(postgresDatabase)
 		instance.Status.BackupVersion = "1.2.3"
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusMigrating))
 		fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-1.2.3", Namespace: instance.Namespace}, fetchRDSSnapshot)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
@@ -110,11 +110,10 @@ var _ = Describe("SummonPlatform backup Component", func() {
 
 		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-1.2.3", Namespace: instance.Namespace}, fetchRDSSnapshot)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusMigrating))
 		Expect(instance.Status.BackupVersion).To(Equal(instance.Spec.Version))
-		ttl, err := time.ParseDuration(fetchRDSSnapshot.Spec.TTL)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(ttl).To(Equal(instance.Spec.Backup.TTL))
+
+		Expect(fetchRDSSnapshot.Spec.TTL).To(Equal(instance.Spec.Backup.TTL))
 	})
 
 	It("does not wait until snapshot is ready", func() {
@@ -124,10 +123,8 @@ var _ = Describe("SummonPlatform backup Component", func() {
 		fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-1.2.3", Namespace: instance.Namespace}, fetchRDSSnapshot)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusMigrating))
 
-		ttl, err := time.ParseDuration(fetchRDSSnapshot.Spec.TTL)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(ttl).To(Equal(instance.Spec.Backup.TTL))
+		Expect(fetchRDSSnapshot.Spec.TTL).To(Equal(instance.Spec.Backup.TTL))
 	})
 })

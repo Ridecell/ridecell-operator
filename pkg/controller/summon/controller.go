@@ -50,7 +50,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewNewRelic(),
 
 		summoncomponents.NewConfigMap("configmap.yml.tpl"),
-		summoncomponents.NewBackup("db/rdssnapshot.yml.tpl"),
+		summoncomponents.NewBackup(),
 		summoncomponents.NewMigrations("migrations.yml.tpl"),
 		summoncomponents.NewSuperuser(),
 
