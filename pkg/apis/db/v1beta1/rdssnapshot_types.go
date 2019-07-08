@@ -18,7 +18,6 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 // RDSSnapshotSpec defines the desired state of RDSSnapshot
@@ -27,8 +26,9 @@ type RDSSnapshotSpec struct {
 	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$
 	// +optional
 	SnapshotID string `json:"snapshotID,omitempty"`
+	// TTL is a string representation of time.Duration
 	// +optional
-	TTL time.Duration `json:"ttl,omitempty"`
+	TTL string `json:"ttl,omitempty"`
 }
 
 // RDSSnapshotStatus defines the observed state of RDSSnapshot

@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -39,6 +40,10 @@ var _ = Describe("SummonPlatform backup Component", func() {
 	postgresDatabase := &dbv1beta1.PostgresDatabase{}
 
 	BeforeEach(func() {
+		instance.Spec.Backup = summonv1beta1.BackupSpec{
+			TTL:            time.Minute * 5,
+			WaitUntilReady: true,
+		}
 		postgresDatabase = &dbv1beta1.PostgresDatabase{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      instance.Name,
@@ -107,6 +112,22 @@ var _ = Describe("SummonPlatform backup Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
 		Expect(instance.Status.BackupVersion).To(Equal(instance.Spec.Version))
+		ttl, err := time.ParseDuration(fetchRDSSnapshot.Spec.TTL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ttl).To(Equal(instance.Spec.Backup.TTL))
+	})
 
+	It("does not wait until snapshot is ready", func() {
+		instance.Spec.Backup.WaitUntilReady = false
+		ctx.Client = fake.NewFakeClient(postgresDatabase)
+		Expect(comp).To(ReconcileContext(ctx))
+		fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-1.2.3", Namespace: instance.Namespace}, fetchRDSSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
+
+		ttl, err := time.ParseDuration(fetchRDSSnapshot.Spec.TTL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ttl).To(Equal(instance.Spec.Backup.TTL))
 	})
 })

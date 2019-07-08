@@ -113,6 +113,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.EnableNewRelic = &val
 	}
 
+	if instance.Spec.Backup.TTL == 0 {
+		instance.Spec.Backup = summonv1beta1.BackupSpec{
+			TTL:            time.Hour * 720,
+			WaitUntilReady: true,
+		}
+		if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
+			instance.Spec.Backup = summonv1beta1.BackupSpec{
+				TTL:            time.Hour * 72,
+				WaitUntilReady: false,
+			}
+		}
+	}
+
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}

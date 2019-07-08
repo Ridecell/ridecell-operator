@@ -59,6 +59,15 @@ type MIVSpec struct {
 	ExistingBucket string `json:"existingBucket,omitempty"`
 }
 
+// BackupSpec defines the configuration of the automatic RDS Snapshot feature.
+type BackupSpec struct {
+	// The ttl of the created rds snapshot.
+	// +optional
+	TTL time.Duration `json:"ttl,omitempty"`
+	// whether or not the backup process waits on the snapshot to finish
+	WaitUntilReady bool `json:"waitUntilReady,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -122,6 +131,9 @@ type SummonPlatformSpec struct {
 	// Enable NewRelic APM.
 	// +optional
 	EnableNewRelic *bool `json:"enableNewRelic,omitempty"`
+	// Automated backup settings.
+	// +optional
+	Backup BackupSpec `json:"backup,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications
