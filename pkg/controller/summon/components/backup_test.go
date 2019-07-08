@@ -76,7 +76,37 @@ var _ = Describe("SummonPlatform backup Component", func() {
 	})
 
 	It("tests snapshot creating status", func() {
-		ctx.Client = fake.NewFakeClient(postgresDatabase)
+		// Set snapshot status to creating
+		rdsSnapshot := &dbv1beta1.RDSSnapshot{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "foo-1.2.3",
+				Namespace: instance.Namespace,
+			},
+			Status: dbv1beta1.RDSSnapshotStatus{
+				Status: dbv1beta1.StatusCreating,
+			},
+		}
+		ctx.Client = fake.NewFakeClient(postgresDatabase, rdsSnapshot)
+
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-1.2.3", Namespace: instance.Namespace}, fetchRDSSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusCreatingBackup))
+		Expect(instance.Status.BackupVersion).ToNot(Equal(instance.Spec.Version))
+
+		// Set snapshot status to ready
+		rdsSnapshot.Status.Status = dbv1beta1.StatusReady
+		err = ctx.Client.Update(ctx.Context, rdsSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(comp).To(ReconcileContext(ctx))
+
+		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-1.2.3", Namespace: instance.Namespace}, fetchRDSSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
+		Expect(instance.Status.BackupVersion).To(Equal(instance.Spec.Version))
 
 	})
 })
