@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -80,31 +79,21 @@ func ListSummonPlatform(namespace string) (*summonv1beta1.SummonPlatformList, er
 	return summonList, nil
 }
 
-func ListDeployments(name string) (*appsv1.DeploymentList, error) {
+func ListObjects(name string, targetList runtime.Object) error {
+	tempObj := targetList
 	contextClient, err := getClient()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	deploymentList := &appsv1.DeploymentList{}
 	listOptions := &client.ListOptions{
 		Namespace: ParseNamespace(name),
 	}
-	err = contextClient.List(context.Background(), listOptions, deploymentList)
+	err = contextClient.List(context.Background(), listOptions, tempObj)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// Filter out just deployments we want.
-	filteredDeployments := &appsv1.DeploymentList{}
-
-	for _, deployment := range deploymentList.Items {
-		match := regexp.MustCompile(fmt.Sprintf(`%s-*`, name)).MatchString(deployment.Name)
-		if match {
-			filteredDeployments.Items = append(filteredDeployments.Items, deployment)
-		}
-	}
-
-	return filteredDeployments, nil
+	return nil
 }
 
 func GetSummonObject(name string) (*summonv1beta1.SummonPlatform, error) {

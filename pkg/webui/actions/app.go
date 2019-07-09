@@ -74,8 +74,6 @@ func App() *buffalo.App {
 		statusGroup.GET("/", StatusBaseHandler)
 		statusGroup.GET("/{instance}", StatusHandler)
 
-		app.POST("/pull-request", PRHandler)
-
 		// catchall path to route to homepage/landing on bad path
 		// The * is arbitrary.
 		app.GET("/{*}", HomeHandler)

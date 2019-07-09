@@ -10,9 +10,8 @@
       <div class="subtitle">
         <div class="container">
         <h3><%= instance.Name %></h3>
-        <%= form({action: "/pull-request", method: "POST"}) { %>
-          <p>Version:<%= f.TextArea({name: "Version", value: instance.Spec.Version, rows: 1}) %></p>
-          <button name="instance-name" value=<%= instance.Name %>>Create PR</button>
+        <%= form({action: "", method: "POST"}) { %>
+          <h5>Version:<%= f.TextArea({readonly: true, name: "Version", value: instance.Spec.Version, rows: 1}) %></h5>
         <% } %>
         </div>
       </div>
@@ -100,6 +99,48 @@
                 </td>
                 <td>
                   <%= d.AvailableReplicas %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="subtitle">
+        <div class="container">
+        <h3>Pods</h3>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr text-align="left">
+              <th>
+                Pod Name
+              </th>
+              <th>
+                Ready
+              </th>
+              <th>
+                Restarts
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for (p) in pods { %>
+              <tr>
+                <td>
+                  <%= p.Name %>
+                </td>
+                <td>
+                  <%= p.Readiness %>
+                </td>
+                <td>
+                  <%= p.Restarts %>
                 </td>
               </tr>
             <% } %>
