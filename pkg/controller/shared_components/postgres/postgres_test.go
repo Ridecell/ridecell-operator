@@ -18,6 +18,7 @@ package postgres_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -77,10 +78,12 @@ var _ = Describe("Postgres Shared Component", func() {
 			// Check that periscope postgresuser was created
 			pguser := &dbv1beta1.PostgresUser{}
 			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			fmt.Printf("DEBUG: Periscope user exists: %+v\n", pguser)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(pguser.ObjectMeta.Finalizers).To(HaveLen(1))
 		})
 
-		It("creates an RDS database", func() {
+		FIt("creates an RDS database", func() {
 			dbconfig.Spec.Postgres.Mode = "Shared"
 			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
 				MaintenanceWindow: "Mon:00:00-Mon:01:00",
@@ -96,6 +99,8 @@ var _ = Describe("Postgres Shared Component", func() {
 			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
+			fmt.Printf("DEBUG: Periscope user exists: %+v\n", pguser)
+			Expect(pguser.ObjectMeta.Finalizers).To(HaveLen(1))
 		})
 
 		It("creates a local database without periscope user if NoCreatePeriscopeUser is true", func() {

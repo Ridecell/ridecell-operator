@@ -18,6 +18,7 @@ package postgresdatabase_test
 
 import (
 	"fmt"
+	"context"
 	"net/url"
 	"os"
 	"time"
@@ -91,6 +92,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 	})
 
 	AfterEach(func() {
+
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			helpers.DebugList(&dbv1beta1.PostgresDatabaseList{})
@@ -98,11 +100,27 @@ var _ = Describe("PostgresDatabase controller", func() {
 			helpers.DebugList(&dbv1beta1.PostgresUserList{})
 			helpers.DebugList(&dbv1beta1.DbConfigList{})
 		}
+		fmt.Printf("DEBUG:\n")
+		helpers.DebugList(&dbv1beta1.PostgresUserList{})
+		fmt.Printf("DBConfig: %+v\n", dbconfig)
+	
+		fmt.Printf("DEBUG: delete DBconfig object to see if it cleans up periscope user\n")
+		cleanup := helpers.TestClient
+		cleanup.Delete(dbconfig)
+
+		Eventually(func() error {
+			fmt.Printf("DEBUG: Fetching dbconfig after it was deleted...\n")
+			return helpers.Client.Get(context.TODO(), helpers.Name(helpers.Namespace), dbconfig)
+		}, time.Second*30).ShouldNot(Succeed())
+
 
 		helpers.TeardownTest()
+		fmt.Printf("\nDEBUG: AFTER TEARDOWN\n")
+		helpers.DebugList(&dbv1beta1.PostgresUserList{})
+		fmt.Printf("DBConfig: %+v\n", dbconfig)
 	})
 
-	It("creates a database on an exclusive RDS config", func() {
+	FIt("creates a database on an exclusive RDS config", func() {
 		c := helpers.TestClient
 
 		// Set up the DbConfig.
@@ -204,7 +222,19 @@ var _ = Describe("PostgresDatabase controller", func() {
 				"password": []byte("userpassword"),
 			},
 		}
+
+		// Inject mock periscope user secret and fudge the pw
+		dbpool.Dbs.Store(fmt.Sprintf("postgres host=%s-dev-database port=5432 dbname=postgres user=periscope password='userpassword' sslmode=require", randomName), fake_sql.Open())
+
+		pUserSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-dev-periscope.postgres-user-password", randomName), Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"password": []byte("userpassword"),
+			},
+		}
+
 		c.Create(userSecret)
+		c.Create(pUserSecret)
 
 		// Set up the DbConfig.
 		dbconfig.Spec.Postgres.Mode = "Exclusive"

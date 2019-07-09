@@ -45,6 +45,7 @@ func (_ *userComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 
 func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	var existing *dbv1beta1.PostgresUser
+	//fmt.Printf("DEBUG: user reconcile -- something called user.yml.tpl...postgresdatabase?\n")
 	res, _, err := ctx.CreateOrUpdate("user.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.PostgresUser)
 		existing = existingObj.(*dbv1beta1.PostgresUser)

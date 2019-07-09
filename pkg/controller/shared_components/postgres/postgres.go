@@ -289,6 +289,7 @@ func (comp *postgresComponent) reconcileServiceMonitor(ctx *components.Component
 
 func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
 	var existing *dbv1beta1.PostgresUser
+	var periscopeowner = "<No periscope user>"
 	extras := map[string]interface{}{}
 	extras["Conn"] = conn
 	if !dbconfig.Spec.NoCreatePeriscopeUser {
@@ -296,6 +297,8 @@ func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentC
 			existing = existingObj.(*dbv1beta1.PostgresUser)
 			goal := goalObj.(*dbv1beta1.PostgresUser)
 			existing.Spec = goal.Spec
+			periscopeowner = existing.ObjectMeta.Name
+			fmt.Printf("DEBUG: shared_component postgres - reconcile - create periscope user <%s>\n", periscopeowner)
 			return nil
 		})
 		if err != nil {
@@ -308,6 +311,7 @@ func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentC
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "unable to load periscope.yml.tpl to delete existing periscope user")
 		}
+		fmt.Printf("DEBUG: shared_component postgres - reconcile - deleting PostgresUser periscope.yml match if one exists\n")
 		err = ctx.Delete(ctx.Context, user)
 		if err != nil && !kerrors.IsNotFound(err) {
 			return components.Result{Requeue: true}, errors.Wrap(err, "unable to find and delete periscopeuser")

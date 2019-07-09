@@ -31,7 +31,7 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = FDescribe("PostgresDatabase Extensions Component", func() {
+var _ = Describe("PostgresDatabase Extensions Component", func() {
 	var comp components.Component
 
 	BeforeEach(func() {

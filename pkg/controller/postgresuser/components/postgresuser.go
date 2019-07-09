@@ -25,15 +25,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
+const PostgresUserPeriscopeFinalizer = "postgresuser.periscope.finalizer"
+
 type PostgresUserComponent struct {
 }
 
 func NewPostgresUser() *PostgresUserComponent {
+	fmt.Printf("DEBUG: NewPostgresUser() called...\n")
 	return &PostgresUserComponent{}
 }
 
@@ -48,7 +52,67 @@ func (_ *PostgresUserComponent) IsReconcilable(ctx *components.ComponentContext)
 func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresUser)
 
+	
+	fmt.Printf("DEBUG: PostgresUser Reconcile - Reconcile() called for %s\n", instance.Spec.Username)
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Only add finalizer for periscope users.
+		if instance.Spec.Username == "periscope" {
+			fmt.Printf("DEBUG: PostgresUser Reconcile - Add PostgresUser finalizer for periscope user\n")
+			if !helpers.ContainsFinalizer(PostgresUserPeriscopeFinalizer, instance) {
+				instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(PostgresUserPeriscopeFinalizer, instance)
+				fmt.Printf("DEBUG: PostgresUser Reconcile - Added finalizer: %+v, %+v\n", instance.ObjectMeta.Finalizer, instance)
+				err := ctx.Update(ctx.Context, instance.DeepCopy())
+				if err != nil {
+					return components.Result{}, errors.Wrap(err, "postgres_user: failed to update instance while adding finalizer for periscope user")
+				}
+			}
+		}
+	} else {
+		fmt.Printf("DEBUG: PostgresUser Reconcile - DeletionTimestamp is not zero\n")
+		if helpers.ContainsFinalizer(PostgresUserPeriscopeFinalizer, instance) {
+			fmt.Printf("DEBUG: PostgresUser Reconcile - finalizer for periscope user: %s about to delete in DB\n", instance.Spec.Username)
+			/*
+				// Remove periscope user from database before deleting periscope PostgresUser Object
+				db, err := postgres.Open(ctx, &instance.Spec.Connection)
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "postgres_user: finalizer failed to open db connection")
+				}
+				res, err := db.Exec("DROP USER periscope;")
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "postgres_user: finalizer failed to delete periscope from db")
+				}
+				// Confirm user was indeed dropped
+				count, err := res.RowsAffected()
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "postgres_user: finalizer failed to confirm periscope user deleted")
+				}
+				fmt.Printf("DEBUG: DROP USERS COUNT: %v\n", count)
+				// Operations complete, remove finalizer
+				instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(PostgresUserPeriscopeFinalizer, instance)
+				err = ctx.Update(ctx.Context, instance.DeepCopy())
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "postgres_user: failed to update instance while removing finalizer")
+				}
+			*/
+			result, err := comp.deleteDependencies(ctx)
+			if err != nil {
+				return result, err
+			}
+			// remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(PostgresUserPeriscopeFinalizer, instance)
+			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "postgres_user: failed to update instance while removing finalizer")
+			}
+		}
+		// Object being deleted has no finalizer, so just return.
+		fmt.Printf("DEBUG: PostgresUser reconcile - postgresuser object %s with no finalizer being deleted, so just returning in Reconcile.\n", instance.Spec.Username)
+		return components.Result{}, nil
+	}
+
 	password, err := instance.Status.Connection.PasswordSecretRef.Resolve(ctx, "password")
+
+	fmt.Printf("DEBUG: PostgresUser reconcile - reconciling %s (from %s): %+v\n", instance.ObjectMeta.Name, instance.ObjectMeta.Namespace, instance.Spec)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "postgres_user: failed fetch password")
 	}
@@ -63,6 +127,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "postgres_user: failed to query users")
 	}
+
 	//defer userRows.Close()
 
 	var existingUsers []string
@@ -94,6 +159,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to create database user")
 		}
+		fmt.Printf("DEBUG: PostgresUser Reconcile - Created user %s in DB\n", quotedUsername)
 	}
 
 	// Do a test query to make sure that the user is valid
@@ -110,6 +176,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	var invalidPassword bool
 	_, err = testdb.Query(`SELECT 1`)
 	if err != nil {
+		fmt.Printf("DEBUG: PostgresUser Reconcile - Checking invalid password on testdb had error: %+v for connection %+v\n\n", err, newConnection)
 		// 28P01 == invalid password
 		if pqerr, ok := err.(*pq.Error); ok && pqerr.Code == "28P01" {
 			invalidPassword = true
@@ -135,4 +202,25 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		instance.Status.Connection.Username = instance.Spec.Username
 		return nil
 	}}, nil
+}
+
+func (comp *PostgresUserComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.PostgresUser)
+	fmt.Printf("DEBUG: Periscope Finalizer - deleting %+v\n", instance)
+	// Remove periscope user from database before deleting periscope PostgresUser Object
+	db, err := postgres.Open(ctx, &instance.Spec.Connection)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "postgres_user: finalizer failed to open db connection")
+	}
+	res, err := db.Exec("DROP USER periscope;")
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "postgres_user: finalizer failed to delete periscope from db")
+	}
+	// Confirm user was indeed dropped
+	count, err := res.RowsAffected()
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "postgres_user: finalizer failed to confirm periscope user deleted")
+	}
+	fmt.Printf("DEBUG: PostgresUser deleteDependencies - DROP USERS COUNT: %v\n", count)
+	return components.Result{}, nil
 }
