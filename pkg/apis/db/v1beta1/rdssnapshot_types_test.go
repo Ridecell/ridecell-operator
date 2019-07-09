@@ -52,7 +52,7 @@ var _ = Describe("RDSSnapshot types", func() {
 			},
 			Spec: dbv1beta1.RDSSnapshotSpec{
 				RDSInstanceID: "testing-123",
-				TTL:           time.Minute * 30,
+				TTL:           "30h",
 				SnapshotID:    "testing-123-snapshot",
 			},
 		}
