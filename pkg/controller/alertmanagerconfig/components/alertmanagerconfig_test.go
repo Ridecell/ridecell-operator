@@ -27,6 +27,7 @@ import (
 
 	monitorv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	amccomponents "github.com/Ridecell/ridecell-operator/pkg/controller/alertmanagerconfig/components"
+	alertconfig "github.com/prometheus/alertmanager/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -86,5 +87,8 @@ receivers:
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "alertmanager-alertmanager-infra", Namespace: "default"}, fconfig)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fconfig.Data).To(HaveKey("alertmanager.yaml"))
+		config, err := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.Global.SlackAPIURL.String()).Should(Equal("https://hooks.slack.com/services/test123/test123"))
 	})
 })
