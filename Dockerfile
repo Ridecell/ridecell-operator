@@ -9,7 +9,7 @@ WORKDIR /go/src/github.com/Ridecell/ridecell-operator
 RUN make dep generate manifests && \
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager -tags release github.com/Ridecell/ridecell-operator/cmd/manager && \
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o install_crds -tags release github.com/Ridecell/ridecell-operator/cmd/install_crds && \
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o webui -tags release github.com/Ridecell/ridecell-operator/cmd/webui
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 packr build -a -o webui -tags release github.com/Ridecell/ridecell-operator/cmd/webui
 
 # Copy the controller-manager into a thin image
 FROM alpine:latest
