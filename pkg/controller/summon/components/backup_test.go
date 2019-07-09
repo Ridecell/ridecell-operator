@@ -40,9 +40,10 @@ var _ = Describe("SummonPlatform backup Component", func() {
 	postgresDatabase := &dbv1beta1.PostgresDatabase{}
 
 	BeforeEach(func() {
+		trueBool := true
 		instance.Spec.Backup = summonv1beta1.BackupSpec{
 			TTL:            "5m",
-			WaitUntilReady: true,
+			WaitUntilReady: &trueBool,
 		}
 		postgresDatabase = &dbv1beta1.PostgresDatabase{
 			ObjectMeta: metav1.ObjectMeta{
@@ -117,7 +118,8 @@ var _ = Describe("SummonPlatform backup Component", func() {
 	})
 
 	It("does not wait until snapshot is ready", func() {
-		instance.Spec.Backup.WaitUntilReady = false
+		falseBool := false
+		instance.Spec.Backup.WaitUntilReady = &falseBool
 		ctx.Client = fake.NewFakeClient(postgresDatabase)
 		Expect(comp).To(ReconcileContext(ctx))
 		fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}

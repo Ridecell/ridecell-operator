@@ -114,15 +114,18 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	if instance.Spec.Backup.TTL == "" {
-		instance.Spec.Backup = summonv1beta1.BackupSpec{
-			TTL:            "720h",
-			WaitUntilReady: true,
-		}
+		instance.Spec.Backup.TTL = "720h"
 		if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
-			instance.Spec.Backup = summonv1beta1.BackupSpec{
-				TTL:            "72h",
-				WaitUntilReady: false,
-			}
+			instance.Spec.Backup.TTL = "72h"
+		}
+	}
+
+	if instance.Spec.Backup.WaitUntilReady == nil {
+		prodWaitBool := true
+		instance.Spec.Backup.WaitUntilReady = &prodWaitBool
+		if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
+			devWaitBool := false
+			instance.Spec.Backup.WaitUntilReady = &devWaitBool
 		}
 	}
 

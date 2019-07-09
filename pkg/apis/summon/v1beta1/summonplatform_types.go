@@ -65,7 +65,7 @@ type BackupSpec struct {
 	// +optional
 	TTL string `json:"ttl,omitempty"`
 	// whether or not the backup process waits on the snapshot to finish
-	WaitUntilReady bool `json:"waitUntilReady,omitempty"`
+	WaitUntilReady *bool `json:"waitUntilReady,omitempty"`
 }
 
 // SummonPlatformSpec defines the desired state of SummonPlatform

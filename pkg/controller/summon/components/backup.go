@@ -100,7 +100,7 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 	// We can just return at this point.
 	// When the rdssnapshot is finished it will trigger this component to reconcile.
 	if fetchRDSSnapshot.Status.Status == dbv1beta1.StatusCreating {
-		if instance.Spec.Backup.WaitUntilReady == false {
+		if *instance.Spec.Backup.WaitUntilReady == false {
 			return components.Result{StatusModifier: func(obj runtime.Object) error {
 				instance := obj.(*summonv1beta1.SummonPlatform)
 				instance.Status.Status = summonv1beta1.StatusMigrating
