@@ -43,6 +43,10 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RDSSnapshot)
 
+	if instance.Spec.TTL == "" {
+		instance.Spec.TTL = "0s"
+	}
+
 	if instance.Spec.SnapshotID == "" {
 		// Add 0 seconds to convert creationTimestamp from metav1.Timestamp to time.Time
 		creationTimestamp := instance.ObjectMeta.CreationTimestamp.Add(time.Second * 0)
