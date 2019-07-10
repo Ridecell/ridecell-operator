@@ -70,6 +70,9 @@ type PostgresDbConfig struct {
 // DbConfigSpec defines the desired state of DbConfig
 type DbConfigSpec struct {
 	Postgres PostgresDbConfig `json:"postgres"`
+	// Create a periscope user for postgres db. Defaults to true.
+	// +optional
+	NoCreatePeriscopeUser bool `json:"noCreatePeriscopeUser,omitempty"`
 	// TODO RabbitMQ stuff too.
 }
 

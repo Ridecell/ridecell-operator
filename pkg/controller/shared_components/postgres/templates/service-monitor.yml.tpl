@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ .Instance.Name }}-postgres-exporter
-  namespace: {{ .Instance.Name }}
+  namespace: {{ .Instance.Namespace }}
   labels:
     k8s-app: postgres-exporter
     monitoredBy: prometheus-infra
