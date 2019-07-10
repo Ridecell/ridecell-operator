@@ -94,10 +94,6 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		// If object is being deleted and has no finalizer just exit.
 		return components.Result{}, nil
 	}
-	ttl, err := time.ParseDuration(instance.Spec.TTL)
-	if err != nil {
-		return components.Result{}, errors.Wrap(err, "unable to parse ttl")
-	}
 
 	snapshotTags := []*rds.Tag{
 		&rds.Tag{
@@ -106,12 +102,12 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		},
 		&rds.Tag{
 			Key:   aws.String("scheduled-for-deletion"),
-			Value: aws.String(fmt.Sprintf("%v", ttl != 0)),
+			Value: aws.String(fmt.Sprintf("%v", instance.Spec.TTL != 0)),
 		},
 	}
 
-	if ttl != 0 {
-		deletionTime := instance.ObjectMeta.CreationTimestamp.Add(ttl)
+	if instance.Spec.TTL != 0 {
+		deletionTime := instance.ObjectMeta.CreationTimestamp.Add(instance.Spec.TTL)
 		deletionTimestamp := time.Time.Format(deletionTime, CustomTimeLayout)
 
 		deletionTimestampTag := &rds.Tag{

@@ -113,10 +113,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.EnableNewRelic = &val
 	}
 
-	if instance.Spec.Backup.TTL == "" {
-		instance.Spec.Backup.TTL = "720h"
+	if instance.Spec.Backup.TTL == 0 {
+		instance.Spec.Backup.TTL = time.Hour * 720
 		if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
-			instance.Spec.Backup.TTL = "72h"
+			instance.Spec.Backup.TTL = time.Hour * 72
 		}
 	}
 

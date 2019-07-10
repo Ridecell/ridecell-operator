@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -51,7 +53,7 @@ var _ = Describe("RDSSnapshot types", func() {
 			},
 			Spec: dbv1beta1.RDSSnapshotSpec{
 				RDSInstanceID: "testing-123",
-				TTL:           "30h",
+				TTL:           time.Minute,
 				SnapshotID:    "testing-123-snapshot",
 			},
 		}

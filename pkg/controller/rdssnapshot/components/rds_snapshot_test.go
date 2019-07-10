@@ -62,7 +62,7 @@ var _ = Describe("rdssnapshot db Component", func() {
 		mockRDS = &mockRDSDBClient{}
 		comp.InjectRDSAPI(mockRDS)
 		instance.Spec.RDSInstanceID = "fake-db"
-		instance.Spec.TTL = "0s"
+		instance.Spec.TTL = 0
 		creationTimestamp := instance.ObjectMeta.CreationTimestamp.Add(time.Second * 0)
 		curTimeString := time.Time.Format(creationTimestamp, rdssnapshotcomponents.CustomTimeLayout)
 		instance.Spec.SnapshotID = fmt.Sprintf("%s-%s", instance.Name, curTimeString)
@@ -94,7 +94,7 @@ var _ = Describe("rdssnapshot db Component", func() {
 		instance.ObjectMeta.Finalizers = []string{"rdssnapshot.finalizer"}
 		instance.ObjectMeta.CreationTimestamp = metav1.Now()
 		delay := time.Second * 2
-		instance.Spec.TTL = delay.String()
+		instance.Spec.TTL = delay
 		// Sleep to expire TTL
 		time.Sleep(delay)
 
@@ -108,7 +108,7 @@ var _ = Describe("rdssnapshot db Component", func() {
 	It("reconciles with non-expired TTL", func() {
 		instance.ObjectMeta.Finalizers = []string{"rdssnapshot.finalizer"}
 		instance.ObjectMeta.CreationTimestamp = metav1.Now()
-		instance.Spec.TTL = (time.Second * 5).String()
+		instance.Spec.TTL = time.Second * 5
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mockRDS.snapshotDeleted).To(BeFalse())
 	})

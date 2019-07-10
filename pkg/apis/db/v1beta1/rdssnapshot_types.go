@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 // RDSSnapshotSpec defines the desired state of RDSSnapshot
@@ -26,9 +27,9 @@ type RDSSnapshotSpec struct {
 	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$
 	// +optional
 	SnapshotID string `json:"snapshotID,omitempty"`
-	// TTL is a string representation of time.Duration
+	// TTL is the time until the object cleans itself up
 	// +optional
-	TTL string `json:"ttl,omitempty"`
+	TTL time.Duration `json:"ttl,omitempty"`
 }
 
 // RDSSnapshotStatus defines the observed state of RDSSnapshot
@@ -41,7 +42,7 @@ type RDSSnapshotStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// RDS is the Schema for the RDSs API
+// RDSSnapshot is the Schema for the RDSs API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 type RDSSnapshot struct {

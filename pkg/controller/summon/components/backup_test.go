@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -42,7 +43,7 @@ var _ = Describe("SummonPlatform backup Component", func() {
 	BeforeEach(func() {
 		trueBool := true
 		instance.Spec.Backup = summonv1beta1.BackupSpec{
-			TTL:            "5m",
+			TTL:            time.Minute * 5,
 			WaitUntilReady: &trueBool,
 		}
 		postgresDatabase = &dbv1beta1.PostgresDatabase{
