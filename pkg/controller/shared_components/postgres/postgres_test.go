@@ -33,7 +33,7 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = FDescribe("Postgres Shared Component", func() {
+var _ = Describe("Postgres Shared Component", func() {
 	var comp components.Component
 	var dbconfig *dbv1beta1.DbConfig
 	var pqdb *dbv1beta1.PostgresDatabase
