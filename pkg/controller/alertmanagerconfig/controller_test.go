@@ -107,6 +107,9 @@ slack_configs:
 		config, _ := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
 		Expect(config.Receivers).To(HaveLen(2))
 		Expect(config.Route.Routes[0].Receiver).To(Equal("test-alert"))
+		config, err := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.Global.SlackAPIURL.String()).Should(Equal("https://hooks.slack.com/services/test123/test123"))
 
 	})
 })
