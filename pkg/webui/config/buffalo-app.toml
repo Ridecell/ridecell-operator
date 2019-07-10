@@ -1,6 +1,6 @@
 name = "webui"
 bin = "bin/webui"
-vcs = "git"
+vcs = "none"
 with_pop = false
 with_sqlite = false
 with_dep = false

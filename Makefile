@@ -67,7 +67,7 @@ docker-push:
 # Install tools
 tools:
 	if ! type dep >/dev/null; then go get github.com/golang/dep/cmd/dep; fi
-	go get -u github.com/onsi/ginkgo/ginkgo github.com/modocache/gover github.com/mattn/goveralls github.com/matryer/moq github.com/gobuffalo/packr/packr
+	go get -u github.com/onsi/ginkgo/ginkgo github.com/modocache/gover github.com/mattn/goveralls github.com/matryer/moq github.com/gobuffalo/packr/v2/packr2
 
 # Install dependencies
 dep: tools

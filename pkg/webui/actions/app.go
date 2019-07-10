@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"fmt"
+
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/envy"
 	forcessl "github.com/gobuffalo/mw-forcessl"
@@ -35,11 +37,17 @@ var app *buffalo.App
 // placed last in the route declarations, as it will prevent routes
 // declared after it to never be called.
 func App() *buffalo.App {
+	host, err := envy.MustGet("HOST")
+	if err != nil {
+		panic(err)
+	}
+
 	if app == nil {
 		app = buffalo.New(buffalo.Options{
 			Env:         ENV,
 			SessionName: "_webui_session",
-			Host:        "http://localhost:3000",
+			Addr:        "0.0.0.0:3000",
+			Host:        fmt.Sprintf("%s:3000", host),
 		})
 
 		// Automatically redirect to SSL
