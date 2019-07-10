@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/envy"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
@@ -15,8 +15,16 @@ import (
 func init() {
 	gothic.Store = App().SessionStore
 
+	gk, err := envy.MustGet("GITHUB_KEY")
+	if err != nil {
+		panic(err)
+	}
+	gs, err := envy.MustGet("GITHUB_SECRET")
+	if err != nil {
+		panic(err)
+	}
 	goth.UseProviders(
-		github.New(os.Getenv("GITHUB_KEY"), os.Getenv("GITHUB_SECRET"), fmt.Sprintf("%s%s", App().Host, "/auth/github/callback"), "read:org", "repo"),
+		github.New(gk, gs, fmt.Sprintf("%s%s", App().Host, "/auth/github/callback"), "read:org", "repo"),
 	)
 }
 
