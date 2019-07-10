@@ -5,4 +5,4 @@ metadata:
  namespace: {{ .Instance.Namespace }}
 spec:
  RDSInstanceID: {{ .Extra.rdsInstanceName }}
- ttl: {{ .Instance.Spec.Backup.TTL }}
+ ttl: {{ .Instance.Spec.Backup.TTL.Duration }}

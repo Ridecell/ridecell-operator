@@ -63,7 +63,7 @@ type MIVSpec struct {
 type BackupSpec struct {
 	// The ttl of the created rds snapshot in string form.
 	// +optional
-	TTL time.Duration `json:"ttl,omitempty"`
+	TTL metav1.Duration `json:"ttl,omitempty"`
 	// whether or not the backup process waits on the snapshot to finish
 	WaitUntilReady *bool `json:"waitUntilReady,omitempty"`
 }

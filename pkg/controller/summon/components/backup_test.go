@@ -43,7 +43,7 @@ var _ = Describe("SummonPlatform backup Component", func() {
 	BeforeEach(func() {
 		trueBool := true
 		instance.Spec.Backup = summonv1beta1.BackupSpec{
-			TTL:            time.Minute * 5,
+			TTL:            metav1.Duration{Duration: time.Minute * 5},
 			WaitUntilReady: &trueBool,
 		}
 		postgresDatabase = &dbv1beta1.PostgresDatabase{

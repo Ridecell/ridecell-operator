@@ -18,7 +18,6 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 // RDSSnapshotSpec defines the desired state of RDSSnapshot
@@ -29,7 +28,7 @@ type RDSSnapshotSpec struct {
 	SnapshotID string `json:"snapshotID,omitempty"`
 	// TTL is the time until the object cleans itself up
 	// +optional
-	TTL time.Duration `json:"ttl,omitempty"`
+	TTL metav1.Duration `json:"ttl,omitempty"`
 }
 
 // RDSSnapshotStatus defines the observed state of RDSSnapshot

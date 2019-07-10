@@ -204,7 +204,7 @@ var _ = Describe("SummonPlatform types", func() {
 							"SESSION_COOKIE_AGE":  1,
 						},
 						"backup": map[string]interface{}{
-							"ttl":            300000000000,
+							"ttl":            "5m0s",
 							"waitUntilReady": true,
 						},
 					},
@@ -233,7 +233,7 @@ var _ = Describe("SummonPlatform types", func() {
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].Bool).To(BeNil())
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].Float).To(PointTo(BeEquivalentTo(1)))
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].String).To(BeNil())
-			Expect(fetched.Spec.Backup.TTL).To(Equal(time.Minute * 5))
+			Expect(fetched.Spec.Backup.TTL.Duration).To(Equal(time.Minute * 5))
 			Expect(*fetched.Spec.Backup.WaitUntilReady).To(BeTrue())
 		})
 	})
