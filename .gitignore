@@ -33,11 +33,8 @@ config/crds/*.yaml
 helm/templates/crds/*.yaml
 
 # ignore webui stuff
-# This can be massively cleaned, i just copied/pasted with pkg/webui prepended for now.
-pkg/webui/bin/
-pkg/webui/tmp/
-pkg/webui/node_modules/
-pkg/webui/.sass-cache/
+*/webui/bin/
+*/webui/tmp/
+cmd/webui/webui
 */webui/*/*-packr.go
-pkg/webui/.env
-cmd/webui/.env
+*/webui/.env
