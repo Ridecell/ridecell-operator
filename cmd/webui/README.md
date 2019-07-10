@@ -1,3 +1,6 @@
+# Note:
+This project has been stripped down to the point where buffalo no longer recognizes it as a buffalo project
+
 # Building
 We are using packr to build the binary as it eases the pain of including static files.
 

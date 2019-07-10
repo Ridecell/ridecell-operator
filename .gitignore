@@ -35,6 +35,6 @@ helm/templates/crds/*.yaml
 # ignore webui stuff
 */webui/bin/
 */webui/tmp/
-cmd/webui/webui
 */webui/*/*-packr.go
 */webui/.env
+cmd/webui/webui
