@@ -15,6 +15,7 @@ import (
 func init() {
 	gothic.Store = App().SessionStore
 
+	// Bail if github secrets aren't set
 	gk, err := envy.MustGet("GITHUB_KEY")
 	if err != nil {
 		panic(err)
@@ -28,6 +29,7 @@ func init() {
 	)
 }
 
+// AuthCallback is used to determine is user has permission to authenticate.
 func AuthCallback(c buffalo.Context) error {
 	user, err := gothic.CompleteUserAuth(c.Response(), c.Request())
 	if err != nil {
@@ -83,6 +85,7 @@ func AuthCallback(c buffalo.Context) error {
 	return c.Redirect(302, "/")
 }
 
+// Logout just drops the session, mostly just for testing purposes.
 func Logout(c buffalo.Context) error {
 	c.Flash().Add("success", "Successfully logged out.")
 	c.Session().Clear()
@@ -93,6 +96,7 @@ func Logout(c buffalo.Context) error {
 	return c.Redirect(302, "/")
 }
 
+// Authorize is middleware to check if a user is authenticated.
 func Authorize(next buffalo.Handler) buffalo.Handler {
 	return func(c buffalo.Context) error {
 		cu := c.Session().Get("current_user")
@@ -104,6 +108,7 @@ func Authorize(next buffalo.Handler) buffalo.Handler {
 	}
 }
 
+// SetCurrentUser is middleware to set current_user into request context.
 func SetCurrentUser(next buffalo.Handler) buffalo.Handler {
 	return func(c buffalo.Context) error {
 		cu := c.Session().Get("current_user")
