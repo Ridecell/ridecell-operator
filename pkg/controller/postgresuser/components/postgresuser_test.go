@@ -117,23 +117,22 @@ var _ = Describe("postgresusercomponents Component", func() {
 	})
 
 	It("runs basic reconcile", func() {
-
-		dbMock.ExpectQuery(`SELECT usename FROM pg_user`).WillReturnRows(sqlmock.NewRows([]string{"usename"}).AddRow("nope"))
+		dbMock.ExpectQuery(`SELECT usename FROM pg_user`).WillReturnRows(sqlmock.NewRows([]string{"usename"}).AddRow("nope")).RowsWillBeClosed()
 		dbMock.ExpectExec(`CREATE USER "newuser" WITH PASSWORD 'test'`).WillReturnResult(sqlmock.NewResult(1, 1))
 
-		dbMock.ExpectQuery(`SELECT 1`).WillReturnRows()
+		dbMock.ExpectQuery(`SELECT 1`).WillReturnRows(sqlmock.NewRows([]string{"filler"}).AddRow(1)).RowsWillBeClosed()
 
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 
 	It("makes no changes", func() {
-		dbMock.ExpectQuery(`SELECT usename FROM pg_user`).WillReturnRows(sqlmock.NewRows([]string{"usename"}).AddRow("newuser"))
-		dbMock.ExpectQuery(`SELECT 1`).WillReturnRows()
+		dbMock.ExpectQuery(`SELECT usename FROM pg_user`).WillReturnRows(sqlmock.NewRows([]string{"usename"}).AddRow("newuser")).RowsWillBeClosed()
+		dbMock.ExpectQuery(`SELECT 1`).WillReturnRows(sqlmock.NewRows([]string{"filler"}).AddRow(1)).RowsWillBeClosed()
 		Expect(comp).To(ReconcileContext(ctx))
 	})
 
 	It("updates the incorrect password of the new user", func() {
-		dbMock.ExpectQuery(`SELECT usename FROM pg_user`).WillReturnRows(sqlmock.NewRows([]string{"usename"}).AddRow("newuser"))
+		dbMock.ExpectQuery(`SELECT usename FROM pg_user`).WillReturnRows(sqlmock.NewRows([]string{"usename"}).AddRow("newuser")).RowsWillBeClosed()
 		dbMock.ExpectQuery(`SELECT 1`).WillReturnError(&pq.Error{Code: "28P01"})
 		dbMock.ExpectExec(`ALTER USER "newuser" WITH PASSWORD 'test'`).WillReturnResult(sqlmock.NewResult(1, 1))
 		Expect(comp).To(ReconcileContext(ctx))
