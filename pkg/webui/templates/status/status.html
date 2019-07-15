@@ -5,16 +5,14 @@
 </header>
 
 <body>
+  <h3><%= instance.Name %></h3>
+  <h5>Version: <%= instance.Spec.Version %> </h5>
+  <%= form({action: "/pullrequest/<%= instance.Name %>", method: "POST"}) { %>
+    <%= f.SubmitTag("Deployment PR") %>
+    <input type="hidden" name="instance-name" value=<%= instance.Name %>>
+  <% } %>
   <div class="row">
     <div class="col-md-12">
-      <div class="subtitle">
-        <div class="container">
-        <h3><%= instance.Name %></h3>
-        <%= form({action: "", method: "POST"}) { %>
-          <h5>Version:<%= f.TextArea({readonly: true, name: "Version", value: instance.Spec.Version, rows: 1}) %></h5>
-        <% } %>
-        </div>
-      </div>
       <div class="table-responsive">
         <table class="table table-striped">
           <thead>
