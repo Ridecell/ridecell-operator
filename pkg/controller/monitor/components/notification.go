@@ -105,20 +105,9 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		Name:         instance.Name,
 		SlackConfigs: slackconfigs,
 	}
-	// Create route and group by namspace
-	routes := &alertmconfig.Route{
-		Receiver:   instance.Name,
-		Continue:   true,
-		GroupByStr: []string{"namespace"},
-		Match: map[string]string{
-			"namespace": instance.Namespace,
-		},
-	}
 
 	extras := map[string]interface{}{}
-	marshled, _ := yaml.Marshal(routes)
-	extras["routes"] = string(marshled)
-	marshled, _ = yaml.Marshal(receiver)
+	marshled, _ := yaml.Marshal(receiver)
 	extras["receiver"] = string(marshled)
 
 	res, _, err := ctx.CreateOrUpdate("alertmanagerconfig.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
