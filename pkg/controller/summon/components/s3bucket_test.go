@@ -78,5 +78,43 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 			Expect(instance.Status.MIV.Bucket).To(Equal("asdf"))
 		})
+
+		It("test our temporary region respect hack static", func() {
+			newS3Bucket := &awsv1beta1.S3Bucket{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "default",
+				},
+				Spec: awsv1beta1.S3BucketSpec{
+					Region: "notouchy",
+				},
+			}
+			ctx.Client = fake.NewFakeClient(newS3Bucket)
+			comp := summoncomponents.NewS3Bucket("aws/staticbucket.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &awsv1beta1.S3Bucket{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.Region).To(Equal("notouchy"))
+		})
+
+		It("test our temporary region respect hack miv", func() {
+			newS3Bucket := &awsv1beta1.S3Bucket{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "default",
+				},
+				Spec: awsv1beta1.S3BucketSpec{
+					Region: "notouchy",
+				},
+			}
+			ctx.Client = fake.NewFakeClient(newS3Bucket)
+			comp := summoncomponents.NewS3Bucket("aws/mivbucket.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &awsv1beta1.S3Bucket{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.Region).To(Equal("notouchy"))
+		})
 	})
 })
