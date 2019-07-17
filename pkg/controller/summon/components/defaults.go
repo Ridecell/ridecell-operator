@@ -100,6 +100,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
 	}
+	if instance.Spec.SQSRegion == "" {
+		instance.Spec.SQSRegion = "us-west-2"
+	}
 	if instance.Spec.Database.SharedDatabaseName == "" {
 		instance.Spec.Database.SharedDatabaseName = instance.Namespace
 	}
