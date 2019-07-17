@@ -101,7 +101,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	}
 	if instance.Spec.SQSRegion == "" {
-		instance.Spec.SQSRegion = instance.Spec.AwsRegion
+		instance.Spec.SQSRegion = "us-west-2"
 	}
 	if instance.Spec.Database.SharedDatabaseName == "" {
 		instance.Spec.Database.SharedDatabaseName = instance.Namespace
