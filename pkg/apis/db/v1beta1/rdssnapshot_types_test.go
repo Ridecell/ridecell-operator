@@ -17,12 +17,13 @@ limitations under the License.
 package v1beta1_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -52,7 +53,7 @@ var _ = Describe("RDSSnapshot types", func() {
 			},
 			Spec: dbv1beta1.RDSSnapshotSpec{
 				RDSInstanceID: "testing-123",
-				TTL:           time.Minute * 30,
+				TTL:           metav1.Duration{Duration: time.Minute},
 				SnapshotID:    "testing-123-snapshot",
 			},
 		}
