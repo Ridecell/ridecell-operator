@@ -59,6 +59,15 @@ type MIVSpec struct {
 	ExistingBucket string `json:"existingBucket,omitempty"`
 }
 
+// BackupSpec defines the configuration of the automatic RDS Snapshot feature.
+type BackupSpec struct {
+	// The ttl of the created rds snapshot in string form.
+	// +optional
+	TTL metav1.Duration `json:"ttl,omitempty"`
+	// whether or not the backup process waits on the snapshot to finish
+	WaitUntilReady *bool `json:"waitUntilReady,omitempty"`
+}
+
 // WaitSpec defines the configuration of post migration delays.
 type WaitSpec struct {
 	PostMigrate metav1.Duration `json:"postMigrate,omitempty"`
@@ -130,6 +139,9 @@ type SummonPlatformSpec struct {
 	// Enable NewRelic APM.
 	// +optional
 	EnableNewRelic *bool `json:"enableNewRelic,omitempty"`
+	// Automated backup settings.
+	// +optional
+	Backup BackupSpec `json:"backup,omitempty"`
 	// Deployment wait settings
 	// +optional
 	Waits WaitSpec `json:"waits,omitempty"`
@@ -177,6 +189,9 @@ type SummonPlatformStatus struct {
 	// Previous version for which migrations ran successfully.
 	// +optional
 	MigrateVersion string `json:"migrateVersion,omitempty"`
+	// Previous version for which a backup was made.
+	// +optional
+	BackupVersion string `json:"backupVersion,omitempty"`
 	// Spec for Notification
 	// +optional
 	Notification NotificationStatus `json:"notification,omitempty"`

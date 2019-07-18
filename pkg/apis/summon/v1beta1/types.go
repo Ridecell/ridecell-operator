@@ -19,6 +19,7 @@ package v1beta1
 const (
 	StatusInitializing    = "Initializing"
 	StatusMigrating       = "Migrating"
+	StatusCreatingBackup  = "CreatingBackup"
 	StatusDeploying       = "Deploying"
 	StatusReady           = "Ready"
 	StatusError           = "Error"

@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -201,6 +203,10 @@ var _ = Describe("SummonPlatform types", func() {
 							"GOOGLE_ANALYTICS_ID": "UA-2345",
 							"SESSION_COOKIE_AGE":  1,
 						},
+						"backup": map[string]interface{}{
+							"ttl":            "5m0s",
+							"waitUntilReady": true,
+						},
 					},
 				},
 			}
@@ -227,6 +233,8 @@ var _ = Describe("SummonPlatform types", func() {
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].Bool).To(BeNil())
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].Float).To(PointTo(BeEquivalentTo(1)))
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].String).To(BeNil())
+			Expect(fetched.Spec.Backup.TTL.Duration).To(Equal(time.Minute * 5))
+			Expect(*fetched.Spec.Backup.WaitUntilReady).To(BeTrue())
 		})
 	})
 })
