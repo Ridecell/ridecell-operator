@@ -164,7 +164,7 @@ type MIVStatus struct {
 type WaitStatus struct {
 	// The time that deployments should wait for after migrations to continue.
 	// +optional
-	Until metav1.Time `json:"waitUntil,omitempty"`
+	Until metav1.Time `json:"until,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
