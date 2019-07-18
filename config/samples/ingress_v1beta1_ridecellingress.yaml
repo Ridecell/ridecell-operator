@@ -1,0 +1,32 @@
+apiVersion: ingress.ridecell.io/v1beta1
+kind: RidecellIngress
+metadata:
+  labels:
+    ridecell.io/cloud: aws
+    ridecell.io/cloud-region: us-west-2
+    ridecell.io/cluster-name: us-sandbox.kops.ridecell.io
+    ridecell.io/environment: sandbox
+    ridecell.io/region: us
+    controller-tools.k8s.io: "1.0"
+  name: ridecellingress-sample
+  namespace: default
+spec:
+  rules:
+  - host: hostname1
+    http:
+      paths:
+      - backend:
+          serviceName: service1
+          servicePort: 1111
+        path: /
+  - host: hostname2
+    http:
+      paths:
+      - backend:
+          serviceName: service2
+          servicePort: 2222
+        path: /
+  tls:
+  - hosts:
+    - hostname1
+    secretName: hostname-ridecell-us-tls
