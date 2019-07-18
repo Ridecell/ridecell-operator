@@ -75,7 +75,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	if instance.Spec.Version == instance.Status.MigrateVersion {
 		// Already migrated, update status and move on.
-		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil
+		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusPostMigrateWait)}, nil
 	}
 
 	var urlStr string
@@ -150,7 +150,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 		// Onward to deploying!
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)
-			instance.Status.Status = summonv1beta1.StatusDeploying
+			instance.Status.Status = summonv1beta1.StatusPostMigrateWait
 			instance.Status.MigrateVersion = migrateVersion
 			return nil
 		}}, nil
