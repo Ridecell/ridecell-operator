@@ -24,13 +24,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// This is a hack to bypass a json marshalling bug with metav1.Time assigning to JSON null
 type CustomTime struct {
 	metav1.Time
 }
 
+// This is a hack to bypass a json marshalling bug with metav1.Time assigning to JSON null
 // UnmarshalJSON implements the json.Unmarshaller interface.
 func (t *CustomTime) UnmarshalJSON(b []byte) error {
-	if len(b) == 4 && string(b) == "" {
+	if len(b) == 2 && string(b) == "\"\"" {
 		t.Time.Time = time.Time{}
 		return nil
 	}
@@ -50,11 +52,12 @@ func (t *CustomTime) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// This is a hack to bypass a json marshalling bug with metav1.Time assigning to JSON null
 // MarshalJSON implements the json.Marshaler interface.
 func (t CustomTime) MarshalJSON() ([]byte, error) {
 	if t.Time.Time.IsZero() {
-		// Encode unset/nil objects as JSON's "null".
-		return []byte(""), nil
+		// Encode unset/nil objects as "".
+		return []byte("\"\""), nil
 	}
 	buf := make([]byte, 0, len(time.RFC3339)+2)
 	buf = append(buf, '"')
