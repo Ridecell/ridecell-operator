@@ -116,6 +116,9 @@ type SummonPlatformSpec struct {
 	// SQS queue setting
 	// +optional
 	SQSQueue string `json:"sqsQueue,omitempty"`
+	// SQS queue region setting
+	// +optional
+	SQSRegion string `json:"sqsRegion,omitempty"`
 	// Database-related settings.
 	// +optional
 	Database DatabaseSpec `json:"database,omitempty"`

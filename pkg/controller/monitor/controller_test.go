@@ -50,6 +50,7 @@ var _ = Describe("monitor controller", func() {
 		instance := &monitoringv1beta1.Monitor{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
 			Spec: monitoringv1beta1.MonitorSpec{
+				ServiceName: "dev-foo",
 				MetricAlertRules: []monitoringv1beta1.MetricAlertRule{
 					{
 						Alert:       "HighErrorRate",
@@ -90,6 +91,8 @@ var _ = Describe("monitor controller", func() {
 		err = yaml.Unmarshal([]byte(alertConfig.Spec.Data["routes"]), route)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(route.Receiver).To(Equal("foo"))
+		// Check correct & default route condition present
+		Expect(route.MatchRE["servicename"]).Should(ContainSubstring(instance.Spec.ServiceName))
 	})
 
 	It("Creating monitor kind without notification", func() {
@@ -97,6 +100,7 @@ var _ = Describe("monitor controller", func() {
 		instance := &monitoringv1beta1.Monitor{
 			ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: helpers.Namespace},
 			Spec: monitoringv1beta1.MonitorSpec{
+				ServiceName: "dev-bar",
 				MetricAlertRules: []monitoringv1beta1.MetricAlertRule{
 					{
 						Alert:       "HighErrorRate",

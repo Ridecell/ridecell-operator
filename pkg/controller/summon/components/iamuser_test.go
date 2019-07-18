@@ -35,6 +35,7 @@ var _ = Describe("SummonPlatform iamuser Component", func() {
 
 	BeforeEach(func() {
 		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn::123456789:test*")
+		instance.Spec.SQSQueue = "test-sqs-queue"
 	})
 
 	It("creates an IAMUser object", func() {
@@ -43,6 +44,16 @@ var _ = Describe("SummonPlatform iamuser Component", func() {
 		target := &awsv1beta1.IAMUser{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("cross region sqs", func() {
+		instance.Spec.SQSRegion = "cross-region"
+		comp := summoncomponents.NewIAMUser("aws/iamuser.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &awsv1beta1.IAMUser{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(target.Spec.InlinePolicies["allow_sqs"]).To(ContainSubstring("arn:aws:sqs:cross-region:123456789:test-sqs-queue"))
 	})
 
 	Context("MIV policy", func() {

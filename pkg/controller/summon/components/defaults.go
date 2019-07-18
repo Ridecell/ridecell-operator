@@ -100,6 +100,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
 	}
+	if instance.Spec.SQSRegion == "" {
+		instance.Spec.SQSRegion = "us-west-2"
+	}
 	if instance.Spec.Database.SharedDatabaseName == "" {
 		instance.Spec.Database.SharedDatabaseName = instance.Namespace
 	}
@@ -162,6 +165,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
+	defVal("DATA_PIPELINE_SQS_QUEUE_NAME", "%s", instance.Spec.SQSQueue)
 
 	// Enable DEBUG automatically for dev/qa.
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
@@ -222,7 +226,6 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("CONN_MAX_AGE", float64(60))
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
-	defConfig("DATA_PIPELINE_SQS_QUEUE_NAME", "master-data-pipeline")
 	defConfig("DEBUG", false)
 	defConfig("ENABLE_NEW_RELIC", false)
 	defConfig("ENABLE_SENTRY", false)
