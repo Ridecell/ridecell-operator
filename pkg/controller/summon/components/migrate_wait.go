@@ -17,15 +17,13 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type migrateWaitComponent struct {
@@ -41,8 +39,8 @@ func (comp *migrateWaitComponent) WatchTypes() []runtime.Object {
 
 func (_ *migrateWaitComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	// We aren't waiting, no need to run
 	if instance.Status.Status != summonv1beta1.StatusPostMigrateWait {
-		// We aren't waiting, no need to run
 		return false
 	}
 	return true
@@ -51,6 +49,31 @@ func (_ *migrateWaitComponent) IsReconcilable(ctx *components.ComponentContext) 
 func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
+	waitUntil := instance.Status.Wait.Until.Time
+
+	if waitUntil.IsZero() {
+		waitUntil = metav1.Now().Add(instance.Spec.Waits.PostMigrate.Duration)
+	}
+
+	if !metav1.Now().After(waitUntil) {
+		return components.Result{
+			StatusModifier: func(obj runtime.Object) error {
+				instance := obj.(*summonv1beta1.SummonPlatform)
+				instance.Status.Wait.Until.Time = waitUntil
+				return nil
+			},
+			RequeueAfter: instance.Spec.Waits.PostMigrate.Duration,
+		}, nil
+	}
+
 	// No longer waiting, set status to deploying to continue
-	return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil
+	return components.Result{
+		StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta1.SummonPlatform)
+			instance.Status.Status = summonv1beta1.StatusDeploying
+			// Set wait time to zero value
+			instance.Status.Wait.Until.Time = time.Time{}
+			return nil
+		},
+	}, nil
 }
