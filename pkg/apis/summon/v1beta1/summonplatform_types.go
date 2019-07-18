@@ -17,11 +17,52 @@ limitations under the License.
 package v1beta1
 
 import (
+	"encoding/json"
 	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type CustomTime struct {
+	metav1.Time
+}
+
+// UnmarshalJSON implements the json.Unmarshaller interface.
+func (t *CustomTime) UnmarshalJSON(b []byte) error {
+	if len(b) == 4 && string(b) == "" {
+		t.Time.Time = time.Time{}
+		return nil
+	}
+
+	var str string
+	err := json.Unmarshal(b, &str)
+	if err != nil {
+		return err
+	}
+
+	pt, err := time.Parse(time.RFC3339, str)
+	if err != nil {
+		return err
+	}
+
+	t.Time.Time = pt.Local()
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (t CustomTime) MarshalJSON() ([]byte, error) {
+	if t.Time.Time.IsZero() {
+		// Encode unset/nil objects as JSON's "null".
+		return []byte(""), nil
+	}
+	buf := make([]byte, 0, len(time.RFC3339)+2)
+	buf = append(buf, '"')
+	// time cannot contain non escapable JSON characters
+	buf = t.Time.Time.UTC().AppendFormat(buf, time.RFC3339)
+	buf = append(buf, '"')
+	return buf, nil
+}
 
 // Gross workaround for limitations the Kubernetes code generator and interface{}.
 // If you want to see the weird inner workings of the hack, look in marshall.go.
@@ -164,7 +205,7 @@ type MIVStatus struct {
 type WaitStatus struct {
 	// The time that deployments should wait for after migrations to continue.
 	// +optional
-	Until metav1.Time `json:"until,omitempty"`
+	Until CustomTime `json:"until,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform

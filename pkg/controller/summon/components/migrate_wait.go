@@ -49,7 +49,7 @@ func (_ *migrateWaitComponent) IsReconcilable(ctx *components.ComponentContext) 
 func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	waitUntil := instance.Status.Wait.Until.Time
+	waitUntil := instance.Status.Wait.Until.Time.Time
 
 	if waitUntil.IsZero() {
 		waitUntil = metav1.Now().Add(instance.Spec.Waits.PostMigrate.Duration)
@@ -59,7 +59,7 @@ func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (c
 		return components.Result{
 			StatusModifier: func(obj runtime.Object) error {
 				instance := obj.(*summonv1beta1.SummonPlatform)
-				instance.Status.Wait.Until.Time = waitUntil
+				instance.Status.Wait.Until.Time.Time = waitUntil
 				return nil
 			},
 			RequeueAfter: instance.Spec.Waits.PostMigrate.Duration,
@@ -72,7 +72,7 @@ func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (c
 			instance := obj.(*summonv1beta1.SummonPlatform)
 			instance.Status.Status = summonv1beta1.StatusDeploying
 			// Set wait time to zero value
-			instance.Status.Wait.Until.Time = time.Time{}
+			instance.Status.Wait.Until.Time.Time = time.Time{}
 			return nil
 		},
 	}, nil
