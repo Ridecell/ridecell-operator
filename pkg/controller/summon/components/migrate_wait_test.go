@@ -51,20 +51,22 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			instance.Spec.Waits.PostMigrate.Duration = 0
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
-			Expect(instance.Status.Wait.Until.IsZero()).To(BeTrue())
+			Expect(instance.Status.Wait.Until).To(Equal(""))
 		})
 
 		It("with short wait value", func() {
-			instance.Spec.Waits.PostMigrate.Duration = time.Second * 10
+			instance.Spec.Waits.PostMigrate.Duration = time.Second * 5
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusPostMigrateWait))
-			Expect(instance.Status.Wait.Until.IsZero()).To(BeFalse())
+			parsedTime, err := time.Parse(time.UnixDate, instance.Status.Wait.Until)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(parsedTime.After(time.Now())).To(BeTrue())
 
-			time.Sleep(time.Second * 11)
+			time.Sleep(time.Second * 6)
 
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusDeploying))
-			Expect(instance.Status.Wait.Until.IsZero()).To(BeTrue())
+			Expect(instance.Status.Wait.Until).To(Equal(""))
 		})
 	})
 })

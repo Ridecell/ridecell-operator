@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -49,17 +50,24 @@ func (_ *migrateWaitComponent) IsReconcilable(ctx *components.ComponentContext) 
 func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	waitUntil := instance.Status.Wait.Until.Time.Time
+	var waitUntil time.Time
+	waitUntilString := instance.Status.Wait.Until
 
-	if waitUntil.IsZero() {
-		waitUntil = metav1.Now().Add(instance.Spec.Waits.PostMigrate.Duration)
+	if waitUntilString == "" {
+		waitUntil = time.Now().Add(instance.Spec.Waits.PostMigrate.Duration)
+	} else {
+		parsedTime, err := time.Parse(time.UnixDate, waitUntilString)
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "migrate_wait: failed to parse time stats")
+		}
+		waitUntil = parsedTime
 	}
 
 	if !metav1.Now().After(waitUntil) {
 		return components.Result{
 			StatusModifier: func(obj runtime.Object) error {
 				instance := obj.(*summonv1beta1.SummonPlatform)
-				instance.Status.Wait.Until.Time.Time = waitUntil
+				instance.Status.Wait.Until = waitUntil.Format(time.UnixDate)
 				return nil
 			},
 			RequeueAfter: instance.Spec.Waits.PostMigrate.Duration,
@@ -72,7 +80,7 @@ func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (c
 			instance := obj.(*summonv1beta1.SummonPlatform)
 			instance.Status.Status = summonv1beta1.StatusDeploying
 			// Set wait time to zero value
-			instance.Status.Wait.Until.Time.Time = time.Time{}
+			instance.Status.Wait.Until = ""
 			return nil
 		},
 	}, nil
