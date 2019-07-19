@@ -74,10 +74,6 @@ func App() *buffalo.App {
 
 		app.GET("/logout", Logout)
 
-		prGroup := app.Group("/pullrequest")
-		prGroup.POST("/send", PRHandler)
-		prGroup.GET("/{instance}", PRSetupHandler)
-
 		statusGroup := app.Group("/status")
 		statusGroup.GET("/", StatusBaseHandler)
 		statusGroup.GET("/{instance}", StatusHandler)
