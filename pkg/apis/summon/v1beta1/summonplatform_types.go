@@ -59,6 +59,20 @@ type MIVSpec struct {
 	ExistingBucket string `json:"existingBucket,omitempty"`
 }
 
+// BackupSpec defines the configuration of the automatic RDS Snapshot feature.
+type BackupSpec struct {
+	// The ttl of the created rds snapshot in string form.
+	// +optional
+	TTL metav1.Duration `json:"ttl,omitempty"`
+	// whether or not the backup process waits on the snapshot to finish
+	WaitUntilReady *bool `json:"waitUntilReady,omitempty"`
+}
+
+// WaitSpec defines the configuration of post migration delays.
+type WaitSpec struct {
+	PostMigrate metav1.Duration `json:"postMigrate,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -107,6 +121,9 @@ type SummonPlatformSpec struct {
 	// SQS queue setting
 	// +optional
 	SQSQueue string `json:"sqsQueue,omitempty"`
+	// SQS queue region setting
+	// +optional
+	SQSRegion string `json:"sqsRegion,omitempty"`
 	// Database-related settings.
 	// +optional
 	Database DatabaseSpec `json:"database,omitempty"`
@@ -122,6 +139,12 @@ type SummonPlatformSpec struct {
 	// Enable NewRelic APM.
 	// +optional
 	EnableNewRelic *bool `json:"enableNewRelic,omitempty"`
+	// Automated backup settings.
+	// +optional
+	Backup BackupSpec `json:"backup,omitempty"`
+	// Deployment wait settings
+	// +optional
+	Waits WaitSpec `json:"waits,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications
@@ -135,6 +158,15 @@ type NotificationStatus struct {
 type MIVStatus struct {
 	// The MIV data S3 bucket name.
 	Bucket string `json:"bucket,omitempty"`
+}
+
+// WaitStatus is the output information for deployment Waits.
+type WaitStatus struct {
+	// The time that deployments should wait for after migrations to continue.
+	// Real type = time.Time
+	// workaround because metav1.Time is broked
+	// +optional
+	Until string `json:"until,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
@@ -159,12 +191,18 @@ type SummonPlatformStatus struct {
 	// Previous version for which migrations ran successfully.
 	// +optional
 	MigrateVersion string `json:"migrateVersion,omitempty"`
+	// Previous version for which a backup was made.
+	// +optional
+	BackupVersion string `json:"backupVersion,omitempty"`
 	// Spec for Notification
 	// +optional
 	Notification NotificationStatus `json:"notification,omitempty"`
 	// Status for MIV system.
 	// +optional
 	MIV MIVStatus `json:"miv,omitempty"`
+	// Status for deployment Waits
+	// +optional
+	Wait WaitStatus `json:"wait,omitempty"`
 }
 
 // +genclient

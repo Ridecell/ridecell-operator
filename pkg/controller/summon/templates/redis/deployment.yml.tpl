@@ -6,7 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/name: redis
     app.kubernetes.io/instance: {{ .Instance.Name }}-redis
-    app.kubernetes.io/version: {{ .Instance.Spec.Version }}
     app.kubernetes.io/component: database
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
@@ -20,7 +19,6 @@ spec:
       labels:
         app.kubernetes.io/name: redis
         app.kubernetes.io/instance: {{ .Instance.Name }}-redis
-        app.kubernetes.io/version: {{ .Instance.Spec.Version }}
         app.kubernetes.io/component: database
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator

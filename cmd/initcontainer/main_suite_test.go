@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,14 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package main_test
 
-const (
-	StatusInitializing    = "Initializing"
-	StatusMigrating       = "Migrating"
-	StatusCreatingBackup  = "CreatingBackup"
-	StatusDeploying       = "Deploying"
-	StatusReady           = "Ready"
-	StatusError           = "Error"
-	StatusPostMigrateWait = "PostMigrateWait"
+import (
+	"testing"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
+
+	"github.com/Ridecell/ridecell-operator/pkg/apis"
 )
+
+func TestInitContainer(t *testing.T) {
+	apis.AddToScheme(scheme.Scheme)
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "InitContainer Suite @unit")
+}

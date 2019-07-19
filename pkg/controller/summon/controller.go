@@ -50,7 +50,9 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewNewRelic(),
 
 		summoncomponents.NewConfigMap("configmap.yml.tpl"),
+		summoncomponents.NewBackup(),
 		summoncomponents.NewMigrations("migrations.yml.tpl"),
+		summoncomponents.NewMigrateWait(),
 		summoncomponents.NewSuperuser(),
 
 		// Redis components.

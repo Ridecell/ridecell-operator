@@ -63,7 +63,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "postgres_user: failed to query users")
 	}
-	//defer userRows.Close()
+	defer userRows.Close()
 
 	var existingUsers []string
 	for userRows.Next() {
@@ -108,7 +108,7 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 
 	var invalidPassword bool
-	_, err = testdb.Query(`SELECT 1`)
+	noOpRows, err := testdb.Query(`SELECT 1`)
 	if err != nil {
 		// 28P01 == invalid password
 		if pqerr, ok := err.(*pq.Error); ok && pqerr.Code == "28P01" {
@@ -116,6 +116,8 @@ func (comp *PostgresUserComponent) Reconcile(ctx *components.ComponentContext) (
 		} else {
 			return components.Result{}, errors.Wrap(err, "postgres_user: failed to query database")
 		}
+	} else {
+		defer noOpRows.Close()
 	}
 
 	if invalidPassword {

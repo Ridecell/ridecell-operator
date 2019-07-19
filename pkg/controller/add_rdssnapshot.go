@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package controller
 
-const (
-	StatusInitializing    = "Initializing"
-	StatusMigrating       = "Migrating"
-	StatusCreatingBackup  = "CreatingBackup"
-	StatusDeploying       = "Deploying"
-	StatusReady           = "Ready"
-	StatusError           = "Error"
-	StatusPostMigrateWait = "PostMigrateWait"
+import (
+	"github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot"
 )
+
+func init() {
+	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
+	AddToManagerFuncs = append(AddToManagerFuncs, rdssnapshot.Add)
+}

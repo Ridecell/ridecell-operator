@@ -102,12 +102,12 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		},
 		&rds.Tag{
 			Key:   aws.String("scheduled-for-deletion"),
-			Value: aws.String(fmt.Sprintf("%v", instance.Spec.TTL != 0)),
+			Value: aws.String(fmt.Sprintf("%v", instance.Spec.TTL.Duration != 0)),
 		},
 	}
 
-	if instance.Spec.TTL != 0 {
-		deletionTime := instance.ObjectMeta.CreationTimestamp.Add(instance.Spec.TTL)
+	if instance.Spec.TTL.Duration != 0 {
+		deletionTime := instance.ObjectMeta.CreationTimestamp.Add(instance.Spec.TTL.Duration)
 		deletionTimestamp := time.Time.Format(deletionTime, CustomTimeLayout)
 
 		deletionTimestampTag := &rds.Tag{

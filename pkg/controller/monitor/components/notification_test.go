@@ -46,6 +46,7 @@ var _ = Describe("Monitor Notification Component", func() {
 				"#test",
 			},
 		}
+		instance.Spec.ServiceName = "dev-foo-service"
 
 		Expect(comp).To(ReconcileContext(ctx))
 		config := &monitoringv1beta1.AlertManagerConfig{}
@@ -62,5 +63,7 @@ var _ = Describe("Monitor Notification Component", func() {
 		err = yaml.Unmarshal([]byte(config.Spec.Data["routes"]), route)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(route.Receiver).To(Equal("foo"))
+		// Check correct & default route condition present
+		Expect(route.MatchRE["servicename"]).Should(ContainSubstring(instance.Spec.ServiceName))
 	})
 })
