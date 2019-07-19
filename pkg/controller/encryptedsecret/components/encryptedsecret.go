@@ -100,8 +100,8 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 		}
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret.DeepCopy(), func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
+	existing := newSecret.DeepCopy()
+	_, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, existing, func() error {
 		// Sync important fields.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
 		if err != nil {

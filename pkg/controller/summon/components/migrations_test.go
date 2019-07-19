@@ -26,7 +26,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -167,9 +166,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 			It("deletes the migration", func() {
 				Expect(comp).To(ReconcileContext(ctx))
-				// Pending controller-runtime #213
-				jobs := &metav1.List{}
-				err := ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
+				jobs := &batchv1.JobList{}
+				err := ctx.Client.List(context.TODO(), jobs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(jobs.Items).To(BeEmpty())
 				Expect(instance.Status.MigrateVersion).To(Equal("1.2.3"))
@@ -219,9 +217,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				resp, err := comp.Reconcile(ctx)
 				Expect(err).NotTo(HaveOccurred())
 
-				// Pending controller-runtime #213
-				jobs := &metav1.List{}
-				err = ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
+				jobs := &batchv1.JobList{}
+				err = ctx.Client.List(context.TODO(), jobs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(jobs.Items).To(BeEmpty())
 				Expect(resp.Requeue).To(BeTrue())
@@ -248,9 +245,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				resp, err := comp.Reconcile(ctx)
 				Expect(err).NotTo(HaveOccurred())
 
-				// Pending controller-runtime #213
-				jobs := &metav1.List{}
-				err = ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
+				jobs := &batchv1.JobList{}
+				err = ctx.Client.List(context.TODO(), jobs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(jobs.Items).To(BeEmpty())
 				Expect(resp.Requeue).To(BeTrue())

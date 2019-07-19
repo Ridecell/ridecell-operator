@@ -18,13 +18,14 @@ package rdssnapshot
 
 import (
 	"context"
+	"time"
+
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	rdssnapshotcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot/components"
@@ -55,7 +56,7 @@ func Add(mgr manager.Manager) error {
 func watchTTL(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 	for {
 		rdsSnapshots := &dbv1beta1.RDSSnapshotList{}
-		err := k8sClient.List(context.TODO(), &client.ListOptions{}, rdsSnapshots)
+		err := k8sClient.List(context.TODO(), rdsSnapshots)
 		if err != nil {
 			// Make this do something useful or ignore it.
 			panic(err)

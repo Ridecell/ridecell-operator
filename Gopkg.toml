@@ -22,7 +22,7 @@ required = [
 [[override]]
 name = "sigs.k8s.io/controller-runtime"
 source = "https://github.com/coderanger/controller-runtime.git"
-branch = "crd-update-0.1"
+branch = "crd-update"
 
 [[override]]
 name = "github.com/coreos/prometheus-operator"
@@ -32,13 +32,14 @@ branch = "openapi-wat"
 
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
-[[constraint]]
-  name="sigs.k8s.io/controller-runtime"
-  version="v0.1.12"
+# [[constraint]]
+#   name="sigs.k8s.io/controller-runtime"
+#   version="v0.1.12"
 
 [[constraint]]
   name="sigs.k8s.io/controller-tools"
-  version="v0.1.10"
+  source = "https://github.com/kubernetes-sigs/controller-tools.git"
+  branch="master"
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]

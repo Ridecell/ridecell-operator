@@ -265,8 +265,8 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		fetchAccessKey.Data["AWS_ACCESS_KEY_ID"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
 		fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
 
-		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchAccessKey.DeepCopyObject(), func(existingObj runtime.Object) error {
-			existing := existingObj.(*corev1.Secret)
+		existing := fetchAccessKey.DeepCopy()
+		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, existing, func() error {
 			// Sync important fields.
 			err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
 			if err != nil {

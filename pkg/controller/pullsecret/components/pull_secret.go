@@ -68,10 +68,9 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (co
 		return components.Result{Requeue: true}, err
 	}
 
-	fetchTarget := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecretName, Namespace: instance.Namespace}}
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
-		// Set owner ref.
+	existing := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecretName, Namespace: instance.Namespace}}
+	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, existing, func() error {
+		// Set owner ref. Disabled because multiple pullsecrets point at just one secret. Can't have more than one owner.
 		// err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
 		// if err != nil {
 		// 	return err

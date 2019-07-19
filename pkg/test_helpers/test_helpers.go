@@ -67,10 +67,11 @@ func New() (*TestHelpers, error) {
 	}
 	crdPath := filepath.Join(callerLine, "..", "..", "..", "config", "crds")
 	poCrdPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "github.com", "coreos", "prometheus-operator", "example", "prometheus-operator-crd")
+	useExistingCluster := os.Getenv("USE_EXISTING_CLUSTER") == "true"
 	helpers.Environment = &envtest.Environment{
 		CRDDirectoryPaths:  []string{crdPath, poCrdPath},
 		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
-		UseExistingCluster: os.Getenv("USE_EXISTING_CLUSTER") == "true",
+		UseExistingCluster: &useExistingCluster,
 	}
 	apis.AddToScheme(scheme.Scheme)
 
@@ -189,7 +190,7 @@ func (h *PerTestHelpers) DebugList(listType kruntime.Object) {
 	list := &unstructured.UnstructuredList{}
 	list.SetGroupVersionKind(gvks[0])
 
-	h.TestClient.List(nil, list)
+	h.TestClient.List(list)
 	// TODO Probably replace this whole thing with building maps and yaml.Marshal.
 	fmt.Print(gvks[0].Kind[:len(gvks[0].Kind)-4] + ":\n")
 	for _, item := range list.Items {

@@ -21,8 +21,10 @@ import (
 	"net/http"
 
 	// "github.com/golang/glog"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -48,7 +50,14 @@ func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]in
 		return Result{}, controllerutil.OperationResultNone, err
 	}
 
-	op, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, target.DeepCopyObject(), func(existing runtime.Object) error {
+	targetMeta := target.(metav1.Object)
+	existing := target.DeepCopyObject()
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: targetMeta.GetName(), Namespace: targetMeta.GetNamespace()}, existing)
+	if err != nil && !kerrors.IsNotFound(err) {
+		return Result{}, controllerutil.OperationResultNone, err
+	}
+
+	op, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, existing, func() error {
 		// Set owner ref.
 		err := controllerutil.SetControllerReference(ctx.Top.(metav1.Object), existing.(metav1.Object), ctx.Scheme)
 		if err != nil {

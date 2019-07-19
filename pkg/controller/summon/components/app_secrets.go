@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -82,7 +81,7 @@ func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client)
 
 	// Search all SummonPlatforms to see if any mention this as an input secret.
 	summons := &summonv1beta1.SummonPlatformList{}
-	err := c.List(context.Background(), nil, summons)
+	err := c.List(context.Background(), summons)
 	if err != nil {
 		return nil, errors.Wrap(err, "error listing summonplatforms")
 	}
@@ -186,30 +185,15 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")
 	}
-	newSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
-		Data:       map[string][]byte{"summon-platform.yml": yamlData},
-	}
 
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret.DeepCopy(), func(existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate("secrets/app_secrets.yml.tpl", nil, func(_, existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
-		// Sync important fields.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		if err != nil {
-			return errors.Wrapf(err, "app_secrets: Failed to set controller reference")
-		}
-		existing.Labels = newSecret.Labels
-		existing.Annotations = newSecret.Annotations
-		existing.Type = newSecret.Type
-		existing.Data = newSecret.Data
+		// Copy the Data over.
+		existing.Data = map[string][]byte{"summon-platform.yml": yamlData}
 		return nil
 	})
 
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update secret object")
-	}
-
-	return components.Result{}, nil
+	return res, err
 }
 
 func (_ *appSecretComponent) formatFernetKeys(fernetData map[string][]byte) ([]string, error) {

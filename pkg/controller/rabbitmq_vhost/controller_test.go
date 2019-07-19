@@ -60,7 +60,7 @@ var _ = Describe("RabbitmqVhost controller", func() {
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			vhosts := &dbv1beta1.RabbitmqVhostList{}
-			helpers.TestClient.List(nil, vhosts)
+			helpers.TestClient.List(vhosts)
 			fmt.Print("Instances:\n")
 			for _, item := range vhosts.Items {
 				if item.Namespace == helpers.Namespace {

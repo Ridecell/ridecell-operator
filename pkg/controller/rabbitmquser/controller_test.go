@@ -61,7 +61,7 @@ var _ = Describe("RabbitmqUser controller", func() {
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			users := &dbv1beta1.RabbitmqUserList{}
-			helpers.TestClient.List(nil, users)
+			helpers.TestClient.List(users)
 			fmt.Print("Instances:\n")
 			for _, item := range users.Items {
 				if item.Namespace == helpers.Namespace {

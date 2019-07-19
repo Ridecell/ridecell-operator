@@ -24,7 +24,6 @@ import (
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -53,7 +52,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			postgres := &postgresv1.PostgresqlList{}
-			err := ctx.List(context.Background(), &client.ListOptions{}, postgres)
+			err := ctx.List(context.Background(), postgres)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Items).To(BeEmpty())
 		})
@@ -95,7 +94,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(dbconfig.Status.Postgres.Connection.Host).To(Equal("summon-dev-database"))
 			Expect(pguser.Spec.Connection).To(Equal(dbconfig.Status.Postgres.Connection))
 		})
-	
+
 		It("creates an RDS database", func() {
 			dbconfig.Spec.Postgres.Mode = "Shared"
 			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
@@ -162,7 +161,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			postgres := &postgresv1.PostgresqlList{}
-			err := ctx.List(context.Background(), &client.ListOptions{}, postgres)
+			err := ctx.List(context.Background(), postgres)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(postgres.Items).To(BeEmpty())
 		})
@@ -202,10 +201,10 @@ var _ = Describe("Postgres Shared Component", func() {
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-periscope", Namespace: "summon-dev"}, pguser)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
-			
+
 			// periscope user connection should have inherited the postgresdatabase connection
 			Expect(pguser.Spec.Connection).To(Equal(pqdb.Status.AdminConnection))
-		}) 
+		})
 
 		It("does not create a periscope user for local database if NoPeriscopeUser flag is set", func() {
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
@@ -245,7 +244,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-periscope", Namespace: "summon-dev"}, pguser)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
-			
+
 			// periscope user connection should have inherited the postgresdatabase connection
 			Expect(pguser.Spec.Connection).To(Equal(pqdb.Status.AdminConnection))
 		})

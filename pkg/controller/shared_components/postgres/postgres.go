@@ -79,7 +79,7 @@ func (comp *postgresComponent) WatchMap(obj handler.MapObject, c client.Client) 
 	_, isDbConfig := obj.Object.(*dbv1beta1.DbConfig)
 	if comp.mode == "Exclusive" && isDbConfig {
 		dbs := &dbv1beta1.PostgresDatabaseList{}
-		err := c.List(context.Background(), nil, dbs)
+		err := c.List(context.Background(), dbs)
 		if err != nil {
 			return nil, errors.Wrap(err, "error listing postgresdatabases")
 		}

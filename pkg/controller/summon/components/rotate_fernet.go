@@ -26,10 +26,8 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -69,12 +67,15 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to retrieve default secrets object")
 		}
 	}
+	if fetchSecret.Data == nil {
+		fetchSecret.Data = map[string][]byte{}
+	}
 
 	var latestTime time.Time
 	for k, _ := range fetchSecret.Data {
 		parsedKey, err := time.Parse(CustomTimeLayout, k)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Error while parsing time string")
+			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Error while parsing time string %v", k)
 		}
 		if parsedKey.After(latestTime) {
 			latestTime = parsedKey
@@ -94,35 +95,15 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	newKey := make([]byte, base64.RawStdEncoding.EncodedLen(64))
 	base64.RawStdEncoding.Encode(newKey, rawKey)
 
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			fetchSecret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
-				Data:       map[string][]byte{},
-			}
-		} else {
-			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to get secret")
-		}
-	}
-
+	// Insert the new key.
 	fetchSecret.Data[timeStamp] = newKey
 
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchSecret, func(existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate("secrets/fernet.yml.tpl", nil, func(_, existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
-		// Sync important fields.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		if err != nil {
-			return errors.Wrapf(err, "rotate_fernet: Failed to set controller reference")
-		}
-		existing.ObjectMeta = fetchSecret.ObjectMeta
-		existing.Type = fetchSecret.Type
+		// Copy the Data over.
 		existing.Data = fetchSecret.Data
 		return nil
 	})
 
-	if err != nil {
-		return components.Result{}, errors.Wrap(err, "rotate_fernet: Failed to update secret")
-	}
-
-	return components.Result{}, nil
+	return res, err
 }

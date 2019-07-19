@@ -26,7 +26,6 @@ import (
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	alertconfig "github.com/prometheus/alertmanager/config"
@@ -66,7 +65,7 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	}
 	// Get all AlertManagerConfig's
 	alertList := &monitoringv1beta1.AlertManagerConfigList{}
-	err = ctx.List(ctx.Context, &client.ListOptions{}, alertList)
+	err = ctx.List(ctx.Context, alertList)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "failed to list alermanagerconfig.")
 	}

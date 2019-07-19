@@ -153,7 +153,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			summons := &summonv1beta1.SummonPlatformList{}
-			err := helpers.Client.List(context.Background(), nil, summons)
+			err := helpers.Client.List(context.Background(), summons)
 			if err != nil {
 				fmt.Printf("!!!!!! %s\n", err)
 			} else {

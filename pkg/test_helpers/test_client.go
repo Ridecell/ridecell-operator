@@ -44,8 +44,8 @@ func (c *testClient) Get(key client.ObjectKey, obj runtime.Object) {
 	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 
-func (c *testClient) List(opts *client.ListOptions, list runtime.Object) {
-	err := c.client.List(context.Background(), opts, list)
+func (c *testClient) List(obj runtime.Object, opts ...client.ListOptionFunc) {
+	err := c.client.List(context.Background(), obj, opts...)
 	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 }
 

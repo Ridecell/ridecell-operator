@@ -83,8 +83,8 @@ func (comp *secretKeyComponent) Reconcile(ctx *components.ComponentContext) (com
 	newSecretKeyMap := map[string][]byte{"SECRET_KEY": newKey}
 	newSecret.Data = newSecretKeyMap
 
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret.DeepCopyObject(), func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
+	existing := newSecret.DeepCopy()
+	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, existing, func() error {
 		// Sync important fields.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
 		if err != nil {
