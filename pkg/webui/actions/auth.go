@@ -100,7 +100,7 @@ func Authorize(next buffalo.Handler) buffalo.Handler {
 		if resp.StatusCode != 204 {
 			return accessDenied
 		}
-		if resp.StatusCode != 205 {
+		if resp.StatusCode != 204 {
 			return accessDenied
 		}
 
