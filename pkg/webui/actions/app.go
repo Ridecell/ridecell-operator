@@ -60,7 +60,7 @@ func App() *buffalo.App {
 		// app.Use(translations())
 
 		app.GET("/", HomeHandler)
-		app.Use(SetCurrentUser)
+		app.Use(SetCurrentUserName)
 		app.Use(Authorize)
 		// Don't require auth for login page
 		app.Middleware.Skip(Authorize, HomeHandler)
@@ -78,10 +78,7 @@ func App() *buffalo.App {
 		statusGroup.GET("/", StatusBaseHandler)
 		statusGroup.GET("/{instance}", StatusHandler)
 
-		// catchall path to route to homepage/landing on bad path
-		// The * is arbitrary.
-		app.GET("/{*}", HomeHandler)
-
+		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
 	return app
