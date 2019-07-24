@@ -49,6 +49,22 @@ func App() *buffalo.App {
 		// Automatically redirect to SSL
 		app.Use(forceSSL())
 
+		// Override custom error handling in buffalo
+		app.ErrorHandlers[403] = func(status int, err error, c buffalo.Context) error {
+			res := c.Response()
+			res.WriteHeader(403)
+			res.Write([]byte("Access Denied"))
+			return nil
+		}
+
+		// reroute 404 -> 403 to prevent leaking structure
+		app.ErrorHandlers[404] = func(status int, err error, c buffalo.Context) error {
+			res := c.Response()
+			res.WriteHeader(403)
+			res.Write([]byte("Access Denied"))
+			return nil
+		}
+
 		// Log request parameters (filters apply).
 		app.Use(paramlogger.ParameterLogger)
 
@@ -73,6 +89,7 @@ func App() *buffalo.App {
 		auth.Middleware.Skip(Authorize, gothHandler, AuthCallback)
 
 		app.GET("/logout", Logout)
+		app.Middleware.Skip(Authorize, Logout)
 
 		statusGroup := app.Group("/status")
 		statusGroup.GET("/", StatusBaseHandler)

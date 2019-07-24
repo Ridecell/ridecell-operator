@@ -1897,6 +1897,7 @@
     "github.com/gobuffalo/mw-forcessl",
     "github.com/gobuffalo/mw-paramlogger",
     "github.com/gobuffalo/packr/v2",
+    "github.com/gobuffalo/packr/v2/file/resolver",
     "github.com/golang/glog",
     "github.com/lib/pq",
     "github.com/markbates/goth",

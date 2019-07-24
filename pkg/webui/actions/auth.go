@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -56,7 +57,7 @@ func Logout(c buffalo.Context) error {
 // Authorize is middleware to check if a user is allowed to do the thing.
 func Authorize(next buffalo.Handler) buffalo.Handler {
 	return func(c buffalo.Context) error {
-		accessDenied := c.Render(403, r.String("Access Denied"))
+		accessDenied := c.Error(403, errors.New("Access Denied"))
 
 		cu := c.Session().Get("current_user")
 		if cu == nil {
@@ -100,7 +101,7 @@ func Authorize(next buffalo.Handler) buffalo.Handler {
 		if resp.StatusCode != 204 {
 			return accessDenied
 		}
-		if resp.StatusCode != 204 {
+		if resp1.StatusCode != 200 {
 			return accessDenied
 		}
 
