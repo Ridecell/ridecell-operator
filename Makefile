@@ -39,8 +39,7 @@ deploy: manifests
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
-	@cp config/crds/* helm/templates/crds/
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd:trivialVersions=true rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
 fmt:
