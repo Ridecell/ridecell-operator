@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2019-2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,12 +17,24 @@ limitations under the License.
 package v1beta1
 
 import (
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+var (
+	RootDomain    = ""
+	ClusterIssuer = ""
+	IngressClass  = ""
+	TLS_ACME      = ""
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+type RidecellIngressStatus struct {
+	Status        string                   `json:"status,omitempty"`
+	Message       string                   `json:"message,omitempty"`
+	IngressStatus extv1beta1.IngressStatus `json:"ingressstatus,omitempty"`
+}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -30,12 +42,13 @@ import (
 // RidecellIngress is the Schema for the ridecellingresses API
 // +kubebuilder:subresource:status
 // +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=true
 type RidecellIngress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   v1beta1.IngressSpec   `json:"spec,omitempty"`
-	Status v1beta1.IngressStatus `json:"status,omitempty"`
+	Spec   extv1beta1.IngressSpec `json:"spec,omitempty"`
+	Status RidecellIngressStatus  `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

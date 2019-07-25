@@ -14,10 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1beta1 contains API Schema definitions for the ingress v1beta1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/Ridecell/ridecell-operator/pkg/apis/ingress
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=ingress.ridecell.io
 package v1beta1
+
+import (
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+)
+
+func (pe *RidecellIngress) GetStatus() components.Status {
+	return pe.Status
+}
+
+func (pe *RidecellIngress) SetStatus(status components.Status) {
+	pe.Status = status.(RidecellIngressStatus)
+}
+
+func (pe *RidecellIngress) SetErrorStatus(errorMsg string) {
+	pe.Status.Status = "Error"
+	pe.Status.Message = errorMsg
+}

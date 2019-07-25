@@ -14,13 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package ridecellingress_test
 
 import (
+	"testing"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
+
+	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/ridecellingress"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-func init() {
-	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, ridecellingress.Add)
+var testHelpers *test_helpers.TestHelpers
+
+func TestController(t *testing.T) {
+	apis.AddToScheme(scheme.Scheme)
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "ridecellingress controller Suite")
 }
+
+var _ = ginkgo.BeforeSuite(func() {
+	testHelpers = test_helpers.Start(ridecellingress.Add, false)
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	testHelpers.Stop()
+})

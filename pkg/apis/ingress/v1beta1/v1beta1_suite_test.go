@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2019-2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,42 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta1_test
 
 import (
-	"log"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var cfg *rest.Config
-var c client.Client
+var testHelpers *test_helpers.TestHelpers
 
-func TestMain(m *testing.M) {
-	t := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "config", "crds")},
-	}
+func TestObject(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "RidecelIngress types")
 
-	err := SchemeBuilder.AddToScheme(scheme.Scheme)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if cfg, err = t.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	if c, err = client.New(cfg, client.Options{Scheme: scheme.Scheme}); err != nil {
-		log.Fatal(err)
-	}
-
-	code := m.Run()
-	t.Stop()
-	os.Exit(code)
 }
+
+var _ = BeforeSuite(func() {
+	testHelpers = test_helpers.Start(nil, false)
+})
+
+var _ = AfterSuite(func() {
+	testHelpers.Stop()
+})

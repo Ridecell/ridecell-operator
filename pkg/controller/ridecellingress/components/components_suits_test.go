@@ -14,10 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1beta1 contains API Schema definitions for the ingress v1beta1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/Ridecell/ridecell-operator/pkg/apis/ingress
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=ingress.ridecell.io
-package v1beta1
+package components_test
+
+import (
+	"github.com/Ridecell/ridecell-operator/pkg/apis"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
+	"testing"
+)
+
+var ctx *components.ComponentContext
+
+func TestComponents(t *testing.T) {
+	apis.AddToScheme(scheme.Scheme)
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "RidecellIngress Components Suite @unit")
+}
