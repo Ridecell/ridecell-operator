@@ -773,20 +773,24 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8ce639e43d430e23970c8b6c3a0f90e880654566f1a70be28066e354e51139b1"
+  digest = "1:e1879ae997f4d391287eafadc0f1140e004d2212fc788ddf10ffab7d48bfcbc4"
   name = "golang.org/x/tools"
   packages = [
     "go/ast/astutil",
     "go/gcexportdata",
-    "go/internal/cgo",
     "go/internal/gcimporter",
+    "go/internal/packagesdriver",
     "go/packages",
     "go/types/typeutil",
     "imports",
     "internal/fastwalk",
+    "internal/gopathwalk",
+    "internal/imports",
+    "internal/module",
+    "internal/semver",
   ]
   pruneopts = "T"
-  revision = "d3c6139142f2181b42a21db02903fafea6215674"
+  revision = "e377ae9d63860e3b8f606b92a1a7c7df5b14ca67"
 
 [[projects]]
   digest = "1:7c65747ea6380bd254afcf806cc06be1d1a9de73ee7ce6e896127f54e1ee10fe"
