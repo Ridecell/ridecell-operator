@@ -48,16 +48,16 @@ type LocalPostgresSpec struct {
 	// load balancers' source ranges are the same for master and replica services
 	AllowedSourceRanges []string `json:"allowedSourceRanges,omitempty"`
 
-	NumberOfInstances    int32                           `json:"numberOfInstances.omitempty"`
-	Users                map[string]postgresv1.UserFlags `json:"users,omitempty"`
-	MaintenanceWindows   []postgresv1.MaintenanceWindow  `json:"maintenanceWindows,omitempty"`
-	Clone                postgresv1.CloneDescription     `json:"clone,omitempty"`
-	Databases            map[string]string               `json:"databases,omitempty"`
-	Tolerations          []corev1.Toleration             `json:"tolerations,omitempty"`
-	Sidecars             []postgresv1.Sidecar            `json:"sidecars,omitempty"`
-	InitContainers       []corev1.Container              `json:"init_containers,omitempty"`
-	PodPriorityClassName string                          `json:"pod_priority_class_name,omitempty"`
-	ShmVolume            *bool                           `json:"enableShmVolume,omitempty"`
+	NumberOfInstances int32                           `json:"numberOfInstances.omitempty"`
+	Users             map[string]postgresv1.UserFlags `json:"users,omitempty"`
+	// MaintenanceWindows   []postgresv1.MaintenanceWindow  `json:"maintenanceWindows,omitempty"`
+	Clone                postgresv1.CloneDescription `json:"clone,omitempty"`
+	Databases            map[string]string           `json:"databases,omitempty"`
+	Tolerations          []corev1.Toleration         `json:"tolerations,omitempty"`
+	Sidecars             []postgresv1.Sidecar        `json:"sidecars,omitempty"`
+	InitContainers       []corev1.Container          `json:"init_containers,omitempty"`
+	PodPriorityClassName string                      `json:"pod_priority_class_name,omitempty"`
+	ShmVolume            *bool                       `json:"enableShmVolume,omitempty"`
 }
 
 type PostgresDbConfig struct {
