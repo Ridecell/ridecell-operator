@@ -5,13 +5,12 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/envy"
-	forcessl "github.com/gobuffalo/mw-forcessl"
-	paramlogger "github.com/gobuffalo/mw-paramlogger"
+	"github.com/markbates/goth/gothic"
 	"github.com/unrolled/secure"
 
 	csrf "github.com/gobuffalo/mw-csrf"
-
-	"github.com/markbates/goth/gothic"
+	forcessl "github.com/gobuffalo/mw-forcessl"
+	paramlogger "github.com/gobuffalo/mw-paramlogger"
 )
 
 // ENV is used to help switch settings based on where the
@@ -90,6 +89,8 @@ func App() *buffalo.App {
 
 		app.GET("/logout", Logout)
 		app.Middleware.Skip(Authorize, Logout)
+
+		app.POST("/pullrequest", CreatePR)
 
 		statusGroup := app.Group("/status")
 		statusGroup.GET("/", StatusBaseHandler)

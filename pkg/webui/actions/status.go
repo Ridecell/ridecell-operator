@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/Ridecell/ridecell-operator/pkg/webui/gcr"
 	"github.com/Ridecell/ridecell-operator/pkg/webui/kubernetes"
 	"github.com/gobuffalo/buffalo"
 
@@ -36,6 +37,13 @@ func StatusBaseHandler(c buffalo.Context) error {
 
 // StatusHandler is a handler to serve up specific in depth status pages
 func StatusHandler(c buffalo.Context) error {
+	// Get our docker image tags and write them into context
+	tags, err := gcr.GetLatestImageVersions()
+	if err != nil {
+		return err
+	}
+	c.Set("tags", tags)
+
 	instanceName := c.Param("instance")
 	instance, err := kubernetes.GetSummonObject(instanceName)
 	if err != nil {
