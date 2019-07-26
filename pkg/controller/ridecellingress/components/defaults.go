@@ -17,7 +17,7 @@ limitations under the License.
 package components
 
 import (
-	ingressv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/ingress/v1beta1"
+	//ingressv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/ingress/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -39,11 +39,5 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	//instance := ctx.Top.(*ingressv1beta1.RidecellIngress)
-	//Default root domain
-	ingressv1beta1.RootDomain = "ridecell.io"
-	ingressv1beta1.ClusterIssuer = "letsencrypt-prod"
-	ingressv1beta1.IngressClass = "traefik"
-	ingressv1beta1.TLS_ACME = "true"
-
 	return components.Result{}, nil
 }

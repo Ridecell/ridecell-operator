@@ -35,12 +35,6 @@ var _ = Describe("RidecellIngress Component", func() {
 	var instance ingressv1beta1.RidecellIngress
 
 	BeforeEach(func() {
-		// Need to set default values to below variables as NewDefaults() will not be called in this Context
-		ingressv1beta1.RootDomain = "ridecell.io"
-		ingressv1beta1.ClusterIssuer = "letsencrypt-prod"
-		ingressv1beta1.IngressClass = "traefik"
-		ingressv1beta1.TLS_ACME = "true"
-
 		instance = ingressv1beta1.RidecellIngress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ridecellingress-sample",
@@ -52,6 +46,7 @@ var _ = Describe("RidecellIngress Component", func() {
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "nginx",
 					"kubernetes.io/tls-acme":      "false",
+					"abc.io/ping":                 "pong",
 				},
 			},
 			Spec: extv1beta1.IngressSpec{
@@ -91,6 +86,8 @@ var _ = Describe("RidecellIngress Component", func() {
 		// Check for annotations and its values on target
 		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/ingress.class", "nginx"))
 		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/tls-acme", "false"))
+		// Check for custom annotation
+		Expect(target.Annotations).To(HaveKeyWithValue("abc.io/ping", "pong"))
 		// below annotation should be added automatically with default value as its not present in instance definition
 		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
 	})

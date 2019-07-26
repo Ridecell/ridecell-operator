@@ -51,6 +51,10 @@ func (comp *ridecellingressComponent) Reconcile(ctx *components.ComponentContext
 		return components.Result{}, errors.Wrapf(err, "instance of ridecellingress not found")
 	}
 
+	// If no annotations provided, create one
+	if instance.Annotations == nil {
+		instance.Annotations = map[string]string{}
+	}
 	// Fill in defaults for Annotations
 	if class, ok := instance.Annotations["kubernetes.io/ingress.class"]; !ok || len(class) == 0 {
 		instance.Annotations["kubernetes.io/ingress.class"] = ingressv1beta1.IngressClass
@@ -98,6 +102,8 @@ func (comp *ridecellingressComponent) Reconcile(ctx *components.ComponentContext
 		existing := existingObj.(*extv1beta1.Ingress)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
+		existing.Annotations = goal.Annotations
+		existing.Labels = goal.Labels
 		return nil
 	})
 	if err != nil {

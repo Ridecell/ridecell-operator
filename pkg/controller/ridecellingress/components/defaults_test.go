@@ -17,7 +17,6 @@ limitations under the License.
 package components_test
 
 import (
-	ingressv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/ingress/v1beta1"
 	ricomponents "github.com/Ridecell/ridecell-operator/pkg/controller/ridecellingress/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -26,12 +25,8 @@ import (
 
 var _ = Describe("RidecellIngress Defaults Component", func() {
 
-	It("fills out type variables with default values", func() {
+	It("calls the default component", func() {
 		comp := ricomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(ingressv1beta1.RootDomain).To(Equal("ridecell.io"))
-		Expect(ingressv1beta1.TLS_ACME).To(Equal("true"))
-		Expect(ingressv1beta1.ClusterIssuer).To(Equal("letsencrypt-prod"))
-		Expect(ingressv1beta1.IngressClass).To(Equal("traefik"))
 	})
 })

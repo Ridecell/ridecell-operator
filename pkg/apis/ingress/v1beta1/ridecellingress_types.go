@@ -21,11 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	RootDomain    = ""
-	ClusterIssuer = ""
-	IngressClass  = ""
-	TLS_ACME      = ""
+const (
+	RootDomain    = "ridecell.io"
+	ClusterIssuer = "letsencrypt-prod"
+	IngressClass  = "traefik"
+	TLS_ACME      = "true"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -42,7 +42,6 @@ type RidecellIngressStatus struct {
 // RidecellIngress is the Schema for the ridecellingresses API
 // +kubebuilder:subresource:status
 // +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=true
 type RidecellIngress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

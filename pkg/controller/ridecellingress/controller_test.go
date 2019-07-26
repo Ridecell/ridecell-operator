@@ -38,10 +38,12 @@ var _ = Describe("ridecellingress controller", func() {
 				Labels: map[string]string{
 					"ridecell.io/environment": "sandbox",
 					"ridecell.io/region":      "us",
+					"ping":										 "pong",
 				},
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "nginx",
 					"kubernetes.io/tls-acme":      "false",
+					"abc.io/ping":                 "pong",
 				},
 			},
 			Spec: extv1beta1.IngressSpec{
@@ -74,7 +76,7 @@ var _ = Describe("ridecellingress controller", func() {
 		helpers.TeardownTest()
 	})
 
-	It("Creating RidecellIngress kind", func() {
+	It("Creates RidecellIngress kind", func() {
 		c := helpers.TestClient
 		c.Create(instance)
 		// Test the Ingress object created by RidecellIngress
@@ -88,18 +90,122 @@ var _ = Describe("ridecellingress controller", func() {
 		// Check for annotations and its values on target
 		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/ingress.class", "nginx"))
 		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/tls-acme", "false"))
+		// Check for custom annotation
+		Expect(target.Annotations).To(HaveKeyWithValue("abc.io/ping", "pong"))
 		// below annotation should be added automatically with default value as its not present in instance definition
 		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
 	})
 
-	It("Creating RidecellIngress kind to check its status and messages", func() {
+	It("Creates RidecellIngress kind without any annotations", func() {
 		c := helpers.TestClient
-		//Modify instance defination to conduct negative tests
+		localinstance := instance
+		localinstance.Name = "ri-without-annotations"
+		// Remove annotations by assigning nil
+		localinstance.Annotations = nil
+		c.Create(localinstance)
+		// Test the Ingress object created by RidecellIngress
+		target := &extv1beta1.Ingress{}
+		c.EventuallyGet(helpers.Name("ri-without-annotations"), target)
+		// Check for default annotations and its values on target
+		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/ingress.class", "traefik"))
+		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/tls-acme", "true"))
+		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
+	})
+
+	It("Creates RidecellIngress kind to check its status and messages", func() {
+		c := helpers.TestClient
+		localinstance := instance
+		localinstance.Name = "ri-without-labels"
 		//Removed labels
-		instance.Labels = map[string]string{}
-		c.Create(instance)
+		localinstance.Labels = map[string]string{}
+		c.Create(localinstance)
+		target := &ingressv1beta1.RidecellIngress{}
+		//The status should be Error as required labels were not present
+		c.EventuallyGet(helpers.Name("ri-without-labels"), target, c.EventuallyStatus("Error"))
+		//Adding required labels, the status should be Success
+		target.Labels = map[string]string{
+											"ridecell.io/environment": "sandbox",
+											"ridecell.io/region":      "us",
+										}
+		c.Update(target)
+		c.EventuallyGet(helpers.Name("ri-without-labels"), target, c.EventuallyStatus("Success"))
+	})
+
+	It("Creates RidecellIngress kind with invalid hostname", func() {
+		c := helpers.TestClient
+		localinstance := instance
+		localinstance.Name = "ri-invalid-host"
+		//Modify instance hostname to invalid value
+		localinstance.Spec.Rules[0].Host = "hostname!@#"
+		c.Create(localinstance)
 		target := &ingressv1beta1.RidecellIngress{}
 		//The status should be Error
-		c.EventuallyGet(helpers.Name("ridecellingress-sample"), target, c.EventuallyStatus("Error"))
+		c.EventuallyGet(helpers.Name("ri-invalid-host"), target, c.EventuallyStatus("Error"))
+		//Modifying object to valid value, the status should be Success
+		target.Spec.Rules[0].Host = "hostname"
+		c.Update(target)
+		c.EventuallyGet(helpers.Name("ri-invalid-host"), target, c.EventuallyStatus("Success"))
+
 	})
+
+	It("Creates RidecellIngress kind with invalid hostname in TLS field", func() {
+		c := helpers.TestClient
+		localinstance := instance
+		localinstance.Name = "ri-invalid-tls-host"
+		//Modify instance TLS hostname to invalid value
+		localinstance.Spec.TLS[0].Hosts[0] = "hostname!@#"
+		c.Create(localinstance)
+		target := &ingressv1beta1.RidecellIngress{}
+		//The status should be Error
+		c.EventuallyGet(helpers.Name("ri-invalid-tls-host"), target, c.EventuallyStatus("Error"))
+		//Modifying object to valid value, the status should be Success
+		target.Spec.TLS[0].Hosts[0] = "hostname"
+		c.Update(target)
+		c.EventuallyGet(helpers.Name("ri-invalid-tls-host"), target, c.EventuallyStatus("Success"))
+	})
+
+	It("Adds new label and annotation to instance and verifies", func() {
+		c := helpers.TestClient
+		localinstance := instance
+		localinstance.Name = "ri-add"
+		c.Create(localinstance)
+		target := &ingressv1beta1.RidecellIngress{}
+		ingresstarget := &extv1beta1.Ingress{}
+		c.EventuallyGet(helpers.Name("ri-add"), target, c.EventuallyStatus("Success"))
+
+		//Adding new label and annotation to RidecellIngress Object
+		target.Annotations["newAnnotation"] = "Yuhoo"
+		target.Labels["newLabel"] = "Huyaa"
+
+		c.Update(target)
+		//Wait for changes to commplete
+		c.EventuallyGet(helpers.Name("ri-add"), target, c.EventuallyStatus("Success"))
+		//Check on Ingress object for new annotation and label
+		c.EventuallyGet(helpers.Name("ri-add"), ingresstarget)
+		Expect(ingresstarget.Annotations).To(HaveKeyWithValue("newAnnotation", "Yuhoo"))
+		Expect(ingresstarget.Labels).To(HaveKeyWithValue("newLabel", "Huyaa"))
+	})
+
+	It("Deletes a label and annotation to instance and verifies", func() {
+		c := helpers.TestClient
+		localinstance := instance
+		localinstance.Name = "ri-delete"
+		c.Create(localinstance)
+		target := &ingressv1beta1.RidecellIngress{}
+		ingresstarget := &extv1beta1.Ingress{}
+		c.EventuallyGet(helpers.Name("ri-delete"), target, c.EventuallyStatus("Success"))
+
+		//Remove label and annotation to RidecellIngress Object
+		delete(target.Annotations,"abc.io/ping")
+		delete(target.Labels,"ping")
+
+		c.Update(target)
+		//Wait for changes to commplete
+		c.EventuallyGet(helpers.Name("ri-delete"), target, c.EventuallyStatus("Success"))
+		//Check on Ingress object for deleted annotation and label
+		c.EventuallyGet(helpers.Name("ri-delete"), ingresstarget)
+		Expect(ingresstarget.Annotations).ToNot(HaveKey("abc.io/ping"))
+		Expect(ingresstarget.Labels).ToNot(HaveKey("ping"))
+	})
+
 })
