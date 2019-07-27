@@ -1,8 +1,6 @@
 package actions
 
 import (
-	"fmt"
-
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/envy"
 	"github.com/markbates/goth/gothic"
@@ -42,7 +40,7 @@ func App() *buffalo.App {
 			Env:         ENV,
 			SessionName: "_webui_session",
 			Addr:        "0.0.0.0:3000",
-			Host:        fmt.Sprintf("%s:3000", host),
+			Host:        host,
 		})
 
 		// Automatically redirect to SSL
