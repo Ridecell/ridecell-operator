@@ -64,6 +64,11 @@ func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (c
 		return components.Result{}, nil
 	}
 
+	// Will stop this component from progressing while in "Migrating" state.
+	if instance.Status.Status != summonv1beta1.StatusPostMigrateWait {
+		return components.Result{}, nil
+	}
+
 	var waitUntil time.Time
 	waitUntilString := instance.Status.Wait.Until
 
