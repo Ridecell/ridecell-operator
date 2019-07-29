@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("ridecellingress-controller", mgr, &ingressv1beta1.RidecellIngress{}, Templates, []components.Component{
-		ingresscomponents.NewDefaults(),
 		ingresscomponents.NewIngress(),
 	})
 	return err

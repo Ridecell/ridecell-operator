@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ var _ = Describe("ridecellingress controller", func() {
 				Labels: map[string]string{
 					"ridecell.io/environment": "sandbox",
 					"ridecell.io/region":      "us",
-					"ping":										 "pong",
+					"ping":                    "pong",
 				},
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "nginx",
@@ -96,41 +96,6 @@ var _ = Describe("ridecellingress controller", func() {
 		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
 	})
 
-	It("Creates RidecellIngress kind without any annotations", func() {
-		c := helpers.TestClient
-		localinstance := instance
-		localinstance.Name = "ri-without-annotations"
-		// Remove annotations by assigning nil
-		localinstance.Annotations = nil
-		c.Create(localinstance)
-		// Test the Ingress object created by RidecellIngress
-		target := &extv1beta1.Ingress{}
-		c.EventuallyGet(helpers.Name("ri-without-annotations"), target)
-		// Check for default annotations and its values on target
-		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/ingress.class", "traefik"))
-		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/tls-acme", "true"))
-		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
-	})
-
-	It("Creates RidecellIngress kind to check its status and messages", func() {
-		c := helpers.TestClient
-		localinstance := instance
-		localinstance.Name = "ri-without-labels"
-		//Removed labels
-		localinstance.Labels = map[string]string{}
-		c.Create(localinstance)
-		target := &ingressv1beta1.RidecellIngress{}
-		//The status should be Error as required labels were not present
-		c.EventuallyGet(helpers.Name("ri-without-labels"), target, c.EventuallyStatus("Error"))
-		//Adding required labels, the status should be Success
-		target.Labels = map[string]string{
-											"ridecell.io/environment": "sandbox",
-											"ridecell.io/region":      "us",
-										}
-		c.Update(target)
-		c.EventuallyGet(helpers.Name("ri-without-labels"), target, c.EventuallyStatus("Success"))
-	})
-
 	It("Creates RidecellIngress kind with invalid hostname", func() {
 		c := helpers.TestClient
 		localinstance := instance
@@ -146,22 +111,6 @@ var _ = Describe("ridecellingress controller", func() {
 		c.Update(target)
 		c.EventuallyGet(helpers.Name("ri-invalid-host"), target, c.EventuallyStatus("Success"))
 
-	})
-
-	It("Creates RidecellIngress kind with invalid hostname in TLS field", func() {
-		c := helpers.TestClient
-		localinstance := instance
-		localinstance.Name = "ri-invalid-tls-host"
-		//Modify instance TLS hostname to invalid value
-		localinstance.Spec.TLS[0].Hosts[0] = "hostname!@#"
-		c.Create(localinstance)
-		target := &ingressv1beta1.RidecellIngress{}
-		//The status should be Error
-		c.EventuallyGet(helpers.Name("ri-invalid-tls-host"), target, c.EventuallyStatus("Error"))
-		//Modifying object to valid value, the status should be Success
-		target.Spec.TLS[0].Hosts[0] = "hostname"
-		c.Update(target)
-		c.EventuallyGet(helpers.Name("ri-invalid-tls-host"), target, c.EventuallyStatus("Success"))
 	})
 
 	It("Adds new label and annotation to instance and verifies", func() {
@@ -196,8 +145,8 @@ var _ = Describe("ridecellingress controller", func() {
 		c.EventuallyGet(helpers.Name("ri-delete"), target, c.EventuallyStatus("Success"))
 
 		//Remove label and annotation to RidecellIngress Object
-		delete(target.Annotations,"abc.io/ping")
-		delete(target.Labels,"ping")
+		delete(target.Annotations, "abc.io/ping")
+		delete(target.Labels, "ping")
 
 		c.Update(target)
 		//Wait for changes to commplete
@@ -207,5 +156,4 @@ var _ = Describe("ridecellingress controller", func() {
 		Expect(ingresstarget.Annotations).ToNot(HaveKey("abc.io/ping"))
 		Expect(ingresstarget.Labels).ToNot(HaveKey("ping"))
 	})
-
 })

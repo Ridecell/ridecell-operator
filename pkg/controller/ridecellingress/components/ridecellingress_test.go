@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -69,10 +69,10 @@ var _ = Describe("RidecellIngress Component", func() {
 				},
 			},
 		}
-		ctx = components.NewTestContext(&instance, ridecellingress.Templates)
 	})
 
 	It("creates an RidecellIngress object using above template", func() {
+		ctx = components.NewTestContext(&instance, ridecellingress.Templates)
 		comp := ricomponents.NewIngress()
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &extv1beta1.Ingress{}
@@ -92,4 +92,32 @@ var _ = Describe("RidecellIngress Component", func() {
 		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
 	})
 
+	It("creates an RidecellIngress object without annotations", func() {
+		//Create a local copy of instance definition to avoid conflicts with other test cases
+		localinstance := instance
+		localinstance.Name = "ri-without-annotations"
+		localinstance.Annotations = nil
+		ctx = components.NewTestContext(&localinstance, ridecellingress.Templates)
+		comp := ricomponents.NewIngress()
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &extv1beta1.Ingress{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: localinstance.Name, Namespace: localinstance.Namespace}, target)
+		Expect(err).ToNot(HaveOccurred())
+		// Check for annotations and its values on target
+		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/ingress.class", "traefik"))
+		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/tls-acme", "true"))
+		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
+	})
+
+	It("creates an RidecellIngress object with no required labels", func() {
+		//Create a local copy of instance definition to avoid conflicts with other test cases
+		localinstance := instance
+		localinstance.Name = "ri-without-labels"
+		localinstance.Labels = nil
+		ctx = components.NewTestContext(&localinstance, ridecellingress.Templates)
+		comp := ricomponents.NewIngress()
+		//Expected to throw Domain error as required labels are not present
+		_, err := comp.Reconcile(ctx)
+		Expect(err.Error()).To(ContainSubstring("Domain error"))
+	})
 })
