@@ -63,7 +63,7 @@ func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (c
 		waitUntil = parsedTime
 	}
 
-	if !metav1.Now().After(waitUntil) && instance.Spec.Waits.PostMigrate.Duration != 0 {
+	if !metav1.Now().After(waitUntil) {
 		return components.Result{
 			StatusModifier: func(obj runtime.Object) error {
 				instance := obj.(*summonv1beta1.SummonPlatform)
