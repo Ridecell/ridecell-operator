@@ -23,6 +23,8 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -40,8 +42,15 @@ func (comp *migrateWaitComponent) WatchTypes() []runtime.Object {
 
 func (_ *migrateWaitComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	// We aren't waiting, no need to run
-	if instance.Status.Status != summonv1beta1.StatusPostMigrateWait {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
+		// Database not ready yet.
+		return false
+	}
+	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
+		// Pull secret not ready yet.
+		return false
+	}
+	if instance.Status.BackupVersion != instance.Spec.Version {
 		return false
 	}
 	return true
@@ -49,6 +58,11 @@ func (_ *migrateWaitComponent) IsReconcilable(ctx *components.ComponentContext) 
 
 func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// No migration was needed, skipping wait straight to deploying.
+	if instance.Status.Status == summonv1beta1.StatusDeploying && instance.Status.Wait.Until == "" {
+		return components.Result{}, nil
+	}
 
 	var waitUntil time.Time
 	waitUntilString := instance.Status.Wait.Until
