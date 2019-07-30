@@ -59,13 +59,9 @@ func (_ *migrateWaitComponent) IsReconcilable(ctx *components.ComponentContext) 
 func (comp *migrateWaitComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	// No migration was needed, skipping wait straight to deploying.
-	if instance.Status.Status == summonv1beta1.StatusDeploying && instance.Status.Wait.Until == "" {
-		return components.Result{}, nil
-	}
-
-	// Will stop this component from progressing while in "Migrating" state.
-	if instance.Status.Status != summonv1beta1.StatusPostMigrateWait {
+	// If status is deploying, continue
+	// If statue migrating do nothing
+	if instance.Status.Status != summonv1beta1.StatusPostMigrateWait && instance.Status.Wait.Until == "" {
 		return components.Result{}, nil
 	}
 
