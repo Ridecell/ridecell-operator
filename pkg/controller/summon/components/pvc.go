@@ -41,21 +41,6 @@ func (comp *pvcComponent) WatchTypes() []runtime.Object {
 }
 
 func (comp *pvcComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	// Check on the pull secret. Not technically needed in some cases, but just wait.
-	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
-		return false
-	}
-	// We do want the database, so check all the database statuses.
-	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
-		return false
-	}
-	if instance.Status.Status == summonv1beta1.StatusReady {
-		return true
-	}
-	if instance.Status.Status != summonv1beta1.StatusDeploying {
-		return false
-	}
 	return true
 }
 
