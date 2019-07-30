@@ -30,13 +30,27 @@ spec:
         ports:
         - containerPort: 6379
         args:
-        - "--save"
-        - ""
         - "--appendonly"
         - "yes"
         volumeMounts:
         - name: redis-persist
           mountPath: /data
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "redis-cli -h $(hostname) ping"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "redis-cli -h $(hostname) ping"
+          initialDelaySeconds: 10
+          periodSeconds: 5
       volumes:
       - name: redis-persist
         persistentVolumeClaim:
