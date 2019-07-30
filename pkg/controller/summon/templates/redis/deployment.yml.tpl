@@ -35,6 +35,13 @@ spec:
         volumeMounts:
         - name: redis-persist
           mountPath: /data
+        resources:
+          requests:
+            memory: 100M
+            cpu: 100m
+          limits:
+            memory: 1G
+            cpu: 1000m
         readinessProbe:
           exec:
             command:
