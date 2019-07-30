@@ -29,7 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("SummonPlatform statefulset Component", func() {
+var _ = Describe("SummonPlatform persistentvolumeclaim Component", func() {
 	comp := summoncomponents.NewPVC("redis/volumeclaim.yml.tpl")
 
 	BeforeEach(func() {
