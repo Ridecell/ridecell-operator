@@ -33,4 +33,11 @@ spec:
         - "--save"
         - ""
         - "--appendonly"
-        - "no"
+        - "yes"
+        volumeMounts:
+        - name: redis-persist
+          mountPath: /data
+      volumes:
+      - name: redis-persist
+        persistentVolumeClaim:
+          claimName: {{ .Instance.Name }}-redis
