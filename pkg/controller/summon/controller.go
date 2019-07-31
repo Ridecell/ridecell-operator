@@ -79,7 +79,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl"),
 
 		// Celerybeat components.
-		summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true),
+		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl"),
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
 		// Channelworker components.
