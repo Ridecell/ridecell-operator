@@ -215,7 +215,7 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 		existing.Spec.AllowedSourceRanges = local.AllowedSourceRanges
 		existing.Spec.NumberOfInstances = local.NumberOfInstances
 		existing.Spec.Users = local.Users
-		existing.Spec.MaintenanceWindows = local.MaintenanceWindows
+		//existing.Spec.MaintenanceWindows = local.MaintenanceWindows
 		existing.Spec.Clone = local.Clone
 		existing.Spec.Databases = local.Databases
 		existing.Spec.Tolerations = local.Tolerations

@@ -116,11 +116,11 @@ var _ = Describe("SummonPlatform types", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fetched.Spec.Config).To(HaveKey("foo"))
 			Expect(fetched.Spec.Config["foo"].Bool).To(BeNil())
-			Expect(fetched.Spec.Config["foo"].Float).To(BeNil())
+			Expect(fetched.Spec.Config["foo"].Int).To(BeNil())
 			Expect(fetched.Spec.Config["foo"].String).To(PointTo(Equal("bar")))
 		})
 
-		It("can parse unstructured float data", func() {
+		It("can parse unstructured int data", func() {
 			c := helpers.Client
 			obj := &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -148,7 +148,7 @@ var _ = Describe("SummonPlatform types", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fetched.Spec.Config).To(HaveKey("foo"))
 			Expect(fetched.Spec.Config["foo"].Bool).To(BeNil())
-			Expect(fetched.Spec.Config["foo"].Float).To(PointTo(BeEquivalentTo(1234)))
+			Expect(fetched.Spec.Config["foo"].Int).To(PointTo(BeEquivalentTo(1234)))
 			Expect(fetched.Spec.Config["foo"].String).To(BeNil())
 		})
 
@@ -180,7 +180,7 @@ var _ = Describe("SummonPlatform types", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fetched.Spec.Config).To(HaveKey("foo"))
 			Expect(fetched.Spec.Config["foo"].Bool).To(PointTo(Equal(false)))
-			Expect(fetched.Spec.Config["foo"].Float).To(BeNil())
+			Expect(fetched.Spec.Config["foo"].Int).To(BeNil())
 			Expect(fetched.Spec.Config["foo"].String).To(BeNil())
 		})
 
@@ -219,19 +219,19 @@ var _ = Describe("SummonPlatform types", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fetched.Spec.Config).To(HaveKey("AMAZON_S3_USED"))
 			Expect(fetched.Spec.Config["AMAZON_S3_USED"].Bool).To(PointTo(Equal(true)))
-			Expect(fetched.Spec.Config["AMAZON_S3_USED"].Float).To(BeNil())
+			Expect(fetched.Spec.Config["AMAZON_S3_USED"].Int).To(BeNil())
 			Expect(fetched.Spec.Config["AMAZON_S3_USED"].String).To(BeNil())
 			Expect(fetched.Spec.Config).To(HaveKey("AWS_REGION"))
 			Expect(fetched.Spec.Config["AWS_REGION"].Bool).To(BeNil())
-			Expect(fetched.Spec.Config["AWS_REGION"].Float).To(BeNil())
+			Expect(fetched.Spec.Config["AWS_REGION"].Int).To(BeNil())
 			Expect(fetched.Spec.Config["AWS_REGION"].String).To(PointTo(Equal("eu-central-1")))
 			Expect(fetched.Spec.Config).To(HaveKey("GOOGLE_ANALYTICS_ID"))
 			Expect(fetched.Spec.Config["GOOGLE_ANALYTICS_ID"].Bool).To(BeNil())
-			Expect(fetched.Spec.Config["GOOGLE_ANALYTICS_ID"].Float).To(BeNil())
+			Expect(fetched.Spec.Config["GOOGLE_ANALYTICS_ID"].Int).To(BeNil())
 			Expect(fetched.Spec.Config["GOOGLE_ANALYTICS_ID"].String).To(PointTo(Equal("UA-2345")))
 			Expect(fetched.Spec.Config).To(HaveKey("SESSION_COOKIE_AGE"))
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].Bool).To(BeNil())
-			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].Float).To(PointTo(BeEquivalentTo(1)))
+			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].Int).To(PointTo(BeEquivalentTo(1)))
 			Expect(fetched.Spec.Config["SESSION_COOKIE_AGE"].String).To(BeNil())
 			Expect(fetched.Spec.Backup.TTL.Duration).To(Equal(time.Minute * 5))
 			Expect(*fetched.Spec.Backup.WaitUntilReady).To(BeTrue())

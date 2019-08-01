@@ -45,7 +45,8 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 	}
 	floatVal, ok := tmp.(float64)
 	if ok {
-		v.Float = &floatVal
+		intVal := int32(floatVal)
+		v.Int = &intVal
 		return nil
 	}
 	stringVal, ok := tmp.(string)
@@ -62,10 +63,11 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 			v.Bool = &boolVal
 			return nil
 		}
-		val, ok = mapVal["float"]
+		val, ok = mapVal["int"]
 		if ok {
 			floatVal = val.(float64)
-			v.Float = &floatVal
+			intVal := int32(floatVal)
+			v.Int = &intVal
 			return nil
 		}
 		val, ok = mapVal["string"]
@@ -83,8 +85,8 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 func (v *ConfigValue) ToNilInterface() interface{} {
 	if v.Bool != nil {
 		return *v.Bool
-	} else if v.Float != nil {
-		return *v.Float
+	} else if v.Int != nil {
+		return float64(*v.Int)
 	} else if v.String != nil {
 		return *v.String
 	} else {

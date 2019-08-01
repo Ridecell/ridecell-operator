@@ -62,17 +62,17 @@ var _ = Describe("RDSInstance types", func() {
 		Expect(fetched.Spec).To(Equal(created.Spec))
 	})
 
-	It("has no maintenancewindow set", func() {
-		c := helpers.Client
-
-		created := &dbv1beta1.RDSInstance{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rds",
-				Namespace: helpers.Namespace,
-			},
-		}
-
-		err := c.Create(context.TODO(), created)
-		Expect(err).To(HaveOccurred())
-	})
+	//It("has no maintenancewindow set", func() {
+	//	c := helpers.Client
+	//
+	//	created := &dbv1beta1.RDSInstance{
+	//		ObjectMeta: metav1.ObjectMeta{
+	//			Name:      "rds",
+	//			Namespace: helpers.Namespace,
+	//		},
+	//	}
+	//
+	//	err := c.Create(context.TODO(), created)
+	//	Expect(err).To(HaveOccurred())
+	//})
 })

@@ -26,9 +26,9 @@ import (
 // Gross workaround for limitations the Kubernetes code generator and interface{}.
 // If you want to see the weird inner workings of the hack, look in marshall.go.
 type ConfigValue struct {
-	Bool   *bool    `json:"bool,omitempty"`
-	Float  *float64 `json:"float,omitempty"`
-	String *string  `json:"string,omitempty"`
+	Bool   *bool   `json:"bool,omitempty"`
+	Int    *int32  `json:"int,omitempty"`
+	String *string `json:"string,omitempty"`
 }
 
 // NotificationsSpec defines notificiations settings for this instance.

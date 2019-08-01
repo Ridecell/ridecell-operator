@@ -188,9 +188,9 @@ func defConfig(key string, value interface{}) {
 		configDefaults[key] = summonv1beta1.ConfigValue{Bool: &boolVal}
 		return
 	}
-	floatVal, ok := value.(float64)
+	intVal, ok := value.(int32)
 	if ok {
-		configDefaults[key] = summonv1beta1.ConfigValue{Float: &floatVal}
+		configDefaults[key] = summonv1beta1.ConfigValue{Int: &intVal}
 		return
 	}
 	stringVal, ok := value.(string)
@@ -223,7 +223,7 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 -----END PUBLIC KEY-----`)
 	defConfig("CARSHARING_V1_API_DISABLED", false)
 	defConfig("CLOUDFRONT_DISTRIBUTION", "")
-	defConfig("CONN_MAX_AGE", float64(60))
+	defConfig("CONN_MAX_AGE", int32(60))
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
 	defConfig("DEBUG", false)
@@ -253,8 +253,8 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("SAML_PUBLIC_KEY_FILENAME", "sp.crt")
 	defConfig("SAML_SERVICE_NAME", "RideCell SAML Test")
 	defConfig("SAML_USE_LOCAL_METADATA", "")
-	defConfig("SAML_VALID_FOR_HOURS", float64(24))
-	defConfig("SESSION_COOKIE_AGE", float64(1209600))
+	defConfig("SAML_VALID_FOR_HOURS", int32(24))
+	defConfig("SESSION_COOKIE_AGE", int32(1209600))
 	defConfig("TIME_ZONE", "America/Los_Angeles")
 	defConfig("USE_FACEBOOK_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("USE_GOOGLE_AUTHENTICATION_FOR_RIDERS", false)

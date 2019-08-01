@@ -1159,8 +1159,8 @@
   source = "https://github.com/coderanger/controller-runtime.git"
 
 [[projects]]
-  branch = "master"
-  digest = "1:94bfddf8f0e6c7f9e6a5f21d5fd462cdbdcd5c62b067af2c68e6c8389543a9cb"
+  branch = "embedded-error"
+  digest = "1:460ba72cfc533a9f336de64365fbe1887061d338e42a2f066d5ee8a8d94a4d3a"
   name = "sigs.k8s.io/controller-tools"
   packages = [
     "cmd/controller-gen",
@@ -1176,8 +1176,8 @@
     "pkg/webhook",
   ]
   pruneopts = "T"
-  revision = "e53fd1985f4add7fd4e2d02a7e2f73e82e5eca27"
-  source = "https://github.com/kubernetes-sigs/controller-tools.git"
+  revision = "7e14e77d06eab03bd24f518142f422cace857708"
+  source = "https://github.com/coderanger/controller-tools.git"
 
 [[projects]]
   digest = "1:290b4da306982122bcdff12dbababbb95c6e4a94a2995db88baf235ef2f6e93e"
