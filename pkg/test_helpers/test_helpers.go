@@ -98,7 +98,10 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 		helpers.Cfg = cfg
 
 		// Create a manager.
-		mgr, err := manager.New(helpers.Cfg, manager.Options{})
+		mgr, err := manager.New(helpers.Cfg, manager.Options{
+			// Disable prometheus metrics to prevent bind errors during testing.
+			MetricsBindAddress: "0",
+		})
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		helpers.Manager = mgr
 
