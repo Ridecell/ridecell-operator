@@ -31,6 +31,7 @@ func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("postgresdatabase-controller", mgr, &dbv1beta1.PostgresDatabase{}, Templates, []components.Component{
 		pdcomponents.NewDefaults(),
 		spcomponents.NewPostgres("Exclusive"),
+		pdcomponents.NewSecret(),
 		pdcomponents.NewUser(),
 		pdcomponents.NewDatabase(),
 		pdcomponents.NewExtensions(),
