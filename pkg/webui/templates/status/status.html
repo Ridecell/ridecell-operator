@@ -8,7 +8,7 @@
 </header>
 
 <body>
-  <h3><%= instance.Name %></h3>
+  <h3><a href="<%= sumoEndpoint %>cluster=<%= instance.Name %>" target="_blank"><%= instance.Name %></a></h3>
   <h5>Version: <%= instance.Spec.Version %> </h5>
   <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#changeVersion">
     Change Summon Version
@@ -86,7 +86,7 @@
             <%= for (d) in deployments { %>
               <tr>
                 <td>
-                  <%= d.Name %>
+                  <a href="<%= sumoEndpoint %>_sourceCategory=kubernetes/*/<%= instance.Namespace %>/<%= d.Name %>" target="_blank"><%= d.Name %></a>
                 </td>
                 <td>
                   <%= d.Replicas %>
@@ -134,7 +134,7 @@
             <%= for (p) in pods { %>
               <tr>
                 <td>
-                  <%= p.Name %>
+                  <a href="<%= sumoEndpoint %>_sourceName=*<%= p.Name %>*" target="_blank"><%= p.Name %></a>
                 </td>
                 <td>
                   <%= p.Readiness %>
