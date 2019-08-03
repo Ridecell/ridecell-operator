@@ -100,10 +100,16 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 	extra["appSecretsHash"] = string(appSecretsHash)
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*appsv1.Deployment)
-		existing := existingObj.(*appsv1.Deployment)
-		// Copy the Spec over.
-		existing.Spec = goal.Spec
+		goalDeployment, ok := goalObj.(*appsv1.Deployment)
+		if ok {
+			existing := existingObj.(*appsv1.Deployment)
+			existing.Spec = goalDeployment.Spec
+			return nil
+		}
+
+		goalStatefulSet := goalObj.(*appsv1.StatefulSet)
+		existing := goalObj.(*appsv1.StatefulSet)
+		existing.Spec = goalStatefulSet.Spec
 		return nil
 	})
 	if err != nil {
