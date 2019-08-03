@@ -8,13 +8,13 @@
 </header>
 
 <body>
-  <h3><a href="<%= sumoEndpoint %>cluster=<%= instance.Name %>" target="_blank"><%= instance.Name %></a></h3>
+  <h3><%= instance.Name %></h3>
   <h5>Version: <%= instance.Spec.Version %> </h5>
   <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#changeVersion">
     Change Summon Version
   </button>
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-11">
       <div class="table-responsive">
         <table class="table table-striped">
           <thead>
@@ -52,15 +52,33 @@
         </table>
       </div>
     </div>
+    <div class="col-sm-1">
+      <table class="table table-borderless table-sm">
+        <thead>
+          <th>
+            &nbsp;
+          </th>
+        </thead>
+        <tbody>
+            <tr>
+              <td>
+                <div class="btn-toolbar" role="toolbar">
+                  <a href="<%= sumoEndpoint %>cluster=<%= instance.Name %>" target="_blank" class="btn btn-primary btn-sm">logs</a>
+                </div>
+              </td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
+  <div class="subtitle">
+    <div class="container">
+    <h3>Deployments</h3>
+    </div>
+  </div>
   <div class="row">
-    <div class="col-md-12">
-      <div class="subtitle">
-        <div class="container">
-        <h3>Deployments</h3>
-        </div>
-      </div>
+    <div class="col-md-11">
       <div class="table-responsive">
         <table class="table table-striped">
           <thead>
@@ -86,7 +104,7 @@
             <%= for (d) in deployments { %>
               <tr>
                 <td>
-                  <a href="<%= sumoEndpoint %>_sourceCategory=kubernetes/*/<%= instance.Namespace %>/<%= d.Name %>" target="_blank"><%= d.Name %></a>
+                  <%= d.Name %>
                 </td>
                 <td>
                   <%= d.Replicas %>
@@ -106,15 +124,35 @@
         </table>
       </div>
     </div>
+    <div class="col-sm-1">
+      <table class="table table-borderless table-sm">
+        <thead>
+          <th>
+            &nbsp;
+          </th>
+        </thead>
+        <tbody>
+          <%= for (d) in deployments { %>
+            <tr>
+              <td>
+                <div class="btn-toolbar" role="toolbar">
+                  <a href="<%= sumoEndpoint %>_sourceCategory=kubernetes/*/<%= instance.Namespace %>/<%= d.Name %>" target="_blank" class="btn btn-primary btn-sm">logs</a>
+                </div>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
   </div>
 
+  <div class="subtitle">
+    <div class="container">
+    <h3>Pods</h3>
+    </div>
+  </div>
   <div class="row">
-    <div class="col-md-12">
-      <div class="subtitle">
-        <div class="container">
-        <h3>Pods</h3>
-        </div>
-      </div>
+    <div class="col-md-11">
       <div class="table-responsive">
         <table class="table table-striped">
           <thead>
@@ -134,7 +172,7 @@
             <%= for (p) in pods { %>
               <tr>
                 <td>
-                  <a href="<%= sumoEndpoint %>_sourceName=*<%= p.Name %>*" target="_blank"><%= p.Name %></a>
+                  <%= p.Name %>
                 </td>
                 <td>
                   <%= p.Readiness %>
@@ -147,6 +185,26 @@
           </tbody>
         </table>
       </div>
+    </div>
+    <div class="col-sm-1">
+      <table class="table table-borderless table-sm">
+        <thead>
+          <th>
+            &nbsp;
+          </th>
+        </thead>
+        <tbody>
+          <%= for (p) in pods { %>
+            <tr>
+              <td>
+                <div class="btn-toolbar" role="toolbar">
+                  <a href="<%= sumoEndpoint %>_sourceName=*<%= p.Name %>*" target="_blank" class="btn btn-primary btn-sm">logs</a>
+                </div>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
     </div>
   </div>
 </body>
@@ -173,3 +231,13 @@
     </div>
   </div>
 </div>
+
+<style>
+  .table-sm td {
+    padding: 0.6rem;
+  }
+
+  .table-sm th {
+    padding: 0.9rem;
+  }
+</style>
