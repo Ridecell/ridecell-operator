@@ -42,6 +42,7 @@ var _ = Describe("DbConfig Status Component", func() {
 	It("it sets ready when the database is shared and ready", func() {
 		instance.Spec.Postgres.Mode = "Shared"
 		instance.Status.Postgres.Status = "Ready"
+		instance.Status.Postgres.SharedUsers.Periscope = "Ready"
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
