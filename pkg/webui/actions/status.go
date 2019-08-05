@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/webui/gcr"
 	"github.com/Ridecell/ridecell-operator/pkg/webui/kubernetes"
@@ -12,6 +13,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
+
+const sumoEndpointBase = "https://service.us2.sumologic.com/ui/index.html#section/search/"
 
 // StatusBaseHandler is a default handler to serve up statuses.
 func StatusBaseHandler(c buffalo.Context) error {
@@ -37,6 +40,13 @@ func StatusBaseHandler(c buffalo.Context) error {
 
 // StatusHandler is a handler to serve up specific in depth status pages
 func StatusHandler(c buffalo.Context) error {
+
+	// Build our base sumologic endpoint for search queries
+	currentTimeMillis := time.Now().UnixNano() / 1000000
+	pastTimeMillis := time.Now().Add(-time.Minute*15).UnixNano() / 1000000
+	sumoEndpoint := fmt.Sprintf("%s@%v,%v@", sumoEndpointBase, pastTimeMillis, currentTimeMillis)
+	c.Set("sumoEndpoint", sumoEndpoint)
+
 	// Get our docker image tags and write them into context
 	tags, err := gcr.GetLatestImageVersions()
 	if err != nil {
