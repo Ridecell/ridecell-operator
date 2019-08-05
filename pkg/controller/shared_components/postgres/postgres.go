@@ -117,6 +117,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 				pqdb := obj.(*dbv1beta1.PostgresDatabase)
 				pqdb.Status.DatabaseClusterStatus = dbconfig.Status.Postgres.Status
 				pqdb.Status.AdminConnection = dbconfig.Status.Postgres.Connection
+				pqdb.Status.RDSInstanceID = dbconfig.Status.RDSInstanceID
 				return nil
 			}}, nil
 		}
