@@ -76,6 +76,10 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal = goalObj.(*awsv1beta1.S3Bucket)
 		existing := existingObj.(*awsv1beta1.S3Bucket)
+		// Temporary hack to respect current region in spec
+		if existing.Spec.Region != goal.Spec.Region && existing.Spec.Region != "" {
+			goal.Spec.Region = existing.Spec.Region
+		}
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil

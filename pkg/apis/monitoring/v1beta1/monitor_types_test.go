@@ -50,6 +50,7 @@ var _ = Describe("monitor types", func() {
 				Namespace: helpers.Namespace,
 			},
 			Spec: monitoringv1beta1.MonitorSpec{
+				ServiceName: "dev-svc-auth",
 				MetricAlertRules: []monitoringv1beta1.MetricAlertRule{
 					{
 						Alert:       "HighErrorRate",

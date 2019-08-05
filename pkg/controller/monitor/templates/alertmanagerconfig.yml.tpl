@@ -7,5 +7,10 @@ spec:
   alertManagerName: alertmanager-infra
   alertMangerNamespace: alertmanager
   data: 
-    routes: {{ .Extra.routes | toJson  }}
+    routes: |
+      receiver: {{ .Instance.Name }}
+      group_by:
+      - alertname
+      match_re:
+        servicename: ".*{{ .Instance.Spec.ServiceName }}.*"
     receiver:  {{ .Extra.receiver  | toJson }}

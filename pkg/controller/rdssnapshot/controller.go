@@ -63,12 +63,12 @@ func watchTTL(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 
 		for _, rdsSnapshot := range rdsSnapshots.Items {
 			// ignore object early if object has no TTL set
-			if rdsSnapshot.Spec.TTL == 0 {
+			if rdsSnapshot.Spec.TTL.Duration == 0 {
 				continue
 			}
 
 			// Check if our object is expired
-			deletionTime := rdsSnapshot.ObjectMeta.CreationTimestamp.Add(rdsSnapshot.Spec.TTL)
+			deletionTime := rdsSnapshot.ObjectMeta.CreationTimestamp.Add(rdsSnapshot.Spec.TTL.Duration)
 			if time.Now().After(deletionTime) {
 				// Send a generic event to our watched channel to cause a reconcile of specified object
 				watchChannel <- event.GenericEvent{Object: &rdsSnapshot, Meta: &rdsSnapshot}

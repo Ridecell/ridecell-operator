@@ -51,6 +51,7 @@ type PostgresDatabaseStatus struct {
 	Connection            PostgresConnection `json:"connection"`
 	AdminConnection       PostgresConnection `json:"adminConnection"`
 	SharedUsers           SharedUsersStatus  `json:"sharedUsers"`
+	RDSInstanceID         string             `json:"rdsInstanceId,omitempty"`
 }
 
 // +genclient

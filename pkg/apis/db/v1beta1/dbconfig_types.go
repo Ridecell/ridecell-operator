@@ -84,9 +84,10 @@ type PostgresDbConfigStatus struct {
 
 // DbConfigStatus defines the observed state of DbConfig
 type DbConfigStatus struct {
-	Status   string                 `json:"status"`
-	Message  string                 `json:"message"`
-	Postgres PostgresDbConfigStatus `json:"postgres"`
+	Status        string                 `json:"status"`
+	Message       string                 `json:"message"`
+	Postgres      PostgresDbConfigStatus `json:"postgres"`
+	RDSInstanceID string                 `json:"rdsInstanceId,omitempty"`
 }
 
 // +genclient

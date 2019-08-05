@@ -50,10 +50,13 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewNewRelic(),
 
 		summoncomponents.NewConfigMap("configmap.yml.tpl"),
+		summoncomponents.NewBackup(),
 		summoncomponents.NewMigrations("migrations.yml.tpl"),
+		summoncomponents.NewMigrateWait(),
 		summoncomponents.NewSuperuser(),
 
 		// Redis components.
+		summoncomponents.NewPVC("redis/volumeclaim.yml.tpl"),
 		summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl"),
 		summoncomponents.NewService("redis/service.yml.tpl"),
 
@@ -76,7 +79,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl"),
 
 		// Celerybeat components.
-		summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true),
+		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl"),
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
 		// Channelworker components.

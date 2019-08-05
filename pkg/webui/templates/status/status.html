@@ -1,0 +1,243 @@
+<header>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  <div align="right">
+    You're logged in as <%= current_username %> <a href="/logout">Logout</a>
+  </div>
+</header>
+
+<body>
+  <h3><%= instance.Name %></h3>
+  <h5>Version: <%= instance.Spec.Version %> </h5>
+  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#changeVersion">
+    Change Summon Version
+  </button>
+  <div class="row">
+    <div class="col-md-11">
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr text-align="left">
+              <th>
+                Status
+              </th>
+              <th>
+                Status Message
+              </th>
+              <th>
+                Postgres Status
+              </th>
+              <th>
+                RabbitMQ Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>
+              <%= instance.Status.Status %>
+            </td>
+            <td>
+              <%= instance.Status.Message %>
+            </td>
+            <td>
+              <%= instance.Status.PostgresStatus %>
+            </td>
+            <td>
+              <%= instance.Status.RabbitMQStatus %>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col-sm-1">
+      <table class="table table-borderless table-sm">
+        <thead>
+          <th>
+            &nbsp;
+          </th>
+        </thead>
+        <tbody>
+            <tr>
+              <td>
+                <div class="btn-toolbar" role="toolbar">
+                  <a href="<%= sumoEndpoint %>cluster=<%= instance.Name %>" target="_blank" class="btn btn-primary btn-sm">logs</a>
+                </div>
+              </td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="subtitle">
+    <div class="container">
+    <h3>Deployments</h3>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-11">
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr text-align="left">
+              <th>
+                Deployment Name
+              </th>
+              <th>
+                Desired replica count
+              </th>
+              <th>
+                Current replica count
+              </th>
+              <th>
+                Available Replica count
+              </th>
+              <th>
+                Up to date replica count
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for (d) in deployments { %>
+              <tr>
+                <td>
+                  <%= d.Name %>
+                </td>
+                <td>
+                  <%= d.Replicas %>
+                </td>
+                <td>
+                  <%= d.CurrentReplicas %>
+                </td>
+                <td>
+                  <%= d.UpdatedReplicas %>
+                </td>
+                <td>
+                  <%= d.AvailableReplicas %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col-sm-1">
+      <table class="table table-borderless table-sm">
+        <thead>
+          <th>
+            &nbsp;
+          </th>
+        </thead>
+        <tbody>
+          <%= for (d) in deployments { %>
+            <tr>
+              <td>
+                <div class="btn-toolbar" role="toolbar">
+                  <a href="<%= sumoEndpoint %>_sourceCategory=kubernetes/*/<%= instance.Namespace %>/<%= d.Name %>" target="_blank" class="btn btn-primary btn-sm">logs</a>
+                </div>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="subtitle">
+    <div class="container">
+    <h3>Pods</h3>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-11">
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr text-align="left">
+              <th>
+                Pod Name
+              </th>
+              <th>
+                Ready
+              </th>
+              <th>
+                Restarts
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for (p) in pods { %>
+              <tr>
+                <td>
+                  <%= p.Name %>
+                </td>
+                <td>
+                  <%= p.Readiness %>
+                </td>
+                <td>
+                  <%= p.Restarts %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col-sm-1">
+      <table class="table table-borderless table-sm">
+        <thead>
+          <th>
+            &nbsp;
+          </th>
+        </thead>
+        <tbody>
+          <%= for (p) in pods { %>
+            <tr>
+              <td>
+                <div class="btn-toolbar" role="toolbar">
+                  <a href="<%= sumoEndpoint %>_sourceName=*<%= p.Name %>*" target="_blank" class="btn btn-primary btn-sm">logs</a>
+                </div>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+
+<div class="modal fade" id="changeVersion" tabindex="-1" role="dialog" aria-labelledby="changeVersion" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="changeVersion">Change Summon Version</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <%= form({action: "/pullrequest", method: "POST"}) { %>
+        <div class="modal-body">
+          Docker image: <%= f.SelectTag({name: "docker-tag", options: tags}) %>
+          <input type="hidden" name="instance-name" value=<%= instance.Name %>>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Create Pull Request</button>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<style>
+  .table-sm td {
+    padding: 0.6rem;
+  }
+
+  .table-sm th {
+    padding: 0.9rem;
+  }
+</style>
