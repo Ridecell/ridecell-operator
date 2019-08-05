@@ -32,6 +32,7 @@ func Add(mgr manager.Manager) error {
 		pdcomponents.NewDefaults(),
 		spcomponents.NewPostgres("Exclusive"),
 		pdcomponents.NewUser(),
+		pdcomponents.NewPeriscopeUser(),
 		pdcomponents.NewDatabase(),
 		pdcomponents.NewExtensions(),
 		pdcomponents.NewStatus(),

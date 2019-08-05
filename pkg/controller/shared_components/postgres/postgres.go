@@ -117,6 +117,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 				pqdb := obj.(*dbv1beta1.PostgresDatabase)
 				pqdb.Status.DatabaseClusterStatus = dbconfig.Status.Postgres.Status
 				pqdb.Status.AdminConnection = dbconfig.Status.Postgres.Connection
+				pqdb.Status.SharedUsers = dbconfig.Status.Postgres.SharedUsers
 				return nil
 			}}, nil
 		}
@@ -141,6 +142,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return res, err
 	}
+
 	_, err = comp.reconcileExporter(ctx, conn)
 	if err != nil {
 		return res, errors.Wrap(err, "error while reconciling exporter deployment")
@@ -153,7 +155,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return res, errors.Wrap(err, "error while reconciling exporter service monitor")
 	}
-	res, err = comp.reconcilePeriscopeUser(ctx, dbconfig, conn)
+	res, periscopeStatus, err := comp.reconcilePeriscopeUser(ctx, dbconfig, conn)
 	if err != nil {
 		return res, errors.Wrap(err, "error while reconciling periscope postgres user")
 	}
@@ -164,6 +166,12 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance := obj.(*dbv1beta1.PostgresDatabase)
 			instance.Status.DatabaseClusterStatus = status
 			instance.Status.AdminConnection = *conn
+			// If we updated periscope shared user status with permissions granted, don't overwrite it with Periscope
+			// PostgresUser Object status. Otherwise, PostgresDatabase status 'Ready' depends on Periscope user being
+			// granted, if periscope user is to be created.
+			if instance.Status.SharedUsers.Periscope != dbv1beta1.StatusGranted {
+				instance.Status.SharedUsers.Periscope = periscopeStatus
+			}
 			return nil
 		}
 	} else {
@@ -172,6 +180,11 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance := obj.(*dbv1beta1.DbConfig)
 			instance.Status.Postgres.Status = status
 			instance.Status.Postgres.Connection = *conn
+			// I don't think dbconfig will ever get granted status (since periscopestatus is the status of periscope postgresuser obj,
+			// not the postgres database shareduser status that gets updated by periscopeuser component).
+			if instance.Status.Postgres.SharedUsers.Periscope != dbv1beta1.StatusGranted {
+				instance.Status.Postgres.SharedUsers.Periscope = periscopeStatus
+			}
 			return nil
 		}
 	}
@@ -287,10 +300,11 @@ func (comp *postgresComponent) reconcileServiceMonitor(ctx *components.Component
 	return res, err
 }
 
-func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
+func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig, conn *dbv1beta1.PostgresConnection) (components.Result, string, error) {
 	var existing *dbv1beta1.PostgresUser
 	extras := map[string]interface{}{}
 	extras["Conn"] = conn
+
 	if !dbconfig.Spec.NoCreatePeriscopeUser {
 		res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("periscopeuser.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
 			existing = existingObj.(*dbv1beta1.PostgresUser)
@@ -299,20 +313,20 @@ func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentC
 			return nil
 		})
 		if err != nil {
-			return res, err
+			return res, "", err
 		}
-		return res, err
+		return res, existing.Status.Status, err
 	} else {
-		// Check if periscope user already exists and delete it
+		// Check if periscope user already exists and delete it.
 		user, err := ctx.WithTemplates(Templates).GetTemplate("periscopeuser.yml.tpl", extras)
 		if err != nil {
-			return components.Result{}, errors.Wrap(err, "unable to load periscope.yml.tpl to delete existing periscope user")
+			return components.Result{}, "", errors.Wrap(err, "unable to load periscope.yml.tpl to delete existing periscope user")
 		}
 		err = ctx.Delete(ctx.Context, user)
 		if err != nil && !kerrors.IsNotFound(err) {
-			return components.Result{Requeue: true}, errors.Wrap(err, "unable to find and delete periscopeuser")
+			return components.Result{Requeue: true}, "", errors.Wrap(err, "unable to find and delete periscopeuser")
 		}
-		return components.Result{}, nil
+		return components.Result{}, dbv1beta1.StatusSkipped, nil
 	}
 }
 

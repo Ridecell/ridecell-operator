@@ -26,6 +26,8 @@ const (
 	StatusModifying = "Modifying"
 	StatusError     = "Error"
 	StatusUnknown   = "Unknown"
+	StatusSkipped   = "Skipped"
+	StatusGranted   = "Ready - Perms Granted"
 )
 
 // Connection details for a Postgres database.
@@ -47,4 +49,9 @@ type RabbitmqStatusConnection struct {
 	Username          string            `json:"username"`
 	PasswordSecretRef helpers.SecretRef `json:"passwordSecretRef"`
 	Vhost             string            `json:"vhost,omitempty"`
+}
+
+// Status information about cluster-level shared utility Postgres users.
+type SharedUsersStatus struct {
+	Periscope string `json:"periscope"`
 }
