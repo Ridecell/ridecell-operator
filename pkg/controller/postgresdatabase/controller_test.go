@@ -112,6 +112,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 		}
 		c.Create(dbconfig)
 
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
+
 		// Create our database.
 		c.Create(instance)
 
@@ -157,6 +159,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c.Create(dbconfig)
 
 		// Create our database.
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
 		c.Create(instance)
 
 		// Get our RDS cluster and advance it to ready.
@@ -264,15 +267,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(types.NamespacedName{Name: randomName, Namespace: helpers.OperatorNamespace}, rds)
 		rds.Status.Status = dbv1beta1.StatusReady
+		conn.PasswordSecretRef = apihelpers.SecretRef{Name: "pgpass-crossnamespace"}
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
+
+		// Wait for our database to become ready.
+		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
 
 		// Confirm our secret is copied over
 		fetchSecret := &corev1.Secret{}
 		c.EventuallyGet(types.NamespacedName{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace}, fetchSecret)
-
-		// Wait for our database to become ready.
-		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
 
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
