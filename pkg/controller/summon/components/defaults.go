@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -167,10 +168,22 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 	defVal("DATA_PIPELINE_SQS_QUEUE_NAME", "%s", instance.Spec.SQSQueue)
 
-	// Enable DEBUG automatically for dev/qa.
+	// Translate our aws region into a usable region
+	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
+	translatedRegion := untranslatedRegion
+	if untranslatedRegion == "ap" {
+		translatedRegion = "in"
+	}
+
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
+		// Enable DEBUG automatically for dev/qa.
 		val := true
 		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+
+		// Use our translated region to set GATEWAY_BASE_URL
+		defVal("GATEWAY_BASE_URL", "https://global.%s.master.svc.ridecell.io/", translatedRegion)
+	} else {
+		defVal("GATEWAY_BASE_URL", "https://global.%s.prod.svc.ridecell.io/", translatedRegion)
 	}
 
 	// Enable NewRelic if requested.
