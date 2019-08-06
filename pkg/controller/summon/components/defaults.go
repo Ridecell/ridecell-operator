@@ -175,16 +175,18 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		translatedRegion = "in"
 	}
 
+	// Set our gateway environment for GATEWAY_BASE_URL
+	gatewayEnv := "prod"
+
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
 		val := true
 		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
 
-		// Use our translated region to set GATEWAY_BASE_URL
-		defVal("GATEWAY_BASE_URL", "https://global.%s.master.svc.ridecell.io/", translatedRegion)
-	} else {
-		defVal("GATEWAY_BASE_URL", "https://global.%s.prod.svc.ridecell.io/", translatedRegion)
+		gatewayEnv = "master"
 	}
+	// Use our translated region and gateway env to set GATEWAY_BASE_URL
+	defVal("GATEWAY_BASE_URL", "https://global.%s.%s.svc.ridecell.io/", translatedRegion, gatewayEnv)
 
 	// Enable NewRelic if requested.
 	if instance.Spec.EnableNewRelic != nil && *instance.Spec.EnableNewRelic {
