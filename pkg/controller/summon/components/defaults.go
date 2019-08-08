@@ -275,4 +275,5 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("USE_GOOGLE_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("USE_SAML_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("XMLSEC_BINARY_LOCATION", "/usr/bin/xmlsec1")
+	defConfig("POWERPACK_UUID", "a654e39b-8bd0-40d4-9bb2-03989890c235")
 }
