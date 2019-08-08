@@ -40,8 +40,7 @@ func (comp *secretComponent) WatchTypes() []runtime.Object {
 }
 
 func (_ *secretComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
-	return instance.Status.DatabaseStatus == dbv1beta1.StatusReady
+	return true
 }
 
 func (_ *secretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
