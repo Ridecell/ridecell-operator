@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -167,11 +168,25 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 	defVal("DATA_PIPELINE_SQS_QUEUE_NAME", "%s", instance.Spec.SQSQueue)
 
-	// Enable DEBUG automatically for dev/qa.
+	// Translate our aws region into a usable region
+	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
+	translatedRegion := untranslatedRegion
+	if untranslatedRegion == "ap" {
+		translatedRegion = "in"
+	}
+
+	// Set our gateway environment for GATEWAY_BASE_URL
+	gatewayEnv := "prod"
+
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
+		// Enable DEBUG automatically for dev/qa.
 		val := true
 		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+
+		gatewayEnv = "master"
 	}
+	// Use our translated region and gateway env to set GATEWAY_BASE_URL
+	defVal("GATEWAY_BASE_URL", "https://global.%s.%s.svc.ridecell.io/", translatedRegion, gatewayEnv)
 
 	// Enable NewRelic if requested.
 	if instance.Spec.EnableNewRelic != nil && *instance.Spec.EnableNewRelic {
@@ -260,4 +275,5 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("USE_GOOGLE_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("USE_SAML_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("XMLSEC_BINARY_LOCATION", "/usr/bin/xmlsec1")
+	defConfig("POWERPACK_UUID", "a654e39b-8bd0-40d4-9bb2-03989890c235")
 }
