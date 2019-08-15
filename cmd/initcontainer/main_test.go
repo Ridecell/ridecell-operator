@@ -54,8 +54,73 @@ var _ = Describe("InitContainer", func() {
 		c := fake.NewFakeClient(rmqv, secret)
 
 		data := map[string]interface{}{}
-		err := main.Update("us-prod", "dispatch", c, data)
+		err := main.UpdateSecret("us-prod", "dispatch", c, data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data).To(HaveKeyWithValue("CELERY_BROKER_URL", "pyamqp://svc-us-prod-dispatch-user:topsecret@mybunny/svc-us-prod-dispatch-user?ssl=true"))
+	})
+
+	It("Should add the db password", func() {
+		pgdb := &dbv1beta1.PostgresDatabase{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "svc-us-qa-test-service",
+				Namespace: "test-service",
+			},
+			Status: dbv1beta1.PostgresDatabaseStatus{
+				Connection: dbv1beta1.PostgresConnection{
+					PasswordSecretRef: helpers.SecretRef{
+						Name: "password-secret",
+					},
+				},
+			},
+		}
+
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "password-secret",
+				Namespace: "test-service",
+			},
+			Data: map[string][]byte{
+				"password": []byte("1234567"),
+			},
+		}
+
+		c := fake.NewFakeClient(pgdb, secret)
+
+		data := map[string]interface{}{}
+		data["DATABASE"] = map[interface{}]interface{}{
+			"PASSWORD": "placeholder",
+		}
+		err := main.UpdateSecret("us-qa", "test-service", c, data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("PASSWORD", "1234567"))
+	})
+
+	It("updates config", func() {
+		pgdb := &dbv1beta1.PostgresDatabase{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "svc-us-qa-test-service",
+				Namespace: "test-service",
+			},
+			Status: dbv1beta1.PostgresDatabaseStatus{
+				Connection: dbv1beta1.PostgresConnection{
+					Host:     "test-host",
+					Port:     1234,
+					Username: "test-user",
+					Database: "test-database",
+				},
+			},
+		}
+		c := fake.NewFakeClient(pgdb)
+
+		data := map[string]interface{}{}
+		data["DATABASE"] = map[interface{}]interface{}{
+			"HOST": "placeholder",
+		}
+		err := main.UpdateConfig("us-qa", "test-service", c, data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("HOST", "test-host"))
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("PORT", 1234))
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("USER", "test-user"))
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("NAME", "test-database"))
 	})
 })
