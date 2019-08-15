@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -39,8 +40,23 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
+var modeFlag string
+var postgresEnabled bool
+var rabbitEnabled bool
+
+func init() {
+	flag.StringVar(&modeFlag, "mode", "secret", "switch between secret and config")
+	flag.BoolVar(&postgresEnabled, "postgres", false, "used to edit postgres values")
+	flag.BoolVar(&rabbitEnabled, "rabbit", false, "used to edit rabbitmq values")
+}
+
 func main() {
 	flag.Parse()
+
+	// Validate mode flag
+	if modeFlag != "secret" && modeFlag != "config" {
+		log.Fatal(errors.New(`--mode must be "config" or "secret"`))
+	}
 
 	if err := apis.AddToScheme(scheme.Scheme); err != nil {
 		log.Fatal(err)
@@ -76,11 +92,21 @@ func Run(c client.Client) error {
 	}
 
 	// Process the YAML.
-	env := os.Args[1]
-	serviceName := os.Args[2]
-	err = Update(env, serviceName, c, data)
-	if err != nil {
-		return err
+	args := flag.Args()
+
+	env := args[0]
+	serviceName := args[1]
+
+	if modeFlag == "secret" {
+		err = UpdateSecret(env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = UpdateConfig(env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Serialize the updated YAML to stdout.
@@ -121,7 +147,7 @@ func DumpYAML(data map[string]interface{}) error {
 	return nil
 }
 
-func Update(env, serviceName string, c client.Client, data map[string]interface{}) error {
+func UpdateConfig(env, serviceName string, c client.Client, data map[string]interface{}) error {
 	// Make a fake context.
 	ctx := &components.ComponentContext{
 		Client:  c,
@@ -132,22 +158,73 @@ func Update(env, serviceName string, c client.Client, data map[string]interface{
 		},
 	}
 
-	// Fetch the RabbitmqVhost object.
-	rmqv := &dbv1beta1.RabbitmqVhost{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
-	if err != nil {
-		return err
-	}
-	rabbitmqConnection := rmqv.Status.Connection
+	if postgresEnabled {
+		pgdb := &dbv1beta1.PostgresDatabase{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+		if err != nil {
+			return err
+		}
 
-	// Fetch the password.
-	rabbitmqPassword, err := rabbitmqConnection.PasswordSecretRef.Resolve(ctx, "password")
-	if err != nil {
-		return err
+		pgdbConnection := pgdb.Status.Connection
+
+		dbField := data["DATABASE"].(map[interface{}]interface{})
+
+		dbField["HOST"] = pgdbConnection.Host
+		dbField["PORT"] = pgdbConnection.Port
+		dbField["NAME"] = pgdbConnection.Database
+		dbField["USER"] = pgdbConnection.Username
 	}
 
-	// Create the CELERY_BROKER_URL.
-	data["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
+	return nil
+}
+
+func UpdateSecret(env, serviceName string, c client.Client, data map[string]interface{}) error {
+	// Make a fake context.
+	ctx := &components.ComponentContext{
+		Client:  c,
+		Context: context.Background(),
+		// A fake root object to match the API of the rest of our code.
+		Top: &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: serviceName},
+		},
+	}
+
+	if rabbitEnabled {
+		// Fetch the RabbitmqVhost object.
+		rmqv := &dbv1beta1.RabbitmqVhost{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
+		if err != nil {
+			return err
+		}
+		rabbitmqConnection := rmqv.Status.Connection
+
+		// Fetch the password.
+		rabbitmqPassword, err := rabbitmqConnection.PasswordSecretRef.Resolve(ctx, "password")
+		if err != nil {
+			return err
+		}
+
+		// Create the CELERY_BROKER_URL.
+		data["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
+	}
+
+	if postgresEnabled {
+		pgdb := &dbv1beta1.PostgresDatabase{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+		if err != nil {
+			return err
+		}
+
+		pgdbConnection := pgdb.Status.Connection
+
+		// Fetch the postgres database password
+		pgdbPassword, err := pgdbConnection.PasswordSecretRef.Resolve(ctx, "password")
+		if err != nil {
+			return err
+		}
+
+		data["DATABASE"].(map[interface{}]interface{})["PASSWORD"] = pgdbPassword
+	}
 
 	return nil
 }
