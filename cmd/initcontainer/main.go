@@ -27,6 +27,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -40,21 +41,17 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-var modeFlag string
-var postgresEnabled bool
-var rabbitEnabled bool
+var fileMode string
 
 func init() {
-	flag.StringVar(&modeFlag, "mode", "secret", "switch between secret and config")
-	flag.BoolVar(&postgresEnabled, "postgres", false, "used to edit postgres values")
-	flag.BoolVar(&rabbitEnabled, "rabbit", false, "used to edit rabbitmq values")
+	flag.StringVar(&fileMode, "mode", "secret", "switch between secret and config")
 }
 
 func main() {
 	flag.Parse()
 
-	// Validate mode flag
-	if modeFlag != "secret" && modeFlag != "config" {
+	// Validate fileMode flag
+	if fileMode != "secret" && fileMode != "config" {
 		log.Fatal(errors.New(`--mode must be "config" or "secret"`))
 	}
 
@@ -97,7 +94,7 @@ func Run(c client.Client) error {
 	env := args[0]
 	serviceName := args[1]
 
-	if modeFlag == "secret" {
+	if fileMode == "secret" {
 		err = UpdateSecret(env, serviceName, c, data)
 		if err != nil {
 			return err
@@ -158,13 +155,13 @@ func UpdateConfig(env, serviceName string, c client.Client, data map[string]inte
 		},
 	}
 
-	if postgresEnabled {
-		pgdb := &dbv1beta1.PostgresDatabase{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-		if err != nil {
-			return err
-		}
+	pgdb := &dbv1beta1.PostgresDatabase{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+	if err != nil && !k8serr.IsNotFound(err) {
+		return err
+	}
 
+	if !k8serr.IsNotFound(err) {
 		pgdbConnection := pgdb.Status.Connection
 
 		dbField := data["DATABASE"].(map[interface{}]interface{})
@@ -189,13 +186,14 @@ func UpdateSecret(env, serviceName string, c client.Client, data map[string]inte
 		},
 	}
 
-	if rabbitEnabled {
-		// Fetch the RabbitmqVhost object.
-		rmqv := &dbv1beta1.RabbitmqVhost{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
-		if err != nil {
-			return err
-		}
+	// Fetch the RabbitmqVhost object.
+	rmqv := &dbv1beta1.RabbitmqVhost{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
+	if err != nil && !k8serr.IsNotFound(err) {
+		return err
+	}
+
+	if !k8serr.IsNotFound(err) {
 		rabbitmqConnection := rmqv.Status.Connection
 
 		// Fetch the password.
@@ -208,13 +206,13 @@ func UpdateSecret(env, serviceName string, c client.Client, data map[string]inte
 		data["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
 	}
 
-	if postgresEnabled {
-		pgdb := &dbv1beta1.PostgresDatabase{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-		if err != nil {
-			return err
-		}
+	pgdb := &dbv1beta1.PostgresDatabase{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+	if err != nil && !k8serr.IsNotFound(err) {
+		return err
+	}
 
+	if !k8serr.IsNotFound(err) {
 		pgdbConnection := pgdb.Status.Connection
 
 		// Fetch the postgres database password
@@ -225,6 +223,5 @@ func UpdateSecret(env, serviceName string, c client.Client, data map[string]inte
 
 		data["DATABASE"].(map[interface{}]interface{})["PASSWORD"] = pgdbPassword
 	}
-
 	return nil
 }
