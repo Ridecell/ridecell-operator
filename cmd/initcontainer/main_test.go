@@ -27,9 +27,11 @@ import (
 	main "github.com/Ridecell/ridecell-operator/cmd/initcontainer"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 var _ = Describe("InitContainer", func() {
+
 	It("should add the broker URL", func() {
 		rmqv := &dbv1beta1.RabbitmqVhost{
 			ObjectMeta: metav1.ObjectMeta{Name: "svc-us-prod-dispatch", Namespace: "dispatch"},
@@ -51,10 +53,12 @@ var _ = Describe("InitContainer", func() {
 				"password": []byte("topsecret"),
 			},
 		}
+		ctx := components.NewTestContext(rmqv, nil)
 		c := fake.NewFakeClient(rmqv, secret)
+		ctx.Client = c
 
 		data := map[string]interface{}{}
-		err := main.UpdateSecret("us-prod", "dispatch", c, data)
+		err := main.UpdateRabbitSecret(ctx, "us-prod", "dispatch", c, data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data).To(HaveKeyWithValue("CELERY_BROKER_URL", "pyamqp://svc-us-prod-dispatch-user:topsecret@mybunny/svc-us-prod-dispatch-user?ssl=true"))
 	})
@@ -84,13 +88,15 @@ var _ = Describe("InitContainer", func() {
 			},
 		}
 
+		ctx := components.NewTestContext(pgdb, nil)
 		c := fake.NewFakeClient(pgdb, secret)
+		ctx.Client = c
 
 		data := map[string]interface{}{}
 		data["DATABASE"] = map[interface{}]interface{}{
 			"PASSWORD": "placeholder",
 		}
-		err := main.UpdateSecret("us-qa", "test-service", c, data)
+		err := main.UpdatePostgresSecret(ctx, "us-qa", "test-service", c, data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data["DATABASE"]).To(HaveKeyWithValue("PASSWORD", "1234567"))
 	})
@@ -110,13 +116,15 @@ var _ = Describe("InitContainer", func() {
 				},
 			},
 		}
+		ctx := components.NewTestContext(pgdb, nil)
 		c := fake.NewFakeClient(pgdb)
+		ctx.Client = c
 
 		data := map[string]interface{}{}
 		data["DATABASE"] = map[interface{}]interface{}{
 			"HOST": "placeholder",
 		}
-		err := main.UpdateConfig("us-qa", "test-service", c, data)
+		err := main.UpdatePostgresConfig(ctx, "us-qa", "test-service", c, data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data["DATABASE"]).To(HaveKeyWithValue("HOST", "test-host"))
 		Expect(data["DATABASE"]).To(HaveKeyWithValue("PORT", 1234))
