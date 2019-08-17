@@ -94,13 +94,27 @@ func Run(c client.Client) error {
 	env := args[0]
 	serviceName := args[1]
 
+	// Make a fake context.
+	ctx := &components.ComponentContext{
+		Client:  c,
+		Context: context.Background(),
+		// A fake root object to match the API of the rest of our code.
+		Top: &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: serviceName},
+		},
+	}
+
 	if fileMode == "secret" {
-		err = UpdateSecret(env, serviceName, c, data)
+		err = UpdateRabbitSecret(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+		err = UpdatePostgresSecret(ctx, env, serviceName, c, data)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = UpdateConfig(env, serviceName, c, data)
+		err = UpdatePostgresConfig(ctx, env, serviceName, c, data)
 		if err != nil {
 			return err
 		}
@@ -144,17 +158,7 @@ func DumpYAML(data map[string]interface{}) error {
 	return nil
 }
 
-func UpdateConfig(env, serviceName string, c client.Client, data map[string]interface{}) error {
-	// Make a fake context.
-	ctx := &components.ComponentContext{
-		Client:  c,
-		Context: context.Background(),
-		// A fake root object to match the API of the rest of our code.
-		Top: &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: serviceName},
-		},
-	}
-
+func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	pgdb := &dbv1beta1.PostgresDatabase{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
 	if err != nil && !k8serr.IsNotFound(err) {
@@ -164,64 +168,74 @@ func UpdateConfig(env, serviceName string, c client.Client, data map[string]inte
 	if !k8serr.IsNotFound(err) {
 		pgdbConnection := pgdb.Status.Connection
 
-		dbField := data["DATABASE"].(map[interface{}]interface{})
+		_, ok := data["DATABASE"]
+		if !ok {
+			// Create the key if it doesn't exist
+			data["DATABASE"] = map[interface{}]interface{}{}
+		}
 
-		dbField["HOST"] = pgdbConnection.Host
-		dbField["PORT"] = pgdbConnection.Port
-		dbField["NAME"] = pgdbConnection.Database
-		dbField["USER"] = pgdbConnection.Username
+		dbKey := data["DATABASE"].(map[interface{}]interface{})
+
+		dbKey["HOST"] = pgdbConnection.Host
+		dbKey["PORT"] = pgdbConnection.Port
+		dbKey["NAME"] = pgdbConnection.Database
+		dbKey["USER"] = pgdbConnection.Username
 	}
 
 	return nil
 }
 
-func UpdateSecret(env, serviceName string, c client.Client, data map[string]interface{}) error {
-	// Make a fake context.
-	ctx := &components.ComponentContext{
-		Client:  c,
-		Context: context.Background(),
-		// A fake root object to match the API of the rest of our code.
-		Top: &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: serviceName},
-		},
+func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
+	pgdb := &dbv1beta1.PostgresDatabase{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
+	pgdbConnection := pgdb.Status.Connection
+
+	// Fetch the postgres database password
+	pgdbPassword, err := pgdbConnection.PasswordSecretRef.Resolve(ctx, "password")
+	if err != nil {
+		return err
+	}
+
+	_, ok := data["DATABASE"]
+	// Create the key if it doesn't exist
+	if !ok {
+		data["DATABASE"] = map[interface{}]interface{}{}
+	}
+
+	dbKey := data["DATABASE"].(map[interface{}]interface{})
+
+	dbKey["PASSWORD"] = pgdbPassword
+
+	return nil
+}
+
+func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	// Fetch the RabbitmqVhost object.
 	rmqv := &dbv1beta1.RabbitmqVhost{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
-	if err != nil && !k8serr.IsNotFound(err) {
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
-	if !k8serr.IsNotFound(err) {
-		rabbitmqConnection := rmqv.Status.Connection
+	rabbitmqConnection := rmqv.Status.Connection
 
-		// Fetch the password.
-		rabbitmqPassword, err := rabbitmqConnection.PasswordSecretRef.Resolve(ctx, "password")
-		if err != nil {
-			return err
-		}
-
-		// Create the CELERY_BROKER_URL.
-		data["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
-	}
-
-	pgdb := &dbv1beta1.PostgresDatabase{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-	if err != nil && !k8serr.IsNotFound(err) {
+	// Fetch the password.
+	rabbitmqPassword, err := rabbitmqConnection.PasswordSecretRef.Resolve(ctx, "password")
+	if err != nil {
 		return err
 	}
 
-	if !k8serr.IsNotFound(err) {
-		pgdbConnection := pgdb.Status.Connection
-
-		// Fetch the postgres database password
-		pgdbPassword, err := pgdbConnection.PasswordSecretRef.Resolve(ctx, "password")
-		if err != nil {
-			return err
-		}
-
-		data["DATABASE"].(map[interface{}]interface{})["PASSWORD"] = pgdbPassword
-	}
+	// Create the CELERY_BROKER_URL.
+	data["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
 	return nil
 }
