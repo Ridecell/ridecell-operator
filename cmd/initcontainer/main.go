@@ -113,11 +113,20 @@ func Run(c client.Client) error {
 		if err != nil {
 			return err
 		}
+		err = UpdateIamuserSecret(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
 	} else {
 		err = UpdatePostgresConfig(ctx, env, serviceName, c, data)
 		if err != nil {
 			return err
 		}
+		err = UpdateIamuserConfig(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// Serialize the updated YAML to stdout.
@@ -161,26 +170,50 @@ func DumpYAML(data map[string]interface{}) error {
 func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	pgdb := &dbv1beta1.PostgresDatabase{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-	if err != nil && !k8serr.IsNotFound(err) {
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
-	if !k8serr.IsNotFound(err) {
-		pgdbConnection := pgdb.Status.Connection
+	pgdbConnection := pgdb.Status.Connection
 
-		_, ok := data["DATABASE"]
-		if !ok {
-			// Create the key if it doesn't exist
-			data["DATABASE"] = map[interface{}]interface{}{}
-		}
-
-		dbKey := data["DATABASE"].(map[interface{}]interface{})
-
-		dbKey["HOST"] = pgdbConnection.Host
-		dbKey["PORT"] = pgdbConnection.Port
-		dbKey["NAME"] = pgdbConnection.Database
-		dbKey["USER"] = pgdbConnection.Username
+	_, ok := data["DATABASE"]
+	if !ok {
+		// Create the key if it doesn't exist
+		data["DATABASE"] = map[interface{}]interface{}{}
 	}
+
+	dbKey := data["DATABASE"].(map[interface{}]interface{})
+
+	dbKey["HOST"] = pgdbConnection.Host
+	dbKey["PORT"] = pgdbConnection.Port
+	dbKey["NAME"] = pgdbConnection.Database
+	dbKey["USER"] = pgdbConnection.Username
+
+	return nil
+}
+
+func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
+	secret := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	_, ok := data["AWS"]
+	if !ok {
+		// Create the key if it doesn't exist
+		data["AWS"] = map[interface{}]interface{}{}
+	}
+
+	awsKey := data["AWS"].(map[interface{}]interface{})
+
+	awsKey["ACCESS_KEY_ID"] = string(secret.Data["AWS_ACCESS_KEY_ID"])
 
 	return nil
 }
@@ -237,5 +270,28 @@ func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceNam
 
 	// Create the CELERY_BROKER_URL.
 	data["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
+	return nil
+}
+
+func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
+	secret := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	_, ok := data["AWS"]
+	if !ok {
+		// Create the key if it doesn't exist
+		data["AWS"] = map[interface{}]interface{}{}
+	}
+
+	awsKey := data["AWS"].(map[interface{}]interface{})
+
+	awsKey["SECRET_ACCESS_KEY"] = string(secret.Data["AWS_SECRET_ACCESS_KEY"])
+
 	return nil
 }
