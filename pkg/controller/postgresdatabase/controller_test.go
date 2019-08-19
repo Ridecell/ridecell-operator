@@ -112,6 +112,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 		}
 		c.Create(dbconfig)
 
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
+
 		// Create our database.
 		c.Create(instance)
 
@@ -156,15 +158,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		}
 		c.Create(dbconfig)
 
-		// Create our database.
-		c.Create(instance)
-
 		// Get our RDS cluster and advance it to ready.
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(helpers.Name(helpers.Namespace), rds)
 		rds.Status.Status = dbv1beta1.StatusReady
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
+
+		// Create our database.
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
+		c.Create(instance)
 
 		// Wait for our database to become ready.
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
@@ -212,6 +215,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c.Create(dbconfig)
 
 		// Create our database.
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
 		c.Create(instance)
 
 		// Get our Local cluster and advance it to ready.
@@ -237,6 +241,15 @@ var _ = Describe("PostgresDatabase controller", func() {
 	It("supports cross namespace use for shared mode", func() {
 		c := helpers.TestClient
 
+		newSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
+			Data: map[string][]byte{
+				"password": []byte("test"),
+			},
+		}
+
+		c.Create(newSecret)
+
 		// Set up the DbConfig.
 		dbconfig.Name = randomName
 		dbconfig.Namespace = helpers.OperatorNamespace
@@ -255,11 +268,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(types.NamespacedName{Name: randomName, Namespace: helpers.OperatorNamespace}, rds)
 		rds.Status.Status = dbv1beta1.StatusReady
+		conn.PasswordSecretRef = apihelpers.SecretRef{Name: "pgpass-crossnamespace"}
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
 
 		// Wait for our database to become ready.
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
+
+		// Confirm our secret is copied over
+		fetchSecret := &corev1.Secret{}
+		c.EventuallyGet(types.NamespacedName{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace}, fetchSecret)
 
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
@@ -285,6 +303,15 @@ var _ = Describe("PostgresDatabase controller", func() {
 	It("supports cross namespace use for exclusive mode", func() {
 		c := helpers.TestClient
 
+		newSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
+			Data: map[string][]byte{
+				"password": []byte("test"),
+			},
+		}
+
+		c.Create(newSecret)
+
 		// Set up the DbConfig.
 		dbconfig.Name = randomName
 		dbconfig.Namespace = helpers.OperatorNamespace
@@ -303,11 +330,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), rds)
 		rds.Status.Status = dbv1beta1.StatusReady
+		conn.PasswordSecretRef = apihelpers.SecretRef{Name: "pgpass-crossnamespace"}
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
 
 		// Wait for our database to become ready.
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
+
+		// Confirm our secret is copied over
+		fetchSecret := &corev1.Secret{}
+		c.EventuallyGet(types.NamespacedName{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace}, fetchSecret)
 
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
