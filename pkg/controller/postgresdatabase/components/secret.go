@@ -46,8 +46,8 @@ func (_ *secretComponent) IsReconcilable(ctx *components.ComponentContext) bool 
 func (_ *secretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
 
-	// If namespaces match no action needed
-	if instance.Spec.DbConfigRef.Namespace != instance.Namespace {
+	// If namespace is not defaulted and do not match no action is needed
+	if instance.Spec.DbConfigRef.Namespace != "" && instance.Spec.DbConfigRef.Namespace != instance.Namespace {
 		fetchSecret := &corev1.Secret{}
 		err := ctx.Client.Get(ctx.Context, types.NamespacedName{
 			Name:      instance.Status.AdminConnection.PasswordSecretRef.Name,
