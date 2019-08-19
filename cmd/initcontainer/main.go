@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +27,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -39,8 +41,19 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
+var fileMode string
+
+func init() {
+	flag.StringVar(&fileMode, "mode", "secret", "switch between secret and config")
+}
+
 func main() {
 	flag.Parse()
+
+	// Validate fileMode flag
+	if fileMode != "secret" && fileMode != "config" {
+		log.Fatal(errors.New(`--mode must be "config" or "secret"`))
+	}
 
 	if err := apis.AddToScheme(scheme.Scheme); err != nil {
 		log.Fatal(err)
@@ -76,11 +89,44 @@ func Run(c client.Client) error {
 	}
 
 	// Process the YAML.
-	env := os.Args[1]
-	serviceName := os.Args[2]
-	err = Update(env, serviceName, c, data)
-	if err != nil {
-		return err
+	args := flag.Args()
+
+	env := args[0]
+	serviceName := args[1]
+
+	// Make a fake context.
+	ctx := &components.ComponentContext{
+		Client:  c,
+		Context: context.Background(),
+		// A fake root object to match the API of the rest of our code.
+		Top: &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: serviceName},
+		},
+	}
+
+	if fileMode == "secret" {
+		err = UpdateRabbitSecret(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+		err = UpdatePostgresSecret(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+		err = UpdateIamuserSecret(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = UpdatePostgresConfig(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+		err = UpdateIamuserConfig(ctx, env, serviceName, c, data)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// Serialize the updated YAML to stdout.
@@ -121,23 +167,99 @@ func DumpYAML(data map[string]interface{}) error {
 	return nil
 }
 
-func Update(env, serviceName string, c client.Client, data map[string]interface{}) error {
-	// Make a fake context.
-	ctx := &components.ComponentContext{
-		Client:  c,
-		Context: context.Background(),
-		// A fake root object to match the API of the rest of our code.
-		Top: &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: serviceName},
-		},
+func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
+	pgdb := &dbv1beta1.PostgresDatabase{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
+	pgdbConnection := pgdb.Status.Connection
+
+	_, ok := data["DATABASE"]
+	if !ok {
+		// Create the key if it doesn't exist
+		data["DATABASE"] = map[interface{}]interface{}{}
+	}
+
+	dbKey := data["DATABASE"].(map[interface{}]interface{})
+
+	dbKey["HOST"] = pgdbConnection.Host
+	dbKey["PORT"] = pgdbConnection.Port
+	dbKey["NAME"] = pgdbConnection.Database
+	dbKey["USER"] = pgdbConnection.Username
+
+	return nil
+}
+
+func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
+	secret := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	_, ok := data["AWS"]
+	if !ok {
+		// Create the key if it doesn't exist
+		data["AWS"] = map[interface{}]interface{}{}
+	}
+
+	awsKey := data["AWS"].(map[interface{}]interface{})
+
+	awsKey["ACCESS_KEY_ID"] = string(secret.Data["AWS_ACCESS_KEY_ID"])
+
+	return nil
+}
+
+func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
+	pgdb := &dbv1beta1.PostgresDatabase{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	pgdbConnection := pgdb.Status.Connection
+
+	// Fetch the postgres database password
+	pgdbPassword, err := pgdbConnection.PasswordSecretRef.Resolve(ctx, "password")
+	if err != nil {
+		return err
+	}
+
+	_, ok := data["DATABASE"]
+	// Create the key if it doesn't exist
+	if !ok {
+		data["DATABASE"] = map[interface{}]interface{}{}
+	}
+
+	dbKey := data["DATABASE"].(map[interface{}]interface{})
+
+	dbKey["PASSWORD"] = pgdbPassword
+
+	return nil
+}
+
+func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	// Fetch the RabbitmqVhost object.
 	rmqv := &dbv1beta1.RabbitmqVhost{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
 	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
+
 	rabbitmqConnection := rmqv.Status.Connection
 
 	// Fetch the password.
@@ -148,6 +270,28 @@ func Update(env, serviceName string, c client.Client, data map[string]interface{
 
 	// Create the CELERY_BROKER_URL.
 	data["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
+	return nil
+}
+
+func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
+	secret := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	_, ok := data["AWS"]
+	if !ok {
+		// Create the key if it doesn't exist
+		data["AWS"] = map[interface{}]interface{}{}
+	}
+
+	awsKey := data["AWS"].(map[interface{}]interface{})
+
+	awsKey["SECRET_ACCESS_KEY"] = string(secret.Data["AWS_SECRET_ACCESS_KEY"])
 
 	return nil
 }

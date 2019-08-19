@@ -27,9 +27,11 @@ import (
 	main "github.com/Ridecell/ridecell-operator/cmd/initcontainer"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 var _ = Describe("InitContainer", func() {
+
 	It("should add the broker URL", func() {
 		rmqv := &dbv1beta1.RabbitmqVhost{
 			ObjectMeta: metav1.ObjectMeta{Name: "svc-us-prod-dispatch", Namespace: "dispatch"},
@@ -51,11 +53,82 @@ var _ = Describe("InitContainer", func() {
 				"password": []byte("topsecret"),
 			},
 		}
+		ctx := components.NewTestContext(rmqv, nil)
 		c := fake.NewFakeClient(rmqv, secret)
+		ctx.Client = c
 
 		data := map[string]interface{}{}
-		err := main.Update("us-prod", "dispatch", c, data)
+		err := main.UpdateRabbitSecret(ctx, "us-prod", "dispatch", c, data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data).To(HaveKeyWithValue("CELERY_BROKER_URL", "pyamqp://svc-us-prod-dispatch-user:topsecret@mybunny/svc-us-prod-dispatch-user?ssl=true"))
+	})
+
+	It("Should add the db password", func() {
+		pgdb := &dbv1beta1.PostgresDatabase{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "svc-us-qa-test-service",
+				Namespace: "test-service",
+			},
+			Status: dbv1beta1.PostgresDatabaseStatus{
+				Connection: dbv1beta1.PostgresConnection{
+					PasswordSecretRef: helpers.SecretRef{
+						Name: "password-secret",
+					},
+				},
+			},
+		}
+
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "password-secret",
+				Namespace: "test-service",
+			},
+			Data: map[string][]byte{
+				"password": []byte("1234567"),
+			},
+		}
+
+		ctx := components.NewTestContext(pgdb, nil)
+		c := fake.NewFakeClient(pgdb, secret)
+		ctx.Client = c
+
+		data := map[string]interface{}{}
+		data["DATABASE"] = map[interface{}]interface{}{
+			"PASSWORD": "placeholder",
+		}
+		err := main.UpdatePostgresSecret(ctx, "us-qa", "test-service", c, data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("PASSWORD", "1234567"))
+	})
+
+	It("updates config", func() {
+		pgdb := &dbv1beta1.PostgresDatabase{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "svc-us-qa-test-service",
+				Namespace: "test-service",
+			},
+			Status: dbv1beta1.PostgresDatabaseStatus{
+				Connection: dbv1beta1.PostgresConnection{
+					Host:     "test-host",
+					Port:     1234,
+					Username: "test-user",
+					Database: "test-database",
+				},
+			},
+		}
+		ctx := components.NewTestContext(pgdb, nil)
+		c := fake.NewFakeClient(pgdb)
+		ctx.Client = c
+
+		data := map[string]interface{}{}
+		data["DATABASE"] = map[interface{}]interface{}{
+			"HOST": "placeholder",
+		}
+		err := main.UpdatePostgresConfig(ctx, "us-qa", "test-service", c, data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("HOST", "test-host"))
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("PORT", 1234))
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("USER", "test-user"))
+		Expect(data["DATABASE"]).To(HaveKeyWithValue("NAME", "test-database"))
 	})
 })
