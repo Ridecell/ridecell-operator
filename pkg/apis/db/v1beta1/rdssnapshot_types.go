@@ -22,6 +22,7 @@ import (
 
 // RDSSnapshotSpec defines the desired state of RDSSnapshot
 type RDSSnapshotSpec struct {
+	// +kubebuilder:validation:MinLength=2
 	RDSInstanceID string `json:"rdsInstanceID"`
 	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$
 	// +optional
