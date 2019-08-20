@@ -27,7 +27,7 @@ const (
 	StatusError     = "Error"
 	StatusUnknown   = "Unknown"
 	StatusSkipped   = "Skipped"
-	StatusGranted   = "Ready - Perms Granted"
+	StatusGranted   = "PermissionsGranted"
 )
 
 // Connection details for a Postgres database.
