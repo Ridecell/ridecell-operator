@@ -1,0 +1,51 @@
+<header>
+  <div align="right">
+    You're logged in as <%= current_username %> <a href="/logout">Logout</a>
+  </div>
+</header>
+
+<body>
+  <%= for (namespace) in namespaces { %>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="subtitle">
+          <div class="container">
+          <h3><%= namespace %></h3>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr text-align="left">
+                <th class="centered">
+                  Name
+                </th>
+                <th>
+                  Status
+                </th>
+                <th>
+                  Message
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for (s) in summonMap[namespace] { %>
+                <tr>
+                  <td>
+                    <a href="/status/<%= s.Name %>"><%= s.Name %></a>
+                  </td>
+                  <td>
+                    <%= s.Status.Status %>
+                  </td>
+                  <td>
+                    <%= s.Status.Message %>
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</body>

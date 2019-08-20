@@ -4,5 +4,5 @@ metadata:
  name: {{ .Instance.Name }}-{{ .Instance.Spec.Version }}
  namespace: {{ .Instance.Namespace }}
 spec:
- RDSInstanceID: {{ .Extra.rdsInstanceName }}
+ rdsInstanceID: {{ .Extra.rdsInstanceName }}
  ttl: {{ .Instance.Spec.Backup.TTL.Duration }}
