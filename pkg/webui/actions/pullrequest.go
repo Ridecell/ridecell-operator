@@ -2,7 +2,6 @@ package actions
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"regexp"
@@ -78,28 +77,14 @@ func CreatePR(c buffalo.Context) error {
 
 	// This is a bad way of doing this but it works i guess
 	newData := regexp.MustCompile(`(version: )(\S*)`).ReplaceAllString(string(blobBytes), fmt.Sprintf("${1}%s", dockerTag))
-	newEncodedData := base64.StdEncoding.EncodeToString([]byte(newData))
-	if err != nil {
-		return err
-	}
 
-	// Create a new blob for our file
-	newBlob, _, err := client.Git.CreateBlob(ctx, owner, repoName, &github.Blob{
-		Content:  getStringPointer(newEncodedData),
-		Encoding: getStringPointer("base64"),
-	})
-	if err != nil {
-		return err
-	}
-
-	// Copy tree from master branch over to new slice and replace our targeted file
-	newTreeEntries := make([]github.TreeEntry, len(masterTree.Entries))
-	copy(newTreeEntries, masterTree.Entries)
-	newTreeEntries[targetFileIndex] = github.TreeEntry{
-		Path: targetFile.Path,
-		Mode: getStringPointer("100644"),
-		Type: getStringPointer("blob"),
-		SHA:  newBlob.SHA,
+	newTreeEntries := []github.TreeEntry{
+		github.TreeEntry{
+			Path:    targetFile.Path,
+			Mode:    targetFile.Mode,
+			Type:    targetFile.Type,
+			Content: github.String(newData),
+		},
 	}
 
 	// Create our new tree with modified contents
@@ -110,7 +95,7 @@ func CreatePR(c buffalo.Context) error {
 
 	// Create a new commit using our modified tree and the master branch head sha as parent
 	newCommit, _, err := client.Git.CreateCommit(ctx, owner, repoName, &github.Commit{
-		Message: getStringPointer(newCommitMessage),
+		Message: github.String(newCommitMessage),
 		Tree:    newTree,
 		Parents: []github.Commit{*masterCommit},
 	})
@@ -120,7 +105,7 @@ func CreatePR(c buffalo.Context) error {
 
 	// Create a new branch referencing our new commit
 	_, _, err = client.Git.CreateRef(ctx, owner, repoName, &github.Reference{
-		Ref:    getStringPointer(fmt.Sprintf("refs/heads/%s", newBranchName)),
+		Ref:    github.String(fmt.Sprintf("refs/heads/%s", newBranchName)),
 		Object: &github.GitObject{SHA: newCommit.SHA},
 	})
 	if err != nil {
@@ -129,10 +114,10 @@ func CreatePR(c buffalo.Context) error {
 
 	// Create the pull request
 	newPR, _, err := client.PullRequests.Create(ctx, owner, repoName, &github.NewPullRequest{
-		Title: getStringPointer(newCommitMessage),
-		Head:  getStringPointer(newBranchName),
-		Base:  getStringPointer("master"),
-		Body:  getStringPointer(""),
+		Title: github.String(newCommitMessage),
+		Head:  github.String(newBranchName),
+		Base:  github.String("master"),
+		Body:  github.String(""),
 	})
 	if err != nil {
 		return err
@@ -153,9 +138,4 @@ func getGothUserFromSession(c buffalo.Context) (*goth.User, error) {
 		return nil, errors.New("unable to convert current_user to goth user type")
 	}
 	return &user, nil
-}
-
-// Helper func cause string pointers are annoying
-func getStringPointer(input string) *string {
-	return &input
 }

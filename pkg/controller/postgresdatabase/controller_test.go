@@ -125,6 +125,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 		}
 		c.Create(dbconfig)
 
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
+
 		// Create our database.
 		c.Create(instance)
 
@@ -190,15 +192,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		}
 		c.Create(dbconfig)
 
-		// Create our database.
-		c.Create(instance)
-
 		// Get our RDS cluster and advance it to ready.
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(helpers.Name(helpers.Namespace), rds)
 		rds.Status.Status = dbv1beta1.StatusReady
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
+
+		// Create our database.
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
+		c.Create(instance)
 
 		// Wait for our database to become ready.
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
@@ -270,6 +273,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c.Create(dbconfig)
 
 		// Create our database.
+		instance.Spec.DbConfigRef.Namespace = helpers.Namespace
 		c.Create(instance)
 
 		// Get our Local cluster and advance it to ready.
@@ -303,26 +307,31 @@ var _ = Describe("PostgresDatabase controller", func() {
 		// When dbconfig mode is exclusive, we don't update it's postgres status, so not checking dbconfig's periscope status.
 	})
 
-	// TODO: Clean up this test when SecretRef is fixed.
 	// This test case creates a PostgresDatabase object in helpers.Namespace, but references a DbConfig (and its corresponding RDS instance)
-	// from helpers.OperatorNamespace. PostgresDatabaseConnection references a pgpass secret from helpers.Namespace via apihelpers.SecretRef{Name: "pgpass"}.
-	// Unfortunately, apihelpers.SecretRef only searches in top context namespace(?), so when periscope PostgresUser is getting reconciled (which copies the admin conn),
-	// the test fails because apihelpers.SecretRef only looks for pgpass secret in current namespace. Thus, hacky workaround by creating a copy in the current
-	// namespace. The same situation happens around the *-periscope.postgres-user-password.
-	// This test is flakey due to some secret failing to be fetched (in time?) Gona just wait for secret ref to be fixed and re-visit this.
+	// from helpers.OperatorNamespace. Periscope postgresuser gets created under DbConfig's namespace, rather than PostgresDatabase's namespace.
+	// Later, when we connect to the database as the periscope postgresuser, the retrieval of periscope postgresuser's secret is attempted under 
+	// the current namespace. However, the secret only exists under the DbConfig namespace, so the secret retrieval will fail. As a workaround, 
+	// we create a copy of periscope postgresuser secret in the current namespace.
+	// This test is flakey due to some secret failing to be fetched (in time?)
 	It("supports cross namespace use for shared mode", func() {
 		c := helpers.TestClient
 
-		// Hacky workaround for the apihelpers.SecretRef sitaution by creating a copy of *-periscope.postgres-user-password
-		// under current ctx's namespace so test can find it without failing (because of cross namespace situation).
-		// Since we're not using the secret for anything in this test, no need to update the pw.
-		periscope_secret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: randomName + "-periscope.postgres-user-password", Namespace: instance.Namespace},
-			Data: map[string][]byte{
-				"password": []byte("foo"),
-			},
-		}
-		c.Create(periscope_secret)
+			periscope_secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: randomName + "-periscope.postgres-user-password", Namespace: instance.Namespace},
+				Data: map[string][]byte{
+					"password": []byte("foo"),
+				},
+			}
+			c.Create(periscope_secret)
+
+			newSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
+				Data: map[string][]byte{
+					"password": []byte("test"),
+				},
+			}
+
+			c.Create(newSecret)
 
 		// Set up the DbConfig.
 		dbconfig.Name = randomName
@@ -342,11 +351,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(types.NamespacedName{Name: randomName, Namespace: helpers.OperatorNamespace}, rds)
 		rds.Status.Status = dbv1beta1.StatusReady
+		conn.PasswordSecretRef = apihelpers.SecretRef{Name: "pgpass-crossnamespace"}
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
 
 		// Wait for our database to become ready.
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
+
+		// Confirm our secret is copied over
+		fetchSecret := &corev1.Secret{}
+		c.EventuallyGet(types.NamespacedName{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace}, fetchSecret)
 
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
@@ -395,6 +409,15 @@ var _ = Describe("PostgresDatabase controller", func() {
 	It("supports cross namespace use for exclusive mode", func() {
 		c := helpers.TestClient
 
+		newSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
+			Data: map[string][]byte{
+				"password": []byte("test"),
+			},
+		}
+
+		c.Create(newSecret)
+
 		// Set up the DbConfig.
 		dbconfig.Name = randomName
 		dbconfig.Namespace = helpers.OperatorNamespace
@@ -413,11 +436,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), rds)
 		rds.Status.Status = dbv1beta1.StatusReady
+		conn.PasswordSecretRef = apihelpers.SecretRef{Name: "pgpass-crossnamespace"}
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
 
 		// Wait for our database to become ready.
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), instance, c.EventuallyStatus(dbv1beta1.StatusReady))
+
+		// Confirm our secret is copied over
+		fetchSecret := &corev1.Secret{}
+		c.EventuallyGet(types.NamespacedName{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace}, fetchSecret)
 
 		// Expect periscope postgresuser to be created.
 		puser := &dbv1beta1.PostgresUser{}

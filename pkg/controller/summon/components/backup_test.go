@@ -116,6 +116,8 @@ var _ = Describe("SummonPlatform backup Component", func() {
 		Expect(instance.Status.BackupVersion).To(Equal(instance.Spec.Version))
 
 		Expect(fetchRDSSnapshot.Spec.TTL).To(Equal(instance.Spec.Backup.TTL))
+
+		Expect(fetchRDSSnapshot.Spec.RDSInstanceID).To(Equal(postgresDatabase.Status.RDSInstanceID))
 	})
 
 	It("does not wait until snapshot is ready", func() {
@@ -129,5 +131,6 @@ var _ = Describe("SummonPlatform backup Component", func() {
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusMigrating))
 
 		Expect(fetchRDSSnapshot.Spec.TTL).To(Equal(instance.Spec.Backup.TTL))
+		Expect(fetchRDSSnapshot.Spec.RDSInstanceID).To(Equal(postgresDatabase.Status.RDSInstanceID))
 	})
 })

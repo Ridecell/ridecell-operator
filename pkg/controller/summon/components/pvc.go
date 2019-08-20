@@ -46,7 +46,7 @@ func (comp *pvcComponent) Reconcile(ctx *components.ComponentContext) (component
 		goal := goalObj.(*corev1.PersistentVolumeClaim)
 		existing := existingObj.(*corev1.PersistentVolumeClaim)
 		// Copy the Spec over.
-		existing.Spec = goal.Spec
+		existing.Spec.Resources.Requests = goal.Spec.Resources.Requests
 		return nil
 	})
 	return res, err
