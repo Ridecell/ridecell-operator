@@ -14,3 +14,6 @@ spec:
   extensions:
     postgis: ""
     postgis_topology: ""
+  {{ if .Instance.Spec.MigrationOverrides.RDSInstanceID }}
+  overrideRdsInstanceId: {{ .Instance.Spec.MigrationOverrides.RDSInstanceID }}
+  {{ end }}

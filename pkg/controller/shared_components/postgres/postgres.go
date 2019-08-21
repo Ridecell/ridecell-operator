@@ -102,6 +102,7 @@ func (_ *postgresComponent) IsReconcilable(ctx *components.ComponentContext) boo
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	var dbconfig *dbv1beta1.DbConfig
+	var overrideRdsInstanceID string
 	if comp.mode == "Exclusive" {
 		// This is a PostgresDatabase so try to load the relevant DbConfig.
 		pqdb := ctx.Top.(*dbv1beta1.PostgresDatabase)
@@ -121,6 +122,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 				return nil
 			}}, nil
 		}
+		overrideRdsInstanceID = pqdb.Spec.OverrideRDSInstanceID
 	} else {
 		dbconfig = ctx.Top.(*dbv1beta1.DbConfig)
 		// Do nothing in exclusive mode, DB will be provisioned by PostgresDatabase.
@@ -135,7 +137,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	var rdsInstanceID string
 	if dbconfig.Spec.Postgres.RDS != nil {
 		var rdsStatus *dbv1beta1.RDSInstanceStatus
-		res, rdsStatus, conn, err = comp.reconcileRDS(ctx, dbconfig)
+		res, rdsStatus, conn, err = comp.reconcileRDS(ctx, dbconfig, overrideRdsInstanceID)
 		status = rdsStatus.Status
 		rdsInstanceID = rdsStatus.InstanceID
 
@@ -186,11 +188,14 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	return res, nil
 }
 
-func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig) (components.Result, *dbv1beta1.RDSInstanceStatus, *dbv1beta1.PostgresConnection, error) {
+func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig, overrideRdsInstanceID string) (components.Result, *dbv1beta1.RDSInstanceStatus, *dbv1beta1.PostgresConnection, error) {
 	var existing *dbv1beta1.RDSInstance
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("rds.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
 		existing = existingObj.(*dbv1beta1.RDSInstance)
 		existing.Spec = *config.Spec.Postgres.RDS
+		if overrideRdsInstanceID != "" {
+			existing.Spec.InstanceID = overrideRdsInstanceID
+		}
 		return nil
 	})
 	if err != nil {
