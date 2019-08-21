@@ -1,7 +1,7 @@
 kind: RDSSnapshot
 apiVersion: db.ridecell.io/v1beta1
 metadata:
- name: {{ .Instance.Name }}-{{ .Instance.Spec.Version }}
+ name: {{ .Instance.Name }}-{{ .Instance.Spec.Version | replace "_" "-" }}
  namespace: {{ .Instance.Namespace }}
 spec:
  rdsInstanceID: {{ .Extra.rdsInstanceName }}
