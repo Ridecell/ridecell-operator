@@ -14,6 +14,13 @@ spec:
   extensions:
     postgis: ""
     postgis_topology: ""
+  {{ if .Instance.Spec.MigrationOverrides.PostgresDatabase }}
+  databaseName: {{ .Instance.Spec.MigrationOverrides.PostgresDatabase }}
+  {{ end }}
+  {{ if .Instance.Spec.MigrationOverrides.PostgresUsername }}
+  owner: {{ .Instance.Spec.MigrationOverrides.PostgresUsername }}
+  skipUser: true
+  {{ end }}
   {{ if .Instance.Spec.MigrationOverrides.RDSInstanceID }}
   overrideRdsInstanceId: {{ .Instance.Spec.MigrationOverrides.RDSInstanceID }}
   {{ end }}
