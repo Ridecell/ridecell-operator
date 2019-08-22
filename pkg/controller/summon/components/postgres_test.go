@@ -68,5 +68,47 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(instance.Status.PostgresStatus).To(Equal(dbv1beta1.StatusReady))
 		})
+
+		Context("with database name migration override", func() {
+			BeforeEach(func() {
+				instance.Spec.MigrationOverrides.PostgresDatabase = "legacy"
+			})
+
+			It("sets the DatabaseName correctly", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				db := &dbv1beta1.PostgresDatabase{}
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(db.Spec.DatabaseName).To(Equal("legacy"))
+			})
+		})
+
+		Context("with database user migration override", func() {
+			BeforeEach(func() {
+				instance.Spec.MigrationOverrides.PostgresUsername = "legacy"
+			})
+
+			It("sets the DatabaseName correctly", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				db := &dbv1beta1.PostgresDatabase{}
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(db.Spec.Owner).To(Equal("legacy"))
+			})
+		})
+
+		Context("with database ID migration override", func() {
+			BeforeEach(func() {
+				instance.Spec.MigrationOverrides.RDSInstanceID = "legacy"
+			})
+
+			It("sets the DatabaseName correctly", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				db := &dbv1beta1.PostgresDatabase{}
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(db.Spec.OverrideRDSInstanceID).To(Equal("legacy"))
+			})
+		})
 	})
 })

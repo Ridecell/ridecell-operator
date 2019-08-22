@@ -38,6 +38,9 @@ type PostgresDatabaseSpec struct {
 	// A map of extensions to versions to install. If the version is "" then the latest version will be used.
 	// +optional
 	Extensions map[string]string `json:"extensions,omitempty"`
+	// An optional RDS instance ID override. Only used if the DbConfig is in RDS mode. Exists for migrations from Ansible Summon.
+	// +optional
+	OverrideRDSInstanceID string `json:"overrideRdsInstanceId,omitempty"`
 }
 
 // PostgresDatabaseStatus defines the observed state of PostgresDatabase

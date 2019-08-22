@@ -73,6 +73,15 @@ type WaitSpec struct {
 	PostMigrate metav1.Duration `json:"postMigrate,omitempty"`
 }
 
+// MigrationOverridesSpec defines value overrides used when migrating Ansible-based Summon instances into Kubernetes/ridecell-operator.
+type MigrationOverridesSpec struct {
+	RDSInstanceID    string `json:"rdsInstanceId,omitempty"`
+	PostgresDatabase string `json:"postgresDatabase,omitempty"`
+	PostgresUsername string `json:"postgresUsername,omitempty"`
+	RabbitMQVhost    string `json:"rabbitmqVhost,omitempty"`
+	RedisHostname    string `json:"redisHostname,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -145,6 +154,9 @@ type SummonPlatformSpec struct {
 	// Deployment wait settings
 	// +optional
 	Waits WaitSpec `json:"waits,omitempty"`
+	// Migration override settings.
+	// +optional
+	MigrationOverrides MigrationOverridesSpec `json:"migrationOverrides,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications
