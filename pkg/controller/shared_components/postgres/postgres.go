@@ -56,6 +56,7 @@ func (_ *postgresComponent) WatchTypes() []runtime.Object {
 		&corev1.Service{},
 		&appsv1.Deployment{},
 		&monitoringv1.ServiceMonitor{},
+		&dbv1beta1.PostgresUser{},
 	}
 }
 
