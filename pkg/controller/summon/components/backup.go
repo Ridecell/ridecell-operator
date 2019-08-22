@@ -17,6 +17,8 @@ limitations under the License.
 package components
 
 import (
+	"time"
+
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -115,5 +117,6 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 	}
 
 	// Unknown status, reqeueue
-	return components.Result{Requeue: true}, nil
+	// Likely new object with no status yet set
+	return components.Result{RequeueAfter: time.Second * 10}, nil
 }
