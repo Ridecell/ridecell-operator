@@ -133,4 +133,20 @@ var _ = Describe("SummonPlatform backup Component", func() {
 		Expect(fetchRDSSnapshot.Spec.TTL).To(Equal(instance.Spec.Backup.TTL))
 		Expect(fetchRDSSnapshot.Spec.RDSInstanceID).To(Equal(postgresDatabase.Status.RDSInstanceID))
 	})
+
+	It("creates snapshot with underscores in name", func() {
+		instance.Spec.Version = "1_2_3"
+
+		falseBool := false
+		instance.Spec.Backup.WaitUntilReady = &falseBool
+		ctx.Client = fake.NewFakeClient(postgresDatabase)
+		Expect(comp).To(ReconcileContext(ctx))
+		fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-1-2-3", Namespace: instance.Namespace}, fetchRDSSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusMigrating))
+
+		Expect(fetchRDSSnapshot.Spec.TTL).To(Equal(instance.Spec.Backup.TTL))
+		Expect(fetchRDSSnapshot.Spec.RDSInstanceID).To(Equal(postgresDatabase.Status.RDSInstanceID))
+	})
 })
