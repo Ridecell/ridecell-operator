@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
@@ -88,7 +89,7 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 	}
 
 	fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-%s", instance.Name, instance.Spec.Version), Namespace: instance.Namespace}, fetchRDSSnapshot)
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-%s", instance.Name, strings.ReplaceAll(instance.Spec.Version, "_", "-")), Namespace: instance.Namespace}, fetchRDSSnapshot)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "backup: failed to get rdssnapshot object")
 	}
