@@ -17,12 +17,16 @@ limitations under the License.
 package monitor_test
 
 import (
+	"os"
+
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_pagerduty"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_sumologic"
 	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	alertmconfig "github.com/prometheus/alertmanager/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,15 +37,18 @@ var _ = Describe("monitor controller", func() {
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
+		os.Setenv("PG_ROUTING_KEY", "ALLISWELL")
+		os.Setenv("SUMO_MOCK_URL", "http://localhost:8083")
+		os.Setenv("PG_MOCK_URL", "http://localhost:8082")
+		fake_pagerduty.Run()
+		fake_sumologic.Run()
 	})
 
 	AfterEach(func() {
 		if CurrentGinkgoTestDescription().Failed {
 			helpers.DebugList(&monitoringv1beta1.MonitorList{})
 			helpers.DebugList(&pomonitoringv1.PrometheusRuleList{})
-
 		}
-
 		helpers.TeardownTest()
 	})
 
@@ -64,11 +71,24 @@ var _ = Describe("monitor controller", func() {
 						"#test-alert",
 						"#test",
 					},
+					PagerdutyTeam: "myteam",
+				},
+				LogAlertRules: []monitoringv1beta1.LogAlertRule{
+					monitoringv1beta1.LogAlertRule{
+						Name:        "Look for bad things realtime",
+						Description: "looking for bad thing",
+						Query:       `_sourceCategory=microservices/prod/us/job-management/* ("cancel_job_if_vehicle_got_reserved_or_moved" AND "TASK_FAILED") OR ("cancel_single_job_vehicle_reserved_task" AND "TASK_FAILED") OR ("cancel_single_job_location_mismatch_task" AND "TASK_FAILED")`,
+						Condition:   "gt",
+						Threshold:   4,
+						Schedule:    "* * 0 0 0 0",
+						Range:       "-15m",
+						Severity:    "info",
+						Runbook:     "https://ridecell.quip.com/ajDsAmRnWFQE/Monitoring",
+					},
 				},
 			},
 		}
 		c.Create(instance)
-
 		// Check Prom rules from here
 		rule := &pomonitoringv1.PrometheusRule{}
 		c.EventuallyGet(helpers.Name("foo"), rule)
@@ -85,6 +105,7 @@ var _ = Describe("monitor controller", func() {
 		err := yaml.Unmarshal([]byte(alertConfig.Spec.Data["receiver"]), receiver)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(receiver.SlackConfigs[0].Channel).To(Equal("#test-alert"))
+		Expect(receiver.PagerdutyConfigs[0].Severity).To(Equal(`{{ .CommonLabels.severity }}`))
 		//Check Route have correct Receiver name
 		Expect(alertConfig.Spec.Data).To(HaveKey("routes"))
 		route := &alertmconfig.Route{}
