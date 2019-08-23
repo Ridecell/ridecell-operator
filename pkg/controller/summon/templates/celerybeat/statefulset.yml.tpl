@@ -11,6 +11,9 @@ metadata:
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
 spec:
+  {{ if .Instance.Spec.NoCelerybeat }}
+  replicas: 0
+  {{ end }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-celerybeat

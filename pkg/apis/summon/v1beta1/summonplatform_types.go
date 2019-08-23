@@ -116,6 +116,9 @@ type SummonPlatformSpec struct {
 	// Number of caddy pods to run. Defaults to 1.
 	// +optional
 	StaticReplicas *int32 `json:"staticReplicas,omitempty"`
+	// If true, do not run celerybeat.
+	// +optional
+	NoCelerybeat bool `json:"noCelerybeat,omitempty"`
 	// Settings for deploy and error notifications.
 	// +optional
 	Notifications NotificationsSpec `json:"notifications,omitempty"`
