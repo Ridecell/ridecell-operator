@@ -1,0 +1,39 @@
+{
+    "createdAt": "2019-02-12T09:18:26Z",
+    "createdBy": "000000000073BD3F",
+    "modifiedAt": "2019-02-12T09:18:26Z",
+    "modifiedBy": "000000000073BD3F",
+    "id": "000000000083D019",
+    "name": "Alerts",
+    "itemType": "Folder",
+    "parentId": "00000000007AB557",
+    "permissions": [
+        "GrantEdit",
+        "View",
+        "Edit",
+        "GrantView",
+        "GrantManage",
+        "Manage"
+    ],
+    "description": "Store ONLY alerts search",
+    "children": [
+        {
+            "createdAt": "2019-08-08T11:26:11Z",
+            "createdBy": "000000000073BD3F",
+            "modifiedAt": "2019-08-08T11:26:11Z",
+            "modifiedBy": "000000000073BD3F",
+            "id": "0000000000A16709",
+            "name": "dev-foo-service",
+            "itemType": "Folder",
+            "parentId": "000000000083D019",
+            "permissions": [
+                "GrantEdit",
+                "View",
+                "Edit",
+                "GrantView",
+                "GrantManage",
+                "Manage"
+            ]
+        }
+    ]
+}

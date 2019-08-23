@@ -105,7 +105,7 @@ slack_configs:
 		c.EventuallyGet(helpers.Name("alertmanager-alertmanager-infra"), fconfig)
 		Expect(fconfig.Data).To(HaveKey("alertmanager.yaml"))
 		config, _ := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
-		Expect(config.Receivers).To(HaveLen(2))
+		Expect(len(config.Receivers)).Should(BeNumerically(">=", 2))
 		Expect(config.Route.Routes[0].Receiver).To(Equal("test-alert"))
 		config, err := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
 		Expect(err).ToNot(HaveOccurred())

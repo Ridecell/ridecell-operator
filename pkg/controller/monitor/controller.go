@@ -29,8 +29,8 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("monitor-controller", mgr, &monitoringv1beta1.Monitor{}, Templates, []components.Component{
 		mccomponents.NewPromrule(),
-		//mccomponents.NewLogrule(),
 		mccomponents.NewNotification(),
+		mccomponents.NewLogrule(),
 	})
 	return err
 }
