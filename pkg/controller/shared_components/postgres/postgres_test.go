@@ -272,7 +272,7 @@ var _ = Describe("Postgres Shared Component", func() {
 				dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
 					MaintenanceWindow: "Mon:00:00-Mon:01:00",
 				}
-				pqdb.Spec.OverrideRDSInstanceID = "legacy"
+				pqdb.Spec.MigrationOverrides.RDSInstanceID = "legacy"
 				ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
 			})
 
@@ -284,6 +284,27 @@ var _ = Describe("Postgres Shared Component", func() {
 				err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, rds)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(rds.Spec.InstanceID).To(Equal("legacy"))
+			})
+		})
+
+		Context("with an RDS username override", func() {
+			BeforeEach(func() {
+				dbconfig.Spec.Postgres.Mode = "Exclusive"
+				dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+					MaintenanceWindow: "Mon:00:00-Mon:01:00",
+				}
+				pqdb.Spec.MigrationOverrides.RDSMasterUsername = "root"
+				ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
+			})
+
+			It("creates the RDS database with the override", func() {
+				ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
+				Expect(comp).To(ReconcileContext(ctx))
+
+				rds := &dbv1beta1.RDSInstance{}
+				err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, rds)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rds.Spec.Username).To(Equal("root"))
 			})
 		})
 	})

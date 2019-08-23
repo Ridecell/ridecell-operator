@@ -22,5 +22,10 @@ spec:
   skipUser: true
   {{ end }}
   {{ if .Instance.Spec.MigrationOverrides.RDSInstanceID }}
-  overrideRdsInstanceId: {{ .Instance.Spec.MigrationOverrides.RDSInstanceID }}
+  migrationOverrides:
+    rdsInstanceId: {{ .Instance.Spec.MigrationOverrides.RDSInstanceID }}
+    {{ if .Instance.Spec.MigrationOverrides.RDSMasterUsername }}
+    rdsMasterUsername: {{ .Instance.Spec.MigrationOverrides.RDSMasterUsername }}
+    {{ end }}
   {{ end }}
+
