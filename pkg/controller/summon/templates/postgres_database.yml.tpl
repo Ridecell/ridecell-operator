@@ -19,7 +19,6 @@ spec:
   {{ end }}
   {{ if .Instance.Spec.MigrationOverrides.PostgresUsername }}
   owner: {{ .Instance.Spec.MigrationOverrides.PostgresUsername }}
-  skipUser: true
   {{ end }}
   {{ if .Instance.Spec.MigrationOverrides.RDSInstanceID }}
   migrationOverrides:
