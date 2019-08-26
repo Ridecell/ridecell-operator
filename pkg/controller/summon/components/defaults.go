@@ -159,8 +159,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	defVal("WEB_URL", "https://%s", webURL)
 
-	defVal("ASGI_URL", "redis://%s-redis/0", instance.Name)
-	defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
+	if instance.Spec.MigrationOverrides.RedisHostname != "" {
+		defVal("ASGI_URL", "redis://%s/1", instance.Spec.MigrationOverrides.RedisHostname)
+		defVal("CACHE_URL", "redis://%s/1", instance.Spec.MigrationOverrides.RedisHostname)
+	} else {
+		defVal("ASGI_URL", "redis://%s-redis/0", instance.Name)
+		defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
+	}
+
 	defVal("FIREBASE_ROOT_NODE", "%s", instance.Name)
 	defVal("TENANT_ID", "%s", instance.Name)
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)

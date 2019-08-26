@@ -103,6 +103,7 @@ func (_ *postgresComponent) IsReconcilable(ctx *components.ComponentContext) boo
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	var dbconfig *dbv1beta1.DbConfig
+	var migrationOverrides *dbv1beta1.MigrationOverridesSpec
 	if comp.mode == "Exclusive" {
 		// This is a PostgresDatabase so try to load the relevant DbConfig.
 		pqdb := ctx.Top.(*dbv1beta1.PostgresDatabase)
@@ -123,6 +124,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 				return nil
 			}}, nil
 		}
+		migrationOverrides = &pqdb.Spec.MigrationOverrides
 	} else {
 		dbconfig = ctx.Top.(*dbv1beta1.DbConfig)
 		// Do nothing in exclusive mode, DB will be provisioned by PostgresDatabase.
@@ -137,7 +139,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	var rdsInstanceID string
 	if dbconfig.Spec.Postgres.RDS != nil {
 		var rdsStatus *dbv1beta1.RDSInstanceStatus
-		res, rdsStatus, conn, err = comp.reconcileRDS(ctx, dbconfig)
+		res, rdsStatus, conn, err = comp.reconcileRDS(ctx, dbconfig, migrationOverrides)
 		status = rdsStatus.Status
 		rdsInstanceID = rdsStatus.InstanceID
 
@@ -200,11 +202,19 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	return res, nil
 }
 
-func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig) (components.Result, *dbv1beta1.RDSInstanceStatus, *dbv1beta1.PostgresConnection, error) {
+func (comp *postgresComponent) reconcileRDS(ctx *components.ComponentContext, config *dbv1beta1.DbConfig, migrationOverrides *dbv1beta1.MigrationOverridesSpec) (components.Result, *dbv1beta1.RDSInstanceStatus, *dbv1beta1.PostgresConnection, error) {
 	var existing *dbv1beta1.RDSInstance
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("rds.yml.tpl", nil, func(_goalObj, existingObj runtime.Object) error {
 		existing = existingObj.(*dbv1beta1.RDSInstance)
 		existing.Spec = *config.Spec.Postgres.RDS
+		if migrationOverrides != nil {
+			if migrationOverrides.RDSInstanceID != "" {
+				existing.Spec.InstanceID = migrationOverrides.RDSInstanceID
+			}
+			if migrationOverrides.RDSMasterUsername != "" {
+				existing.Spec.Username = migrationOverrides.RDSMasterUsername
+			}
+		}
 		return nil
 	})
 	if err != nil {

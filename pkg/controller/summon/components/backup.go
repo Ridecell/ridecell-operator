@@ -17,7 +17,7 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
@@ -76,9 +76,10 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 	extra := map[string]interface{}{}
 	extra["rdsInstanceName"] = fetchPostgresDB.Status.RDSInstanceID
 
+	var existing *dbv1beta1.RDSSnapshot
 	_, _, err = ctx.CreateOrUpdate(templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.RDSSnapshot)
-		existing := existingObj.(*dbv1beta1.RDSSnapshot)
+		existing = existingObj.(*dbv1beta1.RDSSnapshot)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil
@@ -87,35 +88,35 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 		return components.Result{}, errors.Wrap(err, "backup: failed to create or update rds snapshot")
 	}
 
-	fetchRDSSnapshot := &dbv1beta1.RDSSnapshot{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-%s", instance.Name, instance.Spec.Version), Namespace: instance.Namespace}, fetchRDSSnapshot)
-	if err != nil {
-		return components.Result{}, errors.Wrap(err, "backup: failed to get rdssnapshot object")
+	if *instance.Spec.Backup.WaitUntilReady == false {
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta1.SummonPlatform)
+			instance.Status.Status = summonv1beta1.StatusMigrating
+			instance.Status.BackupVersion = instance.Spec.Version
+			return nil
+		}}, nil
 	}
 
-	if fetchRDSSnapshot.Status.Status == dbv1beta1.StatusError {
-		return components.Result{}, errors.Wrapf(err, "backup: rdssnapshot %s is in an error state", fetchRDSSnapshot.Name)
+	if existing.Status.Status == dbv1beta1.StatusError {
+		return components.Result{}, errors.Wrapf(err, "backup: rdssnapshot %s is in an error state", existing.Name)
 	}
 
 	// We can just return at this point.
 	// When the rdssnapshot is finished it will trigger this component to reconcile.
-	if fetchRDSSnapshot.Status.Status == dbv1beta1.StatusCreating {
-		if *instance.Spec.Backup.WaitUntilReady == false {
-			return components.Result{StatusModifier: func(obj runtime.Object) error {
-				instance := obj.(*summonv1beta1.SummonPlatform)
-				instance.Status.Status = summonv1beta1.StatusMigrating
-				instance.Status.BackupVersion = instance.Spec.Version
-				return nil
-			}}, nil
-		}
+	if existing.Status.Status == dbv1beta1.StatusCreating {
 		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusCreatingBackup)}, nil
 	}
 
-	// If we got this far our snapshot is ready
-	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*summonv1beta1.SummonPlatform)
-		instance.Status.Status = summonv1beta1.StatusMigrating
-		instance.Status.BackupVersion = instance.Spec.Version
-		return nil
-	}}, nil
+	if existing.Status.Status == dbv1beta1.StatusReady {
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta1.SummonPlatform)
+			instance.Status.Status = summonv1beta1.StatusMigrating
+			instance.Status.BackupVersion = instance.Spec.Version
+			return nil
+		}}, nil
+	}
+
+	// Unknown status, reqeueue
+	// Likely new object with no status yet set
+	return components.Result{RequeueAfter: time.Second * 10}, nil
 }
