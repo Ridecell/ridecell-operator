@@ -42,7 +42,7 @@ import (
 
 const timeout = time.Second * 20
 
-var _ = FDescribe("PostgresDatabase controller", func() {
+var _ = Describe("PostgresDatabase controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var randomName string
 	var instance *dbv1beta1.PostgresDatabase
