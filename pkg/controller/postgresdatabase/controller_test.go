@@ -42,7 +42,7 @@ import (
 
 const timeout = time.Second * 20
 
-var _ = Describe("PostgresDatabase controller", func() {
+var _ = FDescribe("PostgresDatabase controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var randomName string
 	var instance *dbv1beta1.PostgresDatabase
@@ -83,17 +83,6 @@ var _ = Describe("PostgresDatabase controller", func() {
 			},
 		}
 		helpers.TestClient.Create(secret)
-
-		// TODO: Clean up when secretRef fixed.
-		// Duplicated pgpass in OperatorNamespace for "supports cross namespace use for shared mode" test case.
-		// See test case for more details.
-		secret2 := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "pgpass", Namespace: helpers.OperatorNamespace},
-			Data: map[string][]byte{
-				"password": []byte(password),
-			},
-		}
-		helpers.TestClient.Create(secret2)
 
 		randomName = utils.RandomString(4)
 		instance = &dbv1beta1.PostgresDatabase{
