@@ -34,11 +34,6 @@ name = "github.com/coreos/prometheus-operator"
 source = "https://github.com/coderanger/prometheus-operator.git"
 branch = "openapi-wat"
 
-[[override]]
-name = "github.com/PagerDuty/go-pagerduty"
-source = "https://github.com/avdhoot/go-pagerduty.git"
-branch = "master"
-
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
 [[constraint]]
