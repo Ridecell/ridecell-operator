@@ -26,9 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	pagerduty "github.com/PagerDuty/go-pagerduty"
 	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
+	pagerduty "github.com/heimweh/go-pagerduty/pagerduty"
 	alertmconfig "github.com/prometheus/alertmanager/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -70,9 +70,9 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		return components.Result{}, nil
 	}
 
-	client := pagerduty.NewClient(os.Getenv("PG_API_KEY"), "https://api.pagerduty.com")
+	client, _ := pagerduty.NewClient(&pagerduty.Config{Token: os.Getenv("PG_API_KEY"), BaseURL: "https://api.pagerduty.com"})
 	if len(os.Getenv("PG_MOCK_URL")) > 0 {
-		client = pagerduty.NewClient(os.Getenv("PG_API_KEY"), os.Getenv("PG_MOCK_URL"))
+		client, _ = pagerduty.NewClient(&pagerduty.Config{Token: os.Getenv("PG_API_KEY"), BaseURL: os.Getenv("PG_MOCK_URL")})
 	}
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -143,8 +143,8 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		receiver.PagerdutyConfigs = pagerdutyconfig
 
 		// Check if EscalationPolicy present in pagerduty
-		var ep pagerduty.EscalationPolicy
-		lep, err := client.ListEscalationPolicies(pagerduty.ListEscalationPoliciesOptions{
+		ep := &pagerduty.EscalationPolicy{}
+		lep, _, err := client.EscalationPolicies.List(&pagerduty.ListEscalationPoliciesOptions{
 			Query: instance.Spec.Notify.PagerdutyTeam,
 		})
 		if err != nil {
@@ -160,9 +160,9 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		}
 
 		// Get service present or not
-		var lso pagerduty.ListServiceOptions
+		lso := &pagerduty.ListServicesOptions{}
 		lso.Query = instance.Spec.ServiceName
-		lsr, err := client.ListServices(lso)
+		lsr, _, err := client.Services.List(lso)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "Failed when checking service %s", instance.Spec.ServiceName)
 		}
@@ -179,9 +179,15 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 					Type:    "constant",
 					Urgency: "severity_based",
 				},
-				EscalationPolicy: ep,
+				EscalationPolicy: &pagerduty.EscalationPolicyReference{
+					HTMLURL: ep.HTMLURL,
+					ID:      ep.ID,
+					Self:    ep.Self,
+					Summary: ep.Summary,
+					Type:    ep.Type,
+				},
 			}
-			s, err := client.CreateService(service)
+			s, _, err := client.Services.Create(&service)
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "Failed to create service %s", instance.Spec.ServiceName)
 			}
@@ -195,7 +201,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 
 			action = append(action, []string{"route", s.ID})
 
-			event, err := client.CreateEventRule(pagerduty.EventRule{
+			event, _, err := client.EventRules.Create(&pagerduty.EventRule{
 				Condition: conditions,
 				CatchAll:  false,
 				Actions:   action,
@@ -205,8 +211,14 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 			}
 			eventid = event.ID
 		} else if lsr.Services[0].EscalationPolicy.ID != ep.ID {
-			lsr.Services[0].EscalationPolicy = ep
-			_, err := client.UpdateService(lsr.Services[0])
+			lsr.Services[0].EscalationPolicy = &pagerduty.EscalationPolicyReference{
+				HTMLURL: ep.HTMLURL,
+				ID:      ep.ID,
+				Self:    ep.Self,
+				Summary: ep.Summary,
+				Type:    ep.Type,
+			}
+			_, _, err := client.Services.Update(lsr.Services[0].ID, lsr.Services[0])
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "failed to update service %s with with escalation police %s",
 					instance.Spec.ServiceName, ep.Name)
