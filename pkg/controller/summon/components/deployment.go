@@ -70,6 +70,11 @@ func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext
 func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
+	// If we're not in deploying state do nothing and exit early.
+	if instance.Status.Status != summonv1beta1.StatusDeploying {
+		return components.Result{}, nil
+	}
+
 	rawAppSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
 	if err != nil {

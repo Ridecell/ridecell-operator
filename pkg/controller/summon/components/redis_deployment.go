@@ -46,6 +46,11 @@ func (comp *redisDeploymentComponent) IsReconcilable(ctx *components.ComponentCo
 }
 
 func (comp *redisDeploymentComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	// If we're not in deploying state do nothing and exit early.
+	if instance.Status.Status != summonv1beta1.StatusDeploying {
+		return components.Result{}, nil
+	}
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*appsv1.Deployment)
 		existing := existingObj.(*appsv1.Deployment)
