@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,10 @@ import (
 )
 
 var _ = Describe("deployment Component", func() {
+
+	BeforeEach(func() {
+		instance.Status.Status = summonv1beta1.StatusDeploying
+	})
 
 	It("runs a basic reconcile", func() {
 		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")

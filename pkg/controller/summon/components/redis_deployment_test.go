@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	appsv1 "k8s.io/api/apps/v1"
 )
@@ -32,6 +33,7 @@ import (
 var _ = Describe("redis_deployment Component", func() {
 
 	It("creates a redis deployment", func() {
+		instance.Status.Status = summonv1beta1.StatusDeploying
 		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 
