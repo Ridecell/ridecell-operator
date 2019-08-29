@@ -45,6 +45,7 @@ func NewDeployment(templatePath string) *deploymentComponent {
 func (comp *deploymentComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&appsv1.Deployment{},
+		&appsv1.StatefulSet{},
 	}
 }
 
