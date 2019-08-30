@@ -168,6 +168,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	appSecretsData := map[string]interface{}{}
 
+	// Set up dynamic-y values.
 	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s/%s", postgresConnection.Username, postgresPassword, postgresConnection.Host, postgresConnection.Database)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
@@ -177,11 +178,39 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
 	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
 
+	// Insert input secret overrides in the correct order.
 	for _, secret := range specInputSecrets {
 		for k, v := range secret.Data {
 			appSecretsData[k] = string(v)
 		}
 	}
+
+	// Pull out specific keys into the secondary SAML-specific secret.
+	samlSecretsData := map[string][]byte{}
+	privateKey, ok := appSecretsData["SAML_PRIVATE_KEY"]
+	if ok {
+		samlSecretsData["sp.key"] = []byte(privateKey.(string))
+		appSecretsData["SAML_PRIVATE_KEY_FILENAME"] = "sp.key"
+	}
+	publicKey, ok := appSecretsData["SAML_PUBLIC_KEY"]
+	if ok {
+		samlSecretsData["sp.crt"] = []byte(publicKey.(string))
+		appSecretsData["SAML_PUBLIC_KEY_FILENAME"] = "sp.crt"
+	}
+	idpPublicKey, ok := appSecretsData["SAML_IDP_PUBLIC_KEY"]
+	if ok {
+		samlSecretsData["idp.crt"] = []byte(idpPublicKey.(string))
+		appSecretsData["SAML_IDP_PUBLIC_KEY_FILENAME"] = "idp.crt"
+	}
+	idpMetadata, ok := appSecretsData["SAML_IDP_METADATA"]
+	if ok {
+		samlSecretsData["metadata.xml"] = []byte(idpMetadata.(string))
+		appSecretsData["SAML_IDP_METADATA_FILENAME"] = "metadata.xml"
+		// If we set local metadata, we probably always want to use it. Should help avoid double-config drift.
+		appSecretsData["SAML_USE_LOCAL_METADATA"] = true
+	}
+
+	// Serialize the app secrets YAML and put it in a secret.
 	yamlData, err := yaml.Marshal(appSecretsData)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")
@@ -204,9 +233,18 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		existing.Data = newSecret.Data
 		return nil
 	})
-
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update secret object")
+		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update app secret object")
+	}
+
+	// Create the SAML secret, even if it's empty as it usually will be.
+	_, _, err = ctx.CreateOrUpdate("secrets/saml.yml.tpl", nil, func(_, existingObj runtime.Object) error {
+		existing := existingObj.(*corev1.Secret)
+		existing.Data = samlSecretsData
+		return nil
+	})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update SAML secret object")
 	}
 
 	return components.Result{}, nil
