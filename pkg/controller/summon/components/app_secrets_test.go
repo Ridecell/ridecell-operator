@@ -233,6 +233,84 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &appSecretsData)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(appSecretsData["TOKEN"]).To(Equal("overwritten_again"))
+	})
 
+	It("handles a SAML_PRIVATE_KEY", func() {
+		inSecret.Data["SAML_PRIVATE_KEY"] = []byte("supersecretprivatekey")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		appSecretsData := map[string]interface{}{}
+		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &appSecretsData)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(appSecretsData).To(HaveKeyWithValue("SAML_PRIVATE_KEY_FILENAME", "sp.key"))
+		Expect(appSecretsData).ToNot(HaveKey("SAML_PUBLIC_KEY_FILENAME"))
+
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fetchSecret.Data).To(HaveKeyWithValue("sp.key", []byte("supersecretprivatekey")))
+	})
+
+	It("handles a SAML_PUBLIC_KEY", func() {
+		inSecret.Data["SAML_PUBLIC_KEY"] = []byte("veryverifiedcert")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		appSecretsData := map[string]interface{}{}
+		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &appSecretsData)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(appSecretsData).To(HaveKeyWithValue("SAML_PUBLIC_KEY_FILENAME", "sp.crt"))
+		Expect(appSecretsData).ToNot(HaveKey("SAML_PRIVATE_KEY_FILENAME"))
+
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fetchSecret.Data).To(HaveKeyWithValue("sp.crt", []byte("veryverifiedcert")))
+	})
+
+	It("handles a SAML_IDP_PUBLIC_KEY", func() {
+		inSecret.Data["SAML_IDP_PUBLIC_KEY"] = []byte("veryverifiedcert")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		appSecretsData := map[string]interface{}{}
+		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &appSecretsData)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(appSecretsData).To(HaveKeyWithValue("SAML_IDP_PUBLIC_KEY_FILENAME", "idp.crt"))
+
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fetchSecret.Data).To(HaveKeyWithValue("idp.crt", []byte("veryverifiedcert")))
+	})
+
+	It("handles a SAML_IDP_METADATA", func() {
+		inSecret.Data["SAML_IDP_METADATA"] = []byte("<saml>isgreat</saml>")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		appSecretsData := map[string]interface{}{}
+		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &appSecretsData)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(appSecretsData).To(HaveKeyWithValue("SAML_IDP_METADATA_FILENAME", "metadata.xml"))
+		Expect(appSecretsData).To(HaveKeyWithValue("SAML_USE_LOCAL_METADATA", true))
+
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fetchSecret.Data).To(HaveKeyWithValue("metadata.xml", []byte("<saml>isgreat</saml>")))
 	})
 })
