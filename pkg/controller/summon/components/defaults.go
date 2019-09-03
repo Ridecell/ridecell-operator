@@ -54,15 +54,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// Fill in defaults.
-	if instance.Spec.Hostname == "" {
-		instance.Spec.Hostname = instance.Name + ".ridecell.us"
-	}
 	if instance.Spec.Environment == "" {
 		x := instance.Namespace
 		if strings.HasPrefix(x, "summon-") {
 			x = x[7:]
 		}
 		instance.Spec.Environment = x
+	}
+	if instance.Spec.Hostname == "" {
+		baseHostname := ".ridecell.us"
+		if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
+			baseHostname = ".ridecell.com"
+		}
+		instance.Spec.Hostname = instance.Name + baseHostname
 	}
 	defaultReplicas := int32(1)
 	if instance.Spec.WebReplicas == nil {
