@@ -262,7 +262,7 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("SAML_EMAIL_ATTRIBUTE", "eduPersonPrincipalName")
 	defConfig("SAML_FIRST_NAME_ATTRIBUTE", "givenName")
 	defConfig("SAML_IDP_ENTITY_ID", "")
-	defConfig("SAML_IDP_METADATA_FILENAME", "")
+	defConfig("SAML_IDP_METADATA_FILENAME", "metadata.xml")
 	defConfig("SAML_IDP_METADATA_URL", "")
 	defConfig("SAML_IDP_PUBLIC_KEY_FILENAME", "idp.crt")
 	defConfig("SAML_IDP_SSO_URL", "")
