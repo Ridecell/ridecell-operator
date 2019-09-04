@@ -67,6 +67,16 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.Hostname).To(Equal("foo.ridecell.us"))
 	})
 
+	It("sets a default prod hostname", func() {
+		instance.ObjectMeta.Name = "foo-prod"
+		instance.ObjectMeta.Namespace = "summon-prod"
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+
+		comp := summoncomponents.NewDefaults()
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Hostname).To(Equal("foo-prod.ridecell.com"))
+	})
+
 	It("sets a default pull secret", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
 
