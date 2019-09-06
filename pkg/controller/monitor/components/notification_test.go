@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	//"github.com/Ridecell/ridecell-operator/pkg/components"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/types"
 
