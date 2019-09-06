@@ -58,6 +58,8 @@ spec:
           mountPath: /etc/config
         - name: app-secrets
           mountPath: /etc/secrets
+        - name: saml
+          mountPath: /etc/saml
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           mountPath: /home/ubuntu/summon-platform
@@ -69,6 +71,9 @@ spec:
         - name: app-secrets
           secret:
             secretName: {{ .Instance.Name }}.app-secrets
+        - name: saml
+          secret:
+            secretName: {{ .Instance.Name }}.saml
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           secret:
