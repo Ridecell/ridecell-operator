@@ -77,8 +77,9 @@ type DbConfigSpec struct {
 }
 
 type PostgresDbConfigStatus struct {
-	Status     string             `json:"status"`
-	Connection PostgresConnection `json:"connection"`
+	Status      string             `json:"status"`
+	Connection  PostgresConnection `json:"connection"`
+	SharedUsers SharedUsersStatus  `json:"sharedUsers"`
 }
 
 // DbConfigStatus defines the observed state of DbConfig

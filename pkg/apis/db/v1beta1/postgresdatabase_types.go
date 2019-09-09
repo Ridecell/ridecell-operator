@@ -63,6 +63,7 @@ type PostgresDatabaseStatus struct {
 	UserStatus            string             `json:"userStatus"`
 	Connection            PostgresConnection `json:"connection"`
 	AdminConnection       PostgresConnection `json:"adminConnection"`
+	SharedUsers           SharedUsersStatus  `json:"sharedUsers"`
 	RDSInstanceID         string             `json:"rdsInstanceId,omitempty"`
 }
 
