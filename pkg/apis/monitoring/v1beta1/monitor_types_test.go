@@ -20,11 +20,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"k8s.io/apimachinery/pkg/types"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("monitor types", func() {
@@ -64,12 +65,25 @@ var _ = Describe("monitor types", func() {
 						"#test-alert",
 						"#test",
 					},
+					PagerdutyTeam: "myteam",
+				},
+				LogAlertRules: []monitoringv1beta1.LogAlertRule{
+					monitoringv1beta1.LogAlertRule{
+						Name:        "Look for bad things realtime",
+						Description: "looking for bad thing",
+						Query:       `_sourceCategory=microservices/prod/us/job-management/* ("cancel_job_if_vehicle_got_reserved_or_moved" AND "TASK_FAILED") OR ("cancel_single_job_vehicle_reserved_task" AND "TASK_FAILED") OR ("cancel_single_job_location_mismatch_task" AND "TASK_FAILED")`,
+						Condition:   "gt",
+						Threshold:   4,
+						Schedule:    "* * 0 0 0 0",
+						Range:       "-15m",
+						Severity:    "info",
+						Runbook:     "https://ridecell.quip.com/ajDsAmRnWFQE/Monitoring",
+					},
 				},
 			},
 		}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
-
 		fetched := &monitoringv1beta1.Monitor{}
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
