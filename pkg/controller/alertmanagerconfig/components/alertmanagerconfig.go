@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -98,9 +99,11 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "Failed to verify alertmanger config")
 	}
-	//TODO make it more Clean. I know it bad :(
+	//TODO make it more Clean. I know it is bad :(
 	// on Marshal config relplace SecretURL with <secret> string.
 	finalConfigStr := strings.Replace(string(finalConfig), "slack_api_url: <secret>", fmt.Sprintf("slack_api_url: %s", defaultConfig.Global.SlackAPIURL.String()), 1)
+	finalConfigStr = strings.Replace(string(finalConfigStr), "api_url: <secret>", fmt.Sprintf("api_url: %s", defaultConfig.Global.SlackAPIURL.String()), -1)
+	finalConfigStr = strings.Replace(string(finalConfigStr), "routing_key: <secret>", fmt.Sprintf("routing_key: %s", os.Getenv("PG_ROUTING_KEY")), -1)
 	finalConfig = []byte(finalConfigStr)
 	// Create/Update secret with finalConfig which prometheus-operator can attach to alertmanager
 	// https://github.com/coreos/prometheus-operator/blob/master/Documentation/user-guides/alerting.md

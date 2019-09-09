@@ -1,0 +1,27 @@
+{
+    "data": [
+        {
+            "type": "WebhookConnection",
+            "type": "WebhookConnection",
+            "id": "000000000000D725",
+            "name": "dummy",
+            "description": "",
+            "createdAt": "2019-07-08T13:55:41.093Z",
+            "createdBy": "000000000073BD3F",
+            "modifiedAt": "2019-07-08T13:55:41.093Z",
+            "modifiedBy": "000000000073BD3F",
+            "url": "https://dummy.dummy.io/api/v1/alerts",
+            "headers": [
+                {
+                    "name": "Authorization",
+                    "value": "********"
+                }
+            ],
+            "customHeaders": [
+            ],
+            "defaultPayload": "[{ \r\n        \"status\": \"firing\",\r\n        \"labels\": {\r\n                \"alertname\": \"$name\",\r\n                \"service\": \"my-service\",\r\n                \"severity\":\"warning\",\r\n                \"instance\": \"$name.example.net\"\r\n        },\r\n        \"annotations\": {\r\n                \"summary\": \"High latency is high!\"\r\n        },\r\n        \"generatorURL\": \"http://prometheus.int.example.net/<generating_expression>\"\r\n}]",
+            "webhookType": "Webhook"
+        }  
+    ],
+    "next": null
+}

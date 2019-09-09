@@ -17,6 +17,7 @@ limitations under the License.
 package components_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
@@ -40,6 +41,7 @@ func TestComponents(t *testing.T) {
 }
 
 var _ = ginkgo.BeforeEach(func() {
+	os.Setenv("PG_ROUTING_KEY", "ALLISWELL")
 	// Set up default-y values for tests to use if they want.
 	instance = &monitoringv1beta1.Monitor{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},

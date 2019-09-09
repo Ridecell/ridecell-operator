@@ -1,0 +1,58 @@
+{
+    "escalation_policies": [
+      {
+        "id": "P5DEHGK",
+        "type": "escalation_policy",
+        "summary": "myteam",
+        "self": "https://api.pagerduty.com/escalation_policies/PDD376O",
+        "html_url": "https://ridecell.pagerduty.com/escalation_policies/PDD376O",
+        "name": "myteam",
+        "escalation_rules": [
+          {
+            "id": "PTE8YWT",
+            "escalation_delay_in_minutes": 30,
+            "targets": [
+              {
+                "id": "PLPLBTN",
+                "type": "user_reference",
+                "summary": "foo",
+                "self": "https://api.pagerduty.com/users/PLPLBTN",
+                "html_url": "https://ridecell.pagerduty.com/users/PLPLBTN"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "id": "PEPZYTK",
+            "type": "service_reference",
+            "summary": "fod poc",
+            "self": "https://api.pagerduty.com/services/PEPZYTK",
+            "html_url": "https://ridecell.pagerduty.com/services/PEPZYTK"
+          },
+          {
+            "id": "P7CX055",
+            "type": "service_reference",
+            "summary": "Cach all events in global",
+            "self": "https://api.pagerduty.com/services/P7CX055",
+            "html_url": "https://ridecell.pagerduty.com/services/P7CX055"
+          },
+          {
+            "id": "PM60DRH",
+            "type": "service_reference",
+            "summary": "bar-pipeline",
+            "self": "https://api.pagerduty.com/services/PM60DRH",
+            "html_url": "https://ridecell.pagerduty.com/services/PM60DRH"
+          }
+        ],
+        "num_loops": 0,
+        "teams": [],
+        "description": "",
+        "privilege": null
+      }
+    ],
+    "limit": 25,
+    "offset": 0,
+    "more": false,
+    "total": null
+  }
