@@ -52,13 +52,13 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			db := &dbv1beta1.PostgresDatabase{}
-			err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+			err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, db)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("sets PostgresStatus", func() {
 			db := &dbv1beta1.PostgresDatabase{
-				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
 				Status: dbv1beta1.PostgresDatabaseStatus{
 					Status: dbv1beta1.StatusReady,
 				},
@@ -77,7 +77,7 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 			It("sets the DatabaseName correctly", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				db := &dbv1beta1.PostgresDatabase{}
-				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, db)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(db.Spec.DatabaseName).To(Equal("legacy"))
 			})
@@ -91,7 +91,7 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 			It("sets the DatabaseName correctly", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				db := &dbv1beta1.PostgresDatabase{}
-				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, db)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(db.Spec.Owner).To(Equal("legacy"))
 			})
@@ -105,7 +105,7 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 			It("sets the DatabaseName correctly", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				db := &dbv1beta1.PostgresDatabase{}
-				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, db)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(db.Spec.MigrationOverrides.RDSInstanceID).To(Equal("legacy"))
 			})
@@ -120,7 +120,7 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 			It("sets the DatabaseName correctly", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				db := &dbv1beta1.PostgresDatabase{}
-				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, db)
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, db)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(db.Spec.MigrationOverrides.RDSMasterUsername).To(Equal("root"))
 			})

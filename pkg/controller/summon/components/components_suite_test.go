@@ -42,7 +42,7 @@ func TestComponents(t *testing.T) {
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &summonv1beta1.SummonPlatform{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
 		Spec: summonv1beta1.SummonPlatformSpec{
 			Hostname: "foo.ridecell.us",
 			Version:  "1.2.3",

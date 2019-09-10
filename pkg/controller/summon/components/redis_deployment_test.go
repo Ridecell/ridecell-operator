@@ -38,7 +38,7 @@ var _ = Describe("redis_deployment Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		deployment := &appsv1.Deployment{}
-		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-redis", Namespace: instance.Namespace}, deployment)
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

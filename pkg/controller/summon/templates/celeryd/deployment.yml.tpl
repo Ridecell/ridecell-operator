@@ -11,7 +11,7 @@ metadata:
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
 spec:
-  replicas: {{ .Instance.Spec.WorkerReplicas }}
+  replicas: {{ .Instance.Spec.Replicas.Celeryd | default 0 }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
