@@ -40,8 +40,13 @@ func (_ *statusComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *statusComponent) Reconcile(_ *components.ComponentContext) (components.Result, error) {
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*dbv1beta1.DbConfig)
-		if instance.Spec.Postgres.Mode == "Shared" && instance.Status.Postgres.Status != "Ready" {
-			return nil
+		if instance.Spec.Postgres.Mode == "Shared" {
+			if instance.Status.Postgres.Status != "Ready" {
+				return nil
+			}
+			if instance.Status.Postgres.SharedUsers.Periscope != dbv1beta1.StatusReady && instance.Status.Postgres.SharedUsers.Periscope != dbv1beta1.StatusSkipped {
+				return nil
+			}
 		}
 		instance.Status.Status = dbv1beta1.StatusReady
 		// TODO a better message

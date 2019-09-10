@@ -32,8 +32,8 @@ commands:
     - checkout
     - restore_cache:
         keys:
-        - v1-vendor-{{ checksum "Gopkg.lock" }}
-        - v1-vendor
+        - v2-vendor-{{ checksum "Gopkg.lock" }}
+        - v2-vendor
     - run: make dep
     - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
 
@@ -89,7 +89,7 @@ jobs:
     - rc_cleanup:
         cover: unit
     - save_cache:
-        key: v1-vendor-{{ checksum "Gopkg.lock" }}
+        key: v2-vendor-{{ checksum "Gopkg.lock" }}
         paths:
         - vendor/
 

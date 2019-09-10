@@ -22,11 +22,18 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("SummonPlatform Defaults Component", func() {
+	var comp components.Component
+
+	BeforeEach(func() {
+		comp = summoncomponents.NewDefaults()
+	})
+
 	It("does nothing on a filled out object", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Hostname:              "foo.example.com",
@@ -58,6 +65,16 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		comp := summoncomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.ridecell.us"))
+	})
+
+	It("sets a default prod hostname", func() {
+		instance.ObjectMeta.Name = "foo-prod"
+		instance.ObjectMeta.Namespace = "summon-prod"
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+
+		comp := summoncomponents.NewDefaults()
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Hostname).To(Equal("foo-prod.ridecell.com"))
 	})
 
 	It("sets a default pull secret", func() {
@@ -146,5 +163,17 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		value := instance.Spec.Config["WEB_URL"].String
 		Expect(*value).To(Equal("https://xyz.ridecell.com"))
+	})
+
+	Context("with a Redis migration override", func() {
+		BeforeEach(func() {
+			instance.Spec.MigrationOverrides.RedisHostname = "awsredis"
+		})
+
+		It("sets the redis ", func() {
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(instance.Spec.Config["ASGI_URL"].String).To(PointTo(Equal("redis://awsredis/1")))
+			Expect(instance.Spec.Config["CACHE_URL"].String).To(PointTo(Equal("redis://awsredis/1")))
+		})
 	})
 })

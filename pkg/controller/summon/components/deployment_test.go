@@ -23,10 +23,12 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +36,10 @@ import (
 )
 
 var _ = Describe("deployment Component", func() {
+
+	BeforeEach(func() {
+		instance.Status.Status = summonv1beta1.StatusDeploying
+	})
 
 	It("runs a basic reconcile", func() {
 		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
@@ -161,5 +167,31 @@ var _ = Describe("deployment Component", func() {
 		target := &appsv1.StatefulSet{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celerybeat", Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("sets celerybeat to 0 if NoCelerybeat is true", func() {
+		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl")
+
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string]string{"summon-platform.yml": "{}\n"},
+		}
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"filler": []byte("test"),
+				"test":   []byte("another_test"),
+			},
+		}
+
+		instance.Spec.NoCelerybeat = true
+
+		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &appsv1.StatefulSet{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celerybeat", Namespace: instance.Namespace}, target)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(target.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
 	})
 })

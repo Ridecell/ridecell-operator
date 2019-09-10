@@ -16,6 +16,11 @@ required = [
     "github.com/shurcooL/vfsgen", # Because this is used by assets_generate.sh
     ]
 
+ignored = [
+  "github.com/googleapis/gnostic/plugins/gnostic-go-generator/examples*",
+  "sigs.k8s.io/controller-tools/pkg/crd/generator/testData*",
+]
+
 [prune]
   go-tests = true
 
@@ -28,7 +33,6 @@ branch = "crd-update-0.1"
 name = "github.com/coreos/prometheus-operator"
 source = "https://github.com/coderanger/prometheus-operator.git"
 branch = "openapi-wat"
-
 
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 

@@ -54,15 +54,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// Fill in defaults.
-	if instance.Spec.Hostname == "" {
-		instance.Spec.Hostname = instance.Name + ".ridecell.us"
-	}
 	if instance.Spec.Environment == "" {
 		x := instance.Namespace
 		if strings.HasPrefix(x, "summon-") {
 			x = x[7:]
 		}
 		instance.Spec.Environment = x
+	}
+	if instance.Spec.Hostname == "" {
+		baseHostname := ".ridecell.us"
+		if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
+			baseHostname = ".ridecell.com"
+		}
+		instance.Spec.Hostname = instance.Name + baseHostname
 	}
 	defaultReplicas := int32(1)
 	if instance.Spec.WebReplicas == nil {
@@ -159,8 +163,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	defVal("WEB_URL", "https://%s", webURL)
 
-	defVal("ASGI_URL", "redis://%s-redis/0", instance.Name)
-	defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
+	if instance.Spec.MigrationOverrides.RedisHostname != "" {
+		defVal("ASGI_URL", "redis://%s/1", instance.Spec.MigrationOverrides.RedisHostname)
+		defVal("CACHE_URL", "redis://%s/1", instance.Spec.MigrationOverrides.RedisHostname)
+	} else {
+		defVal("ASGI_URL", "redis://%s-redis/0", instance.Name)
+		defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
+	}
+
 	defVal("FIREBASE_ROOT_NODE", "%s", instance.Name)
 	defVal("TENANT_ID", "%s", instance.Name)
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
@@ -255,18 +265,18 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("REQUIRE_HTTPS", true)
 	defConfig("SAML_EMAIL_ATTRIBUTE", "eduPersonPrincipalName")
 	defConfig("SAML_FIRST_NAME_ATTRIBUTE", "givenName")
-	defConfig("SAML_IDP_ENTITY_ID", "https://idp.testshib.org/idp/shibboleth")
-	defConfig("SAML_IDP_METADATA_FILENAME", "")
-	defConfig("SAML_IDP_METADATA_URL", "https://www.testshib.org/metadata/testshib-providers.xml")
-	defConfig("SAML_IDP_PUBLIC_KEY_FILENAME", "testshib.crt")
-	defConfig("SAML_IDP_SSO_URL", "https://idp.testshib.org/idp/profile/SAML2/Redirect/SSO")
+	defConfig("SAML_IDP_ENTITY_ID", "")
+	defConfig("SAML_IDP_METADATA_FILENAME", "metadata.xml")
+	defConfig("SAML_IDP_METADATA_URL", "")
+	defConfig("SAML_IDP_PUBLIC_KEY_FILENAME", "idp.crt")
+	defConfig("SAML_IDP_SSO_URL", "")
 	defConfig("SAML_LAST_NAME_ATTRIBUTE", "sn")
 	defConfig("SAML_NAME_ID_FORMAT", "urn:oasis:names:tc:SAML:2.0:nameid-format:transient")
 	defConfig("SAML_PRIVATE_KEY_FILENAME", "sp.key")
 	defConfig("SAML_PRIVATE_KEY_FILENAME", "sp.key")
 	defConfig("SAML_PUBLIC_KEY_FILENAME", "sp.crt")
 	defConfig("SAML_PUBLIC_KEY_FILENAME", "sp.crt")
-	defConfig("SAML_SERVICE_NAME", "RideCell SAML Test")
+	defConfig("SAML_SERVICE_NAME", "")
 	defConfig("SAML_USE_LOCAL_METADATA", "")
 	defConfig("SAML_VALID_FOR_HOURS", float64(24))
 	defConfig("SESSION_COOKIE_AGE", float64(1209600))

@@ -4,7 +4,7 @@ metadata:
   name: {{ .Instance.Name }}
   namespace: {{ .Instance.Namespace }}
 spec:
-  vhostName: {{ .Instance.Name }}
+  vhostName: {{ .Instance.Spec.MigrationOverrides.RabbitMQVhost | default .Instance.Name }}
   policies:
     HA:
       pattern: ^(?!amq\.).*

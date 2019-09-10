@@ -18,33 +18,35 @@ package components_test
 
 import (
 	"context"
+	"os"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/types"
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	mcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/monitor/components"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_pagerduty"
 	alertmconfig "github.com/prometheus/alertmanager/config"
 )
 
 var _ = Describe("Monitor Notification Component", func() {
-	var comp components.Component
-
+	comp := mcomponents.NewNotification()
 	BeforeEach(func() {
-		comp = mcomponents.NewNotification()
+		os.Setenv("PG_MOCK_URL", "http://localhost:8082")
+		fake_pagerduty.Run()
 	})
 
-	It("creates a alertmanager config ", func() {
+	It("Is reconcilable?", func() {
 		instance.Spec.Notify = monitoringv1beta1.Notify{
 			Slack: []string{
 				"#test-alert",
 				"#test",
 			},
+			PagerdutyTeam: "myteam",
 		}
 		instance.Spec.ServiceName = "dev-foo-service"
 
@@ -57,6 +59,7 @@ var _ = Describe("Monitor Notification Component", func() {
 		err = yaml.Unmarshal([]byte(config.Spec.Data["receiver"]), receiver)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(receiver.SlackConfigs[0].Channel).To(Equal("#test-alert"))
+		Expect(receiver.PagerdutyConfigs[0].Severity).To(Equal(`{{ .CommonLabels.severity }}`))
 		//Check Route have correct Receiver name
 		Expect(config.Spec.Data).To(HaveKey("routes"))
 		route := &alertmconfig.Route{}
@@ -66,4 +69,5 @@ var _ = Describe("Monitor Notification Component", func() {
 		// Check correct & default route condition present
 		Expect(route.MatchRE["servicename"]).Should(ContainSubstring(instance.Spec.ServiceName))
 	})
+
 })

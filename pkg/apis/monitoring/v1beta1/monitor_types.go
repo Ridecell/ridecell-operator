@@ -37,8 +37,9 @@ type MonitorSpec struct {
 type MonitorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status      string `json:"status"`
+	Message     string `json:"message"`
+	EventRuleID string `json:"eventruleid"`
 }
 
 // +genclient
@@ -46,6 +47,7 @@ type MonitorStatus struct {
 
 // Monitor is the Schema for the monitors API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 type Monitor struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -76,8 +78,8 @@ type MetricAlertRule struct {
 }
 
 type Notify struct {
-	Slack     []string `json:"slack,omitempty"`
-	Pagerduty []string `json:"pagerduty,omitempty"`
+	Slack         []string `json:"slack,omitempty"`
+	PagerdutyTeam string   `json:"pagerdutyteam,omitempty"`
 }
 
 type LogAlertRule struct {
@@ -88,4 +90,6 @@ type LogAlertRule struct {
 	Threshold   int64  `json:"threshold"`
 	Schedule    string `json:"schedule"`
 	Range       string `json:"range"`
+	Severity    string `json:"severity"`
+	Runbook     string `json:"runbook,omitempty"`
 }

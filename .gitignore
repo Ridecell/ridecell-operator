@@ -29,7 +29,8 @@ zz_generated.*
 vendor/
 
 # Ignore crd yamls
-config/crds/*.yaml
+config/crds/
+config/crd/
 helm/templates/crds/*.yaml
 
 # ignore webui stuff

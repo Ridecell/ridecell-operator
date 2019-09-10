@@ -21,6 +21,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MigrationOverridesSpec defines value overrides used when migrating Ansible-based Summon instances into Kubernetes/ridecell-operator.
+type MigrationOverridesSpec struct {
+	// An optional RDS instance ID override. Only used if the DbConfig is in RDS mode. Exists for migrations from Ansible Summon.
+	// +optional
+	RDSInstanceID string `json:"rdsInstanceId,omitempty"`
+	// An optional RDS master username override. Only used if the DbConfig is in RDS mode. Exists for migrations from Ansible Summon.
+	// +optional
+	RDSMasterUsername string `json:"rdsMasterUsername,omitempty"`
+}
+
 // PostgresDatabaseSpec defines the desired state of PostgresDatabase
 type PostgresDatabaseSpec struct {
 	// Name of the database to create. Defaults the same name as the PostgresDatabase object.
@@ -38,6 +48,9 @@ type PostgresDatabaseSpec struct {
 	// A map of extensions to versions to install. If the version is "" then the latest version will be used.
 	// +optional
 	Extensions map[string]string `json:"extensions,omitempty"`
+	// Migration override settings.
+	// +optional
+	MigrationOverrides MigrationOverridesSpec `json:"migrationOverrides,omitempty"`
 }
 
 // PostgresDatabaseStatus defines the observed state of PostgresDatabase
@@ -50,6 +63,7 @@ type PostgresDatabaseStatus struct {
 	UserStatus            string             `json:"userStatus"`
 	Connection            PostgresConnection `json:"connection"`
 	AdminConnection       PostgresConnection `json:"adminConnection"`
+	SharedUsers           SharedUsersStatus  `json:"sharedUsers"`
 	RDSInstanceID         string             `json:"rdsInstanceId,omitempty"`
 }
 
