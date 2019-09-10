@@ -43,37 +43,37 @@ var _ = Describe("SummonPlatform Status Component", func() {
 
 	BeforeEach(func() {
 		webDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-web", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-web", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: intp(2),
 			},
 		}
 		daphneDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-daphne", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-daphne", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: intp(2),
 			},
 		}
 		celerydDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-celeryd", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celeryd", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: intp(2),
 			},
 		}
 		channelworkersDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-channelworker", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-channelworker", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: intp(2),
 			},
 		}
 		staticDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-static", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-static", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: intp(2),
 			},
 		}
 		celerybeatStatefulSet = &appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-celerybeat", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celerybeat", Namespace: "summon-dev"},
 			Spec: appsv1.StatefulSetSpec{
 				Replicas: intp(2),
 			},

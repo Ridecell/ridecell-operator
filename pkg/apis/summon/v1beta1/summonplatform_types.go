@@ -94,6 +94,28 @@ type MigrationOverridesSpec struct {
 	RedisHostname     string `json:"redisHostname,omitempty"`
 }
 
+// ReplicasSpec defines the number of replicas of various types of pods to run.
+type ReplicasSpec struct {
+	// Number of web (twisted) pods to run. Defaults to 1 for dev/qa, 2 for uat, 4 for prod.
+	// +optional
+	Web *int32 `json:"web,omitempty"`
+	// Number of daphne pods to run. Defaults to 1 for dev/qa, 2 for uat/prod.
+	// +optional
+	Daphne *int32 `json:"daphne,omitempty"`
+	// Number of celeryd pods to run. Defaults to 1 for dev/qa/uat, 4 for prod.
+	// +optional
+	Celeryd *int32 `json:"celeryd,omitempty"`
+	// Number of celerybeat pods to run. Defaults to 1. Must be exactly 0 or 1.
+	// +optional
+	CeleryBeat *int32 `json:"celeryBeat,omitempty"`
+	// Number of channelworker pods to run. Defaults to 1 for dev/qa, 2 for uat, 4 for prod.
+	// +optional
+	ChannelWorker *int32 `json:"channelWorker,omitempty"`
+	// Number of caddy pods to run. Defaults to 1 for dev/qa, 2 for uat/prod.
+	// +optional
+	Static *int32 `json:"static,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -113,24 +135,6 @@ type SummonPlatformSpec struct {
 	PullSecret string `json:"pullSecret,omitempty"`
 	// Summon-platform.yml configuration options.
 	Config map[string]ConfigValue `json:"config,omitempty"`
-	// Number of gunicorn pods to run. Defaults to 1.
-	// +optional
-	WebReplicas *int32 `json:"webReplicas,omitempty"`
-	// Number of daphne pods to run. Defaults to 1.
-	// +optional
-	DaphneReplicas *int32 `json:"daphneReplicas,omitempty"`
-	// Number of celeryd pods to run. Defaults to 1.
-	// +optional
-	WorkerReplicas *int32 `json:"workerReplicas,omitempty"`
-	// Number of channelworker pods to run. Defaults to 1.
-	// +optional
-	ChannelWorkerReplicas *int32 `json:"channelWorkerReplicas,omitempty"`
-	// Number of caddy pods to run. Defaults to 1.
-	// +optional
-	StaticReplicas *int32 `json:"staticReplicas,omitempty"`
-	// If true, do not run celerybeat.
-	// +optional
-	NoCelerybeat bool `json:"noCelerybeat,omitempty"`
 	// Settings for deploy and error notifications.
 	// +optional
 	Notifications NotificationsSpec `json:"notifications,omitempty"`
@@ -175,6 +179,17 @@ type SummonPlatformSpec struct {
 	// Celery settings.
 	// +optional
 	Celery CelerySpec `json:"celery,omitempty"`
+	// Pod replica settings.
+	// +optional
+	Replicas ReplicasSpec `json:"replicas,omitempty"`
+
+	// Backwards compat fields from before ReplicasSpec. Clean up once all instances are converted to the new config format.
+	WebReplicas           *int32 `json:"webReplicas,omitempty"`
+	DaphneReplicas        *int32 `json:"daphneReplicas,omitempty"`
+	WorkerReplicas        *int32 `json:"workerReplicas,omitempty"`
+	ChannelWorkerReplicas *int32 `json:"channelWorkerReplicas,omitempty"`
+	StaticReplicas        *int32 `json:"staticReplicas,omitempty"`
+	NoCelerybeat          bool   `json:"noCelerybeat,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications
