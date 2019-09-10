@@ -36,7 +36,7 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-config", Namespace: "summon-dev"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{}\n"))
@@ -51,7 +51,7 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-config", Namespace: "summon-dev"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{}\n"))
@@ -68,7 +68,7 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-config", Namespace: "summon-dev"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{\"foo\":\"bar\"}\n"))
@@ -85,7 +85,7 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-config", Namespace: "summon-dev"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{\"foo\":42}\n"))
@@ -102,7 +102,7 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-config", Namespace: "summon-dev"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{\"foo\":true}\n"))

@@ -41,27 +41,27 @@ var _ = Describe("app_secrets Component", func() {
 	BeforeEach(func() {
 		instance.Status.PostgresStatus = dbv1beta1.StatusReady
 		instance.Status.PostgresConnection = dbv1beta1.PostgresConnection{
-			Host:     "summon-qa-database",
-			Username: "foo_qa",
-			Database: "foo_qa",
+			Host:     "summon-dev-database",
+			Username: "foo_dev",
+			Database: "foo_dev",
 			PasswordSecretRef: helpers.SecretRef{
-				Name: "foo-qa.postgres-user-password",
+				Name: "foo-dev.postgres-user-password",
 				Key:  "password",
 			},
 		}
 		instance.Status.RabbitMQStatus = dbv1beta1.StatusReady
 		instance.Status.RabbitMQConnection = dbv1beta1.RabbitmqStatusConnection{
 			Host:     "rabbitmqserver",
-			Username: "foo-user",
-			Vhost:    "foo",
+			Username: "foo-dev-user",
+			Vhost:    "foo-dev",
 			PasswordSecretRef: helpers.SecretRef{
-				Name: "foo.rabbitmq-user-password",
+				Name: "foo-dev.rabbitmq-user-password",
 				Key:  "password",
 			},
 		}
 
 		inSecret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"TOKEN": []byte("secrettoken"),
 			},
@@ -69,28 +69,28 @@ var _ = Describe("app_secrets Component", func() {
 
 		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
 		fernetKeys = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.fernet-keys", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev.fernet-keys", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				formattedTime: []byte("lorem ipsum"),
 			},
 		}
 
 		postgresSecret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-qa.postgres-user-password", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev.postgres-user-password", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"password": []byte("postgresPassword"),
 			},
 		}
 
 		secretKey = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.secret-key", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev.secret-key", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"SECRET_KEY": []byte("testkey"),
 			},
 		}
 
 		accessKey = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev.aws-credentials", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("testid"),
 				"AWS_SECRET_ACCESS_KEY": []byte("testkey"),
@@ -98,7 +98,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		rabbitmqPassword = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev.rabbitmq-user-password", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"password": []byte("rabbitmqpassword"),
 			},
@@ -133,17 +133,17 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		var parsedYaml map[string]interface{}
 		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://foo_qa:postgresPassword@summon-qa-database/foo_qa"))
-		Expect(parsedYaml["OUTBOUNDSMS_URL"]).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
-		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo.ridecell.us/sms/receive/"))
-		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-user:rabbitmqpassword@rabbitmqserver/foo?ssl=true"))
+		Expect(parsedYaml["DATABASE_URL"]).To(Equal("postgis://foo_dev:postgresPassword@summon-dev-database/foo_dev"))
+		Expect(parsedYaml["OUTBOUNDSMS_URL"]).To(Equal("https://foo-dev.prod.ridecell.io/outbound-sms"))
+		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo-dev.ridecell.us/sms/receive/"))
+		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-dev-user:rabbitmqpassword@rabbitmqserver/foo-dev?ssl=true"))
 		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
 		Expect(parsedYaml["AWS_ACCESS_KEY_ID"]).To(Equal("testid"))
 		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(Equal("testkey"))
@@ -153,7 +153,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		var parsedYaml map[string]interface{}
@@ -181,7 +181,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		var parsedYaml struct {
@@ -196,7 +196,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("runs reconcile with no secret_key", func() {
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys)
 		res, err := comp.Reconcile(ctx)
-		Expect(err).To(MatchError(`app_secrets: error fetching derived app secret foo.secret-key: secrets "foo.secret-key" not found`))
+		Expect(err).To(MatchError(`app_secrets: error fetching derived app secret foo-dev.secret-key: secrets "foo-dev.secret-key" not found`))
 		Expect(res.Requeue).To(BeTrue())
 	})
 
@@ -208,14 +208,14 @@ var _ = Describe("app_secrets Component", func() {
 		instance.Spec.Secrets = []string{"testsecret", "testsecret2", "testsecret3"}
 
 		inSecret2 := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret2", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret2", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"TOKEN": []byte("overwritten"),
 			},
 		}
 
 		inSecret3 := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret3", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret3", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"TOKEN": []byte("overwritten_again"),
 			},
@@ -225,7 +225,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		appSecretsData := map[string]interface{}{}
@@ -241,7 +241,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		appSecretsData := map[string]interface{}{}
@@ -250,7 +250,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(appSecretsData).To(HaveKeyWithValue("SAML_PRIVATE_KEY_FILENAME", "sp.key"))
 		Expect(appSecretsData).ToNot(HaveKey("SAML_PUBLIC_KEY_FILENAME"))
 
-		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.saml", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fetchSecret.Data).To(HaveKeyWithValue("sp.key", []byte("supersecretprivatekey")))
 	})
@@ -261,7 +261,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		appSecretsData := map[string]interface{}{}
@@ -270,7 +270,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(appSecretsData).To(HaveKeyWithValue("SAML_PUBLIC_KEY_FILENAME", "sp.crt"))
 		Expect(appSecretsData).ToNot(HaveKey("SAML_PRIVATE_KEY_FILENAME"))
 
-		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.saml", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fetchSecret.Data).To(HaveKeyWithValue("sp.crt", []byte("veryverifiedcert")))
 	})
@@ -281,7 +281,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		appSecretsData := map[string]interface{}{}
@@ -289,7 +289,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(appSecretsData).To(HaveKeyWithValue("SAML_IDP_PUBLIC_KEY_FILENAME", "idp.crt"))
 
-		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.saml", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fetchSecret.Data).To(HaveKeyWithValue("idp.crt", []byte("veryverifiedcert")))
 	})
@@ -300,7 +300,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.app-secrets", Namespace: "default"}, fetchSecret)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		appSecretsData := map[string]interface{}{}
@@ -309,7 +309,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(appSecretsData).To(HaveKeyWithValue("SAML_IDP_METADATA_FILENAME", "metadata.xml"))
 		Expect(appSecretsData).To(HaveKeyWithValue("SAML_USE_LOCAL_METADATA", true))
 
-		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo.saml", Namespace: "default"}, fetchSecret)
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.saml", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fetchSecret.Data).To(HaveKeyWithValue("metadata.xml", []byte("<saml>isgreat</saml>")))
 	})

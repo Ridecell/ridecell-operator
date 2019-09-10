@@ -36,35 +36,30 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 	It("does nothing on a filled out object", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
-			Hostname:              "foo.example.com",
-			Environment:           "dev",
-			WebReplicas:           intp(2),
-			DaphneReplicas:        intp(2),
-			ChannelWorkerReplicas: intp(2),
-			StaticReplicas:        intp(2),
+			Hostname:    "foo.example.com",
+			Environment: "dev",
+			Replicas: summonv1beta1.ReplicasSpec{
+				Web:           intp(2),
+				Daphne:        intp(2),
+				ChannelWorker: intp(2),
+				Static:        intp(2),
+			},
 		}
 
-		comp := summoncomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
 		Expect(instance.Spec.Environment).To(Equal("dev"))
-		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.StaticReplicas).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.Daphne).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.ChannelWorker).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.Static).To(PointTo(BeEquivalentTo(2)))
 	})
 
 	It("sets a default hostname", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{
-			WebReplicas:           intp(2),
-			DaphneReplicas:        intp(2),
-			ChannelWorkerReplicas: intp(2),
-			StaticReplicas:        intp(2),
-		}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
 
-		comp := summoncomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.Hostname).To(Equal("foo.ridecell.us"))
+		Expect(instance.Spec.Hostname).To(Equal("foo-dev.ridecell.us"))
 	})
 
 	It("sets a default prod hostname", func() {
@@ -72,7 +67,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		instance.ObjectMeta.Namespace = "summon-prod"
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
 
-		comp := summoncomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo-prod.ridecell.com"))
 	})
@@ -80,89 +74,134 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("sets a default pull secret", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
 
-		comp := summoncomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.PullSecret).To(Equal("pull-secret"))
 	})
 
-	It("sets a default web replicas", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{
-			DaphneReplicas:        intp(2),
-			ChannelWorkerReplicas: intp(2),
-			StaticReplicas:        intp(2),
-		}
-
-		comp := summoncomponents.NewDefaults()
+	It("sets a default dev replicas", func() {
+		instance.Namespace = "summon-dev"
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(1)))
-		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.StaticReplicas).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.Daphne).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.ChannelWorker).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.Static).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
+	})
+
+	It("sets a default qa replicas", func() {
+		instance.Namespace = "summon-qa"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.Daphne).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.ChannelWorker).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.Static).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
+	})
+
+	It("sets a default uat replicas", func() {
+		instance.Namespace = "summon-uat"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.Daphne).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.ChannelWorker).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.Static).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
+	})
+
+	It("sets a default prod replicas", func() {
+		instance.Namespace = "summon-prod"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(4)))
+		Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(4)))
+		Expect(instance.Spec.Replicas.Daphne).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.ChannelWorker).To(PointTo(BeEquivalentTo(4)))
+		Expect(instance.Spec.Replicas.Static).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
 	})
 
 	It("allows 0 web replicas", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
-			WebReplicas:           intp(0),
-			DaphneReplicas:        intp(2),
-			ChannelWorkerReplicas: intp(2),
-			StaticReplicas:        intp(2),
+			Replicas: summonv1beta1.ReplicasSpec{
+				Web: intp(0),
+			},
 		}
 
-		comp := summoncomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(0)))
-		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.StaticReplicas).To(PointTo(BeEquivalentTo(2)))
+		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(0)))
+	})
+
+	Context("with legacy replicas settings", func() {
+		It("allows 2 web replicas", func() {
+			instance.Spec = summonv1beta1.SummonPlatformSpec{
+				WebReplicas: intp(2),
+			}
+
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(2)))
+		})
+
+		It("allows 0 web replicas", func() {
+			instance.Spec = summonv1beta1.SummonPlatformSpec{
+				WebReplicas: intp(0),
+			}
+
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(0)))
+		})
+
+		It("allows legacy NoCelerybeat", func() {
+			instance.Spec = summonv1beta1.SummonPlatformSpec{
+				NoCelerybeat: true,
+			}
+
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(0)))
+		})
 	})
 
 	It("Sets a default Secret for dev", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
 		instance.Namespace = "dev"
-		comp := summoncomponents.NewDefaults()
 
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Secrets[0]).To(Equal("dev"))
-		Expect(instance.Spec.Secrets[1]).To(Equal("foo"))
+		Expect(instance.Spec.Secrets[1]).To(Equal("foo-dev"))
 	})
 
 	It("Sets a default Secret for prod", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
-		instance.Namespace = "prod"
-		comp := summoncomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Secrets[0]).To(Equal("prod"))
-		Expect(instance.Spec.Secrets[1]).To(Equal("foo"))
+		instance.Namespace = "summon-prod"
+
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Secrets[0]).To(Equal("summon-prod"))
+		Expect(instance.Spec.Secrets[1]).To(Equal("foo-dev"))
 	})
 
 	It("Sets a default environment with summon prefix", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
-		comp := summoncomponents.NewDefaults()
 		instance.Namespace = "summon-dev"
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Environment).To(Equal("dev"))
 	})
 
 	It("Sets a default environment without the summon prefix", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
-		comp := summoncomponents.NewDefaults()
 		instance.Namespace = "dev"
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Environment).To(Equal("dev"))
 	})
 
 	It("Set WEB_URL as the first value in aliases", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
-		comp := summoncomponents.NewDefaults()
 		instance.Spec.Aliases = []string{"xyz.ridecell.com", "abc.ridecell.com"}
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
-		value := instance.Spec.Config["WEB_URL"].String
-		Expect(*value).To(Equal("https://xyz.ridecell.com"))
+
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Config["WEB_URL"].String).To(PointTo(Equal("https://xyz.ridecell.com")))
 	})
 
 	Context("with a Redis migration override", func() {

@@ -34,7 +34,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 		// There should only be a single rule (for the primary hostname -- no vanity hostname rules should exist)
 		Expect(target.Spec.Rules).To(HaveLen(1))
@@ -45,7 +45,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		comp := summoncomponents.NewIngress("static/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-static", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -53,7 +53,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		comp := summoncomponents.NewIngress("daphne/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-daphne", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-daphne", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -62,7 +62,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(target.Spec.Rules).To(HaveLen(3))
 		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf("foo.ridecell.us", "foo-1.ridecell.us", "foo-2.ridecell.us"))
