@@ -78,6 +78,14 @@ commands:
         aws: << parameters.aws >>
 
 jobs:
+  lint:
+    docker:
+    - image: golangci/golangci-lint:latest
+    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    steps:
+    - checkout
+    - run: golangci-lint run
+
   test:
     executor: rc_test
     steps:
@@ -243,27 +251,35 @@ workflows:
   version: 2
   default:
     jobs:
+    - lint
     - test
     - test_postgres:
         requires:
+        - lint
         - test
     - test_aws:
         requires:
+        - lint
         - test
     - test_rds:
         requires:
+        - lint
         - test
     - test_rdssnapshot:
         requires:
+        - lint
         - test
     - test_rabbitmq:
         requires:
+        - lint
         - test
     - test_other:
         requires:
+        - lint
         - test
     - coveralls:
         requires:
+        - lint
         - test
         - test_postgres
         - test_aws
@@ -273,9 +289,11 @@ workflows:
         - test_other
     - crds:
         requires:
+        - lint
         - test
     - build:
         requires:
+        - lint
         - test
         - test_postgres
         - test_aws
