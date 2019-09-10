@@ -71,7 +71,7 @@ tools:
 
 # Install dependencies
 dep: tools
-	dep ensure
+	dep ensure || (rm -rf .vendor-new && sleep 5 && dep ensure)
 
 # Display a coverage report
 cover:
