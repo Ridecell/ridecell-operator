@@ -71,7 +71,8 @@ tools:
 
 # Install dependencies
 dep: tools
-	dep ensure || (rm -rf .vendor-new && sleep 5 && dep ensure)
+	# Due to weird issues on CircleCI, sometimes we need to run dep twice. ¯\_(ツ)_/¯
+	dep ensure || (rm -rf .vendor-new && dep ensure)
 
 # Display a coverage report
 cover:
