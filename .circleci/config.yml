@@ -89,7 +89,7 @@ jobs:
     - rc_cleanup:
         cover: unit
     - save_cache:
-        key: v1-vendor-{{ checksum "Gopkg.lock" }}
+        key: v2-vendor-{{ checksum "Gopkg.lock" }}
         paths:
         - vendor/
 
