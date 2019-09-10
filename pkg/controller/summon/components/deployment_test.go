@@ -211,7 +211,7 @@ var _ = Describe("deployment Component", func() {
 			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &appsv1.Deployment{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celeryd", Namespace: instance.Namespace}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--pool", "prefork"}))
 		})
@@ -234,7 +234,7 @@ var _ = Describe("deployment Component", func() {
 			instance.Spec.Celery.Concurrency = 10
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &appsv1.Deployment{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celeryd", Namespace: instance.Namespace}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "10", "--pool", "prefork"}))
 		})
@@ -257,7 +257,7 @@ var _ = Describe("deployment Component", func() {
 			instance.Spec.Celery.Pool = "solo"
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &appsv1.Deployment{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celeryd", Namespace: instance.Namespace}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--pool", "solo"}))
 		})
