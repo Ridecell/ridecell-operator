@@ -96,8 +96,8 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
-			Expect(deployPost.Name).To(Equal("foo"))
-			Expect(deployPost.Env).To(Equal("default"))
+			Expect(deployPost.Name).To(Equal("foo-dev"))
+			Expect(deployPost.Env).To(Equal("dev"))
 			Expect(deployPost.Tag).To(Equal("1234-eb6b515-master"))
 		})
 
@@ -146,8 +146,8 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
-			Expect(deployPost.Name).To(Equal("foo"))
-			Expect(deployPost.Env).To(Equal("default"))
+			Expect(deployPost.Name).To(Equal("foo-dev"))
+			Expect(deployPost.Env).To(Equal("dev"))
 			Expect(deployPost.Tag).To(Equal("1234"))
 		})
 

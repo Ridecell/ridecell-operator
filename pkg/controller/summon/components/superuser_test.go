@@ -42,7 +42,7 @@ var _ = Describe("SummonPlatform Superuser Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		user := &summonv1beta1.DjangoUser{}
-		err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dispatcher", Namespace: "default"}, user)
+		err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dev-dispatcher", Namespace: "summon-dev"}, user)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -54,19 +54,19 @@ var _ = Describe("SummonPlatform Superuser Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 
 			user := &summonv1beta1.DjangoUser{}
-			err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dispatcher", Namespace: "default"}, user)
+			err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dev-dispatcher", Namespace: "summon-dev"}, user)
 			Expect(err).To(HaveOccurred())
 			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 		})
 
 		It("deletes an existing user", func() {
-			user := &summonv1beta1.DjangoUser{ObjectMeta: metav1.ObjectMeta{Name: "foo-dispatcher", Namespace: "default"}}
+			user := &summonv1beta1.DjangoUser{ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-dispatcher", Namespace: "summon-dev"}}
 			ctx.Client = fake.NewFakeClient(user)
 
 			comp := summoncomponents.NewSuperuser()
 			Expect(comp).To(ReconcileContext(ctx))
 
-			err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dispatcher", Namespace: "default"}, user)
+			err := ctx.Client.Get(context.Background(), types.NamespacedName{Name: "foo-dev-dispatcher", Namespace: "summon-dev"}, user)
 			Expect(err).To(HaveOccurred())
 			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 		})

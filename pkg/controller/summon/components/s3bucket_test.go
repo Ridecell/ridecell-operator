@@ -38,7 +38,7 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 		comp := summoncomponents.NewS3Bucket("aws/staticbucket.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &awsv1beta1.S3Bucket{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 		// Make sure it doesn't touch the MIV status.
 		Expect(instance.Status.MIV.Bucket).To(Equal(""))
@@ -48,9 +48,9 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 		comp := summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &awsv1beta1.S3Bucket{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-miv", Namespace: "default"}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-miv", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(instance.Status.MIV.Bucket).To(Equal("ridecell-foo-miv"))
+		Expect(instance.Status.MIV.Bucket).To(Equal("ridecell-foo-dev-miv"))
 	})
 
 	Context("when using an external MIV bucket", func() {
@@ -62,18 +62,18 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 			comp := summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.S3Bucket{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-miv", Namespace: "default"}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-miv", Namespace: "summon-dev"}, target)
 			Expect(err).To(HaveOccurred())
 			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 			Expect(instance.Status.MIV.Bucket).To(Equal("asdf"))
 		})
 
 		It("deletes an existing operator-controlled bucket", func() {
-			target := &awsv1beta1.S3Bucket{ObjectMeta: metav1.ObjectMeta{Name: "foo-miv", Namespace: "default"}}
+			target := &awsv1beta1.S3Bucket{ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-miv", Namespace: "summon-dev"}}
 			ctx.Client = fake.NewFakeClient(instance, target)
 			comp := summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-miv", Namespace: "default"}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-miv", Namespace: "summon-dev"}, target)
 			Expect(err).To(HaveOccurred())
 			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 			Expect(instance.Status.MIV.Bucket).To(Equal("asdf"))
@@ -82,8 +82,8 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 		It("test our temporary region respect hack static", func() {
 			newS3Bucket := &awsv1beta1.S3Bucket{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "default",
+					Name:      "foo-dev",
+					Namespace: "summon-dev",
 				},
 				Spec: awsv1beta1.S3BucketSpec{
 					Region: "notouchy",
@@ -93,7 +93,7 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 			comp := summoncomponents.NewS3Bucket("aws/staticbucket.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.S3Bucket{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.Region).To(Equal("notouchy"))
 		})
@@ -101,8 +101,8 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 		It("test our temporary region respect hack miv", func() {
 			newS3Bucket := &awsv1beta1.S3Bucket{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "default",
+					Name:      "foo-dev",
+					Namespace: "summon-dev",
 				},
 				Spec: awsv1beta1.S3BucketSpec{
 					Region: "notouchy",
@@ -112,7 +112,7 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 			comp := summoncomponents.NewS3Bucket("aws/mivbucket.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.S3Bucket{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.Region).To(Equal("notouchy"))
 		})

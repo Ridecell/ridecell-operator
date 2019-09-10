@@ -106,7 +106,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			It("creates a migration job", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
 			})
@@ -115,7 +115,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				instance.Spec.Flavor = "test-flavor"
 				Expect(comp).To(ReconcileContext(ctx))
 				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(strings.Contains(job.Spec.Template.Spec.Containers[0].Command[2], "https://ridecell-flavors.s3.us-west-2.amazonaws.com/test-flavor.json.bz2")).To(BeTrue())
 			})
@@ -123,7 +123,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			It("makes sure loadflavor command is not loaded into template", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate"))
 			})
@@ -133,8 +133,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			BeforeEach(func() {
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-migrations",
-						Namespace: "default",
+						Name:      "foo-dev-migrations",
+						Namespace: "summon-dev",
 						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.3"},
 					},
 				}
@@ -144,7 +144,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			It("still has a migration job", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
 			})
@@ -154,8 +154,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			BeforeEach(func() {
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-migrations",
-						Namespace: "default",
+						Name:      "foo-dev-migrations",
+						Namespace: "summon-dev",
 						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.3"},
 					},
 					Status: batchv1.JobStatus{
@@ -180,8 +180,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			BeforeEach(func() {
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-migrations",
-						Namespace: "default",
+						Name:      "foo-dev-migrations",
+						Namespace: "summon-dev",
 						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.3"},
 					},
 					Status: batchv1.JobStatus{
@@ -194,7 +194,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			It("leaves the migration", func() {
 				Expect(comp).NotTo(ReconcileContext(ctx))
 				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
 			})
@@ -204,8 +204,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			BeforeEach(func() {
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-migrations",
-						Namespace: "default",
+						Name:      "foo-dev-migrations",
+						Namespace: "summon-dev",
 						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.2"},
 					},
 					Status: batchv1.JobStatus{
@@ -233,8 +233,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			BeforeEach(func() {
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-migrations",
-						Namespace: "default",
+						Name:      "foo-dev-migrations",
+						Namespace: "summon-dev",
 						Labels:    map[string]string{},
 					},
 					Status: batchv1.JobStatus{
