@@ -34,7 +34,21 @@ spec:
       - name: default
         image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
         imagePullPolicy: Always
-        command: [python, "-m", celery, "-A", summon_platform, worker, "-l", info]
+        command:
+        - python
+        - "-m"
+        - celery
+        - "-A"
+        - summon_platform
+        - worker
+        - "-l"
+        - info
+        {{ if .Instance.Spec.Celery.Concurrency }}
+        - "--concurrency"
+        - {{ .Instance.Spec.Celery.Concurrency | quote }}
+        {{ end }}
+        - "--pool"
+        - {{ .Instance.Spec.Celery.Pool | default "prefork" }}
         ports:
         - containerPort: 8000
         resources:

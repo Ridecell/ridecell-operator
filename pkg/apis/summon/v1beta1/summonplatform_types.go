@@ -52,6 +52,17 @@ type DatabaseSpec struct {
 	SharedDatabaseName string `json:"sharedDatabaseName,omitempty"`
 }
 
+// CelerySpec defines configuration and settings for Celery.
+type CelerySpec struct {
+	// Setting for --concurrency.
+	// +optional
+	Concurrency int `json:"concurrency,omitempty"`
+	// Setting for --pool.
+	// +optional
+	// +kubebuilder:validation:Enum=prefork,eventlet,gevent,solo
+	Pool string `json:"pool,omitempty"`
+}
+
 // MIVSpec defines the configuration of the Manual Identiy Verification bucket feature.
 type MIVSpec struct {
 	// The optional name of an existing S3 bucket to use. If set, this code does not create its own bucket.
@@ -161,6 +172,9 @@ type SummonPlatformSpec struct {
 	// Migration override settings.
 	// +optional
 	MigrationOverrides MigrationOverridesSpec `json:"migrationOverrides,omitempty"`
+	// Celery settings.
+	// +optional
+	Celery CelerySpec `json:"celery,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

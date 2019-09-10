@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,6 +37,7 @@ import (
 )
 
 var _ = Describe("deployment Component", func() {
+	var comp components.Component
 
 	BeforeEach(func() {
 		instance.Status.Status = summonv1beta1.StatusDeploying
@@ -193,5 +195,79 @@ var _ = Describe("deployment Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celerybeat", Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(target.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
+	})
+
+	FContext("with celeryd", func() {
+		BeforeEach(func() {
+			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
+		})
+
+		It("does not pass --concurrency by default", func() {
+			configMap := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+				Data:       map[string]string{"summon-platform.yml": "{}\n"},
+			}
+
+			appSecrets := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+				Data: map[string][]byte{
+					"filler": []byte("test"),
+					"test":   []byte("another_test"),
+				},
+			}
+
+			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celeryd", Namespace: instance.Namespace}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--pool", "prefork"}))
+		})
+
+		It("passes concurrency when set", func() {
+			configMap := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+				Data:       map[string]string{"summon-platform.yml": "{}\n"},
+			}
+
+			appSecrets := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+				Data: map[string][]byte{
+					"filler": []byte("test"),
+					"test":   []byte("another_test"),
+				},
+			}
+
+			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
+			instance.Spec.Celery.Concurrency = 10
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celeryd", Namespace: instance.Namespace}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "10", "--pool", "prefork"}))
+		})
+
+		It("passes pool when set", func() {
+			configMap := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+				Data:       map[string]string{"summon-platform.yml": "{}\n"},
+			}
+
+			appSecrets := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+				Data: map[string][]byte{
+					"filler": []byte("test"),
+					"test":   []byte("another_test"),
+				},
+			}
+
+			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
+			instance.Spec.Celery.Pool = "solo"
+			Expect(comp).To(ReconcileContext(ctx))
+			target := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celeryd", Namespace: instance.Namespace}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--pool", "solo"}))
+		})
 	})
 })
