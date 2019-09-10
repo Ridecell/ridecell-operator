@@ -49,6 +49,9 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 		if status.DatabaseClusterStatus != dbv1beta1.StatusReady && status.DatabaseClusterStatus != postgresv1.ClusterStatusRunning.String() {
 			return nil
 		}
+		if status.SharedUsers.Periscope != dbv1beta1.StatusGranted && status.SharedUsers.Periscope != dbv1beta1.StatusSkipped {
+			return nil
+		}
 		if status.DatabaseStatus != dbv1beta1.StatusReady {
 			return nil
 		}
