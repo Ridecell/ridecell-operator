@@ -171,7 +171,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}
 
 	// If there is an inline policy that is not in the spec delete it
-	for userPolicyName, _ := range userPolicies {
+	for userPolicyName := range userPolicies {
 		_, ok := instance.Spec.InlinePolicies[userPolicyName]
 		if !ok {
 			_, err = comp.iamAPI.DeleteUserPolicy(&iam.DeleteUserPolicyInput{

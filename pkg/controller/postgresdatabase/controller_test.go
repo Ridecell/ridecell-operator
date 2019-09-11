@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -39,8 +38,6 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_sql"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
-
-const timeout = time.Second * 20
 
 var _ = Describe("PostgresDatabase controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -84,7 +81,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 		}
 		helpers.TestClient.Create(secret)
 
-		randomName = utils.RandomString(4)
+		randomName, err = utils.RandomString(4)
+		Expect(err).NotTo(HaveOccurred())
 		instance = &dbv1beta1.PostgresDatabase{
 			ObjectMeta: metav1.ObjectMeta{Name: randomName + "-dev", Namespace: helpers.Namespace},
 		}
@@ -298,29 +296,29 @@ var _ = Describe("PostgresDatabase controller", func() {
 
 	// This test case creates a PostgresDatabase object in helpers.Namespace, but references a DbConfig (and its corresponding RDS instance)
 	// from helpers.OperatorNamespace. Periscope postgresuser gets created under DbConfig's namespace, rather than PostgresDatabase's namespace.
-	// Later, when we connect to the database as the periscope postgresuser, the retrieval of periscope postgresuser's secret is attempted under 
-	// the current namespace. However, the secret only exists under the DbConfig namespace, so the secret retrieval will fail. As a workaround, 
+	// Later, when we connect to the database as the periscope postgresuser, the retrieval of periscope postgresuser's secret is attempted under
+	// the current namespace. However, the secret only exists under the DbConfig namespace, so the secret retrieval will fail. As a workaround,
 	// we create a copy of periscope postgresuser secret in the current namespace.
 	// This test is flakey due to some secret failing to be fetched (in time?)
 	It("supports cross namespace use for shared mode", func() {
 		c := helpers.TestClient
 
-			periscope_secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: randomName + "-periscope.postgres-user-password", Namespace: instance.Namespace},
-				Data: map[string][]byte{
-					"password": []byte("foo"),
-				},
-			}
-			c.Create(periscope_secret)
+		periscope_secret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: randomName + "-periscope.postgres-user-password", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"password": []byte("foo"),
+			},
+		}
+		c.Create(periscope_secret)
 
-			newSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
-				Data: map[string][]byte{
-					"password": []byte("test"),
-				},
-			}
+		newSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
+			Data: map[string][]byte{
+				"password": []byte("test"),
+			},
+		}
 
-			c.Create(newSecret)
+		c.Create(newSecret)
 
 		// Set up the DbConfig.
 		dbconfig.Name = randomName

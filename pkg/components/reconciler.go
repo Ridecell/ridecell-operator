@@ -231,7 +231,8 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reco
 					continue
 				}
 				innerRes, errorErr := errReconciler.ReconcileError(ctx, err)
-				res.mergeResult(innerRes, errComponent, nil)
+				// Linting ignored "Error not handled", not an error that needs to be handled.
+				res.mergeResult(innerRes, errComponent, nil) //nolint
 				if errorErr != nil {
 					// Can't really do much more than log it, sigh. Some day this should set a prometheus metric.
 					glog.Errorf("[%s/%s] Error running error handler %#v: %s", instance.GetNamespace(), instance.GetName(), errComponent, errorErr)

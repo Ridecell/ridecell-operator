@@ -35,7 +35,6 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	rdssnapshotcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rdssnapshot/components"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -50,8 +49,6 @@ type mockRDSDBClient struct {
 	snapshotStatus string
 	snapshotTags   []*rds.Tag
 }
-
-var passwordSecret *corev1.Secret
 
 var _ = Describe("rdssnapshot db Component", func() {
 	comp := rdssnapshotcomponents.NewRDSSnapshot()

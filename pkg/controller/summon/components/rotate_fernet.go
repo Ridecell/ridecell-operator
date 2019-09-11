@@ -64,14 +64,17 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 
 	// If secret doesn't exist reconcile to create new
+	var secretFound bool
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to retrieve default secrets object")
 		}
+	} else {
+		secretFound = true
 	}
 
 	var latestTime time.Time
-	for k, _ := range fetchSecret.Data {
+	for k := range fetchSecret.Data {
 		parsedKey, err := time.Parse(CustomTimeLayout, k)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Error while parsing time string")
@@ -90,18 +93,17 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 
 	// Generate random string
 	rawKey := make([]byte, 64)
-	rand.Read(rawKey)
+	_, err = rand.Read(rawKey)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "rotate_fernet: failed to write new key")
+	}
 	newKey := make([]byte, base64.RawStdEncoding.EncodedLen(64))
 	base64.RawStdEncoding.Encode(newKey, rawKey)
 
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			fetchSecret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
-				Data:       map[string][]byte{},
-			}
-		} else {
-			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to get secret")
+	if !secretFound {
+		fetchSecret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{},
 		}
 	}
 

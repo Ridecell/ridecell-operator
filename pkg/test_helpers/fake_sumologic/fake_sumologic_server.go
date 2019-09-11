@@ -45,13 +45,19 @@ func RequestLogger(targetMux http.Handler) http.Handler {
 
 func connections(w http.ResponseWriter, r *http.Request) {
 	file, _ := ioutil.ReadFile(os.Getenv("PWD") + "/pkg/test_helpers/fake_sumologic/connection.json")
-	w.Write([]byte(file))
+	_, err := w.Write([]byte(file))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 
 func folders(w http.ResponseWriter, r *http.Request) {
 	file, _ := ioutil.ReadFile(os.Getenv("PWD") + "/pkg/test_helpers/fake_sumologic/folders.json")
-	w.Write([]byte(file))
+	_, err := w.Write([]byte(file))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 
@@ -59,7 +65,10 @@ func import_folder(w http.ResponseWriter, r *http.Request) {
 	resp := `{
 		"id": "52E4451888457A51"
 		}`
-	w.Write([]byte(resp))
+	_, err := w.Write([]byte(resp))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 
@@ -69,7 +78,10 @@ func job_status(w http.ResponseWriter, r *http.Request) {
 		"statusMessage": null,
 		"error": null
 	}`
-	w.Write([]byte(resp))
+	_, err := w.Write([]byte(resp))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 func Run() {

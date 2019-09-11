@@ -26,8 +26,6 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-const inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-
 type pullSecretComponent struct {
 	templatePath string
 }

@@ -100,6 +100,9 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 	//Find service folder
 	var serviceFolderid string
 	folders, err := client.GetFolder(AlertFolderid)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "failed to get service folder")
+	}
 	for _, folder := range folders.Children {
 		if instance.Spec.ServiceName == folder.Name {
 			serviceFolderid = folder.ID
@@ -160,7 +163,7 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		scheduleType := "Custom"
 
 		// Create payload for every search
-		payload := fmt.Sprintf(`[{ 
+		payload := fmt.Sprintf(`[{
 			"status": "firing",
 			"labels": {
 					"alertname": "{{SearchName}}",

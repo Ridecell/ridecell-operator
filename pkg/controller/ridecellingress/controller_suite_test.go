@@ -31,7 +31,8 @@ import (
 var testHelpers *test_helpers.TestHelpers
 
 func TestController(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
+	err := apis.AddToScheme(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "ridecellingress controller Suite")
 }

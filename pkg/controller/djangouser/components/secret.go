@@ -56,7 +56,7 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (compon
 	existing := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, existing)
 	if err != nil && !kerrors.IsNotFound(err) {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to load secret %s/%s", instance.Namespace, secretName)
+		return components.Result{}, errors.Wrapf(err, "secret: unable to load secret %s/%s", instance.Namespace, secretName)
 	} else if err == nil {
 		// Loaded correctly, if the password exists then we're done.
 		val, ok := existing.Data["password"]
@@ -68,7 +68,10 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (compon
 	// If we got this far, we need to make a random password and save it. No this
 	// is not double-base64-ing things.
 	rawPassword := make([]byte, 16)
-	rand.Read(rawPassword)
+	_, err = rand.Read(rawPassword)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "secret: failed to write random pass")
+	}
 	password := make([]byte, base64.RawStdEncoding.EncodedLen(16))
 	base64.RawStdEncoding.Encode(password, rawPassword)
 

@@ -34,7 +34,8 @@ var instance *dbv1beta1.PostgresOperatorDatabase
 var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
+	err := apis.AddToScheme(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "PostgresOperatorDatabase Components Suite @unit")
 }

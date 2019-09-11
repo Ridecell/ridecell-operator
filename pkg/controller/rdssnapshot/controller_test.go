@@ -145,10 +145,7 @@ func snapshotExists(rdsSnapshotID *string) bool {
 	_, err := rdssvc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{
 		DBSnapshotIdentifier: rdsSnapshotID,
 	})
-	if err != nil {
-		return false
-	}
-	return true
+	return err != nil
 }
 
 // Setup/teardown
@@ -159,11 +156,14 @@ func setupRDSInstance(rdsInstanceName string) (*string, error) {
 	}
 
 	rawPassword := make([]byte, 32)
-	rand.Read(rawPassword)
+	_, err := rand.Read(rawPassword)
+	if err != nil {
+		return nil, err
+	}
 	password := make([]byte, base64.RawURLEncoding.EncodedLen(32))
 	base64.RawURLEncoding.Encode(password, rawPassword)
 
-	_, err := rdssvc.CreateDBInstance(&rds.CreateDBInstanceInput{
+	_, err = rdssvc.CreateDBInstance(&rds.CreateDBInstanceInput{
 		StorageType:          aws.String("gp2"),
 		AllocatedStorage:     aws.Int64(100),
 		DBInstanceClass:      aws.String("db.t3.micro"),
@@ -176,7 +176,7 @@ func setupRDSInstance(rdsInstanceName string) (*string, error) {
 		return nil, err
 	}
 
-	for true {
+	for {
 		time.Sleep(time.Minute)
 		describeDBInstancesOutput, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
 			DBInstanceIdentifier: aws.String(rdsInstanceName),
@@ -193,5 +193,4 @@ func setupRDSInstance(rdsInstanceName string) (*string, error) {
 			return nil, errors.New("rds instance in an error state")
 		}
 	}
-	return &rdsInstanceName, nil
 }

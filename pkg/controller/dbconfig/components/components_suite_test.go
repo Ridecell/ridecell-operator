@@ -17,6 +17,7 @@ limitations under the License.
 package components_test
 
 import (
+	"log"
 	"testing"
 
 	"github.com/onsi/ginkgo"
@@ -33,7 +34,10 @@ var instance *dbv1beta1.DbConfig
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
+	err := apis.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "DbConfig Components Suite @unit")
 }

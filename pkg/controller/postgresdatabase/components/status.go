@@ -58,7 +58,7 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 		if !instance.Spec.SkipUser && status.UserStatus != dbv1beta1.StatusReady {
 			return nil
 		}
-		for ext, _ := range instance.Spec.Extensions {
+		for ext := range instance.Spec.Extensions {
 			status, ok := status.ExtensionStatus[ext]
 			if !ok || status != dbv1beta1.StatusReady {
 				return nil

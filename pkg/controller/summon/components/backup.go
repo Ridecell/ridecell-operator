@@ -44,7 +44,7 @@ func (comp *backupComponent) WatchTypes() []runtime.Object {
 
 func (_ *backupComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if instance.Status.PostgresStatus != dbv1beta1.StatusReady {
+	if instance.Status.PostgresStatus != dbv1beta1.StatusReady { //nolint
 		// Database not ready yet.
 		return false
 	}
@@ -88,7 +88,7 @@ func (comp *backupComponent) Reconcile(ctx *components.ComponentContext) (compon
 		return components.Result{}, errors.Wrap(err, "backup: failed to create or update rds snapshot")
 	}
 
-	if *instance.Spec.Backup.WaitUntilReady == false {
+	if !*instance.Spec.Backup.WaitUntilReady {
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)
 			instance.Status.Status = summonv1beta1.StatusMigrating

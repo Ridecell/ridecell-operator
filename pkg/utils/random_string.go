@@ -23,14 +23,18 @@ import (
 
 var RandEncoding = base64.NewEncoding("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl").WithPadding(base64.NoPadding)
 
-func RandomBytes(size int) []byte {
+func RandomBytes(size int) ([]byte, error) {
 	raw := make([]byte, size)
-	rand.Read(raw)
+	_, err := rand.Read(raw)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]byte, RandEncoding.EncodedLen(size))
 	RandEncoding.Encode(out, raw)
-	return out
+	return out, nil
 }
 
-func RandomString(size int) string {
-	return string(RandomBytes(size))
+func RandomString(size int) (string, error) {
+	randString, err := RandomBytes(size)
+	return string(randString), err
 }

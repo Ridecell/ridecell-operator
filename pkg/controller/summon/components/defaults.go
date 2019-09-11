@@ -56,9 +56,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// Fill in defaults.
 	if instance.Spec.Environment == "" {
 		x := instance.Namespace
-		if strings.HasPrefix(x, "summon-") {
-			x = x[7:]
-		}
+		x = strings.TrimPrefix(x, "summon-")
 		instance.Spec.Environment = x
 	}
 	if instance.Spec.Hostname == "" {

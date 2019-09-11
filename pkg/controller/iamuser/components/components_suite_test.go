@@ -33,7 +33,8 @@ var instance *awsv1beta1.IAMUser
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
+	err := apis.AddToScheme(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "iamuser Components Suite @unit")
 }

@@ -35,7 +35,8 @@ var instance *dbv1beta1.PostgresDatabase
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
+	err := apis.AddToScheme(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "PostgresDatabase Components Suite @unit")
 }

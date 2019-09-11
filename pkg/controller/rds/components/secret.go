@@ -17,6 +17,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -48,7 +49,10 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (compon
 		val, ok := existing.Data["password"]
 		if !ok || len(val) == 0 {
 			rawPassword := make([]byte, 32)
-			rand.Read(rawPassword)
+			_, err := rand.Read(rawPassword)
+			if err != nil {
+				return errors.Wrap(err, "secret: failed to write new password")
+			}
 			password := make([]byte, base64.RawURLEncoding.EncodedLen(32))
 			base64.RawURLEncoding.Encode(password, rawPassword)
 			existing.Data["password"] = password

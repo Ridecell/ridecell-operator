@@ -17,6 +17,7 @@ limitations under the License.
 package components_test
 
 import (
+	"log"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -34,7 +35,10 @@ var instance *monitorv1beta1.AlertManagerConfig
 var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
+	err := apis.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "AlertManagerConfig Components Suite @unit")
 }
@@ -57,7 +61,7 @@ routes:
 receiver: test-alert`,
 				"receiver": `
 name: 'test-alert2'
-slack_configs: 
+slack_configs:
   - send_resolved: true`,
 			},
 		},
