@@ -34,6 +34,14 @@
   version = "v0.3.1"
 
 [[projects]]
+  digest = "1:c9b4276d0f084ebc1c0b046a792e77d665b062cd0520143d90846c0f268815f5"
+  name = "github.com/DATA-DOG/go-sqlmock"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "3f9954f6f6697845b082ca57995849ddf614f450"
+  version = "v1.3.3"
+
+[[projects]]
   digest = "1:55388fd080150b9a072912f97b1f5891eb0b50df43401f8b75fb4273d3fec9fc"
   name = "github.com/Masterminds/semver"
   packages = ["."]
@@ -1595,14 +1603,6 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:c9b4276d0f084ebc1c0b046a792e77d665b062cd0520143d90846c0f268815f5"
-  name = "gopkg.in/DATA-DOG/go-sqlmock.v1"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "3f9954f6f6697845b082ca57995849ddf614f450"
-  version = "v1.3.3"
-
-[[projects]]
   digest = "1:7fc160b460a6fc506b37fcca68332464c3f2cd57b6e3f111f26c5bbfd2d5518e"
   name = "gopkg.in/fsnotify.v1"
   packages = ["."]
@@ -1954,6 +1954,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Benjamintf1/unmarshalledmatchers",
+    "github.com/DATA-DOG/go-sqlmock",
     "github.com/Masterminds/sprig",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
@@ -2003,7 +2004,6 @@
     "golang.org/x/crypto/bcrypt",
     "golang.org/x/net/context",
     "golang.org/x/oauth2",
-    "gopkg.in/DATA-DOG/go-sqlmock.v1",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1",
     "k8s.io/api/batch/v1",

@@ -26,6 +26,7 @@ import (
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
 )
 
 const defaultFernetKeysLifespan = "8760h"
@@ -66,21 +67,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 		instance.Spec.Hostname = instance.Name + baseHostname
 	}
-	defaultReplicas := int32(1)
-	if instance.Spec.WebReplicas == nil {
-		instance.Spec.WebReplicas = &defaultReplicas
-	}
-	if instance.Spec.DaphneReplicas == nil {
-		instance.Spec.DaphneReplicas = &defaultReplicas
-	}
-	if instance.Spec.WorkerReplicas == nil {
-		instance.Spec.WorkerReplicas = &defaultReplicas
-	}
-	if instance.Spec.ChannelWorkerReplicas == nil {
-		instance.Spec.ChannelWorkerReplicas = &defaultReplicas
-	}
-	if instance.Spec.StaticReplicas == nil {
-		instance.Spec.StaticReplicas = &defaultReplicas
+	err := comp.replicaDefaults(instance)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "error setting replica defaults")
 	}
 	if len(instance.Spec.Secrets) == 0 {
 		instance.Spec.Secrets = []string{instance.Namespace, instance.Name}
@@ -203,6 +192,70 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	return components.Result{}, nil
+}
+
+func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPlatform) error {
+	replicas := &instance.Spec.Replicas
+	intp := func(i int32) *int32 { return &i }
+	defaultsForEnv := func(dev, qa, uat, prod int32) *int32 {
+		switch instance.Spec.Environment {
+		case "prod":
+			return intp(prod)
+		case "uat":
+			return intp(uat)
+		case "qa":
+			return intp(qa)
+		default:
+			return intp(dev)
+		}
+	}
+
+	// Copy over the legacy values since those take priority over defaults. This is pulled out to make it easier to remove later.
+	if replicas.Web == nil && instance.Spec.WebReplicas != nil {
+		replicas.Web = instance.Spec.WebReplicas
+	}
+	if replicas.Daphne == nil && instance.Spec.DaphneReplicas != nil {
+		replicas.Daphne = instance.Spec.DaphneReplicas
+	}
+	if replicas.ChannelWorker == nil && instance.Spec.ChannelWorkerReplicas != nil {
+		replicas.ChannelWorker = instance.Spec.ChannelWorkerReplicas
+	}
+	if replicas.Celeryd == nil && instance.Spec.WorkerReplicas != nil {
+		replicas.Celeryd = instance.Spec.WorkerReplicas
+	}
+	if replicas.Static == nil && instance.Spec.StaticReplicas != nil {
+		replicas.Static = instance.Spec.StaticReplicas
+	}
+	if replicas.CeleryBeat == nil && instance.Spec.NoCelerybeat {
+		replicas.CeleryBeat = intp(0)
+	}
+
+	// Fill in defaults based on environment.
+	if replicas.Web == nil {
+		replicas.Web = defaultsForEnv(1, 1, 2, 4)
+	}
+	if replicas.Celeryd == nil {
+		replicas.Celeryd = defaultsForEnv(1, 1, 1, 4)
+	}
+	if replicas.Daphne == nil {
+		replicas.Daphne = defaultsForEnv(1, 1, 2, 2)
+	}
+	if replicas.ChannelWorker == nil {
+		replicas.ChannelWorker = defaultsForEnv(1, 1, 2, 4)
+	}
+	if replicas.Static == nil {
+		replicas.Static = defaultsForEnv(1, 1, 2, 2)
+	}
+	if replicas.CeleryBeat == nil {
+		replicas.CeleryBeat = intp(1)
+	}
+
+	// Quick error check.
+	if !(*replicas.CeleryBeat == 0 || *replicas.CeleryBeat == 1) {
+		return errors.Errorf("Invalid celerybeat replicas, must be exactly 0 or 1: %v", *replicas.CeleryBeat)
+	}
+
+	return nil
 }
 
 func defConfig(key string, value interface{}) {
