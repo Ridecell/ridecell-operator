@@ -47,7 +47,7 @@ var _ = Describe("SummonPlatform NewRelic Component", func() {
 			secret := &corev1.Secret{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo.newrelic", Namespace: "default"}, secret)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(secret.Data).To(HaveKeyWithValue("newrelic.ini", BeEquivalentTo("[newrelic]\nlicense_key = 1234asdf\napp_name = foo-summon-platform\n")))
+			Expect(secret.Data).To(HaveKeyWithValue("newrelic.ini", ContainSubstring("[newrelic]\nlicense_key = 1234asdf\napp_name = foo-summon-platform\n")))
 		})
 
 		It("does not create a config when disabled", func() {
