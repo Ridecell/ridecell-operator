@@ -43,7 +43,7 @@ spec:
             cpu: 500m
           limits:
             memory: {{ block "memory_limit" . }}1G{{ end }}
-        {{ if .Instance.Spec.EnableNewRelic || .Instance.Spec.GCPProject }}
+        {{ if or .Instance.Spec.EnableNewRelic .Instance.Spec.GCPProject }}
         env:
         {{ end }}
         {{ if .Instance.Spec.EnableNewRelic }}
