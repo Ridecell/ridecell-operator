@@ -130,13 +130,11 @@ func (comp *keyComponent) Reconcile(ctx *components.ComponentContext) (component
 			return components.Result{}, errors.Wrap(err, "serviceaccount: failed to decode base64 key")
 		}
 
-		extra := map[string]interface{}{}
-		extra["serviceAccount"] = string(jsonKey)
-		_, _, err = ctx.CreateOrUpdate("secret.yml.tpl", extra, func(goalObj, existingObj runtime.Object) error {
+		_, _, err = ctx.CreateOrUpdate("secret.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 			goal := goalObj.(*corev1.Secret)
 			existing := existingObj.(*corev1.Secret)
 			existing.Type = goal.Type
-			existing.Data = goal.Data
+			existing.Data["google_service_account.json"] = jsonKey
 			return nil
 		})
 		if err != nil {
