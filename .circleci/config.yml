@@ -85,7 +85,8 @@ jobs:
     steps:
     - rc_setup
     - run: make generate
-    - run: golangci-lint run
+    - run: golangci-lint run --disable=govet
+    - run: make vet
 
   test:
     executor: rc_test
