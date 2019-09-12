@@ -182,6 +182,9 @@ type SummonPlatformSpec struct {
 	// Pod replica settings.
 	// +optional
 	Replicas ReplicasSpec `json:"replicas,omitempty"`
+	// Google Cloud project to use.
+	// +optional
+	GCPProject string `json:"gcpProject,omitempty"`
 
 	// Backwards compat fields from before ReplicasSpec. Clean up once all instances are converted to the new config format.
 	WebReplicas           *int32 `json:"webReplicas,omitempty"`
