@@ -9,7 +9,7 @@
             path: /healthz
             port: 8000
             httpHeaders:
-            - name: X_FORWARDED_PROTO
+            - name: X-Forwarded-Proto
               value: https
           periodSeconds: 2
         livenessProbe:
@@ -17,7 +17,7 @@
             path: /healthz
             port: 8000
             httpHeaders:
-            - name: X_FORWARDED_PROTO
+            - name: X-Forwarded-Proto
               value: https
           initialDelaySeconds: 60
 {{ end }}
