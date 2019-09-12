@@ -18,6 +18,8 @@ package components
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
@@ -63,14 +65,14 @@ type serviceAccountComponent struct {
 
 func NewServiceAccount() *serviceAccountComponent {
 	var sam ServiceAccountManager
-	// if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
-	// 	var err error
-	// 	sam, err = newRealServiceAccountManager()
-	// 	if err != nil {
-	// 		// We need better handling of this, so far we haven't have components that can fail to create.
-	// 		log.Fatal(err)
-	// 	}
-	// }
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
+		var err error
+		sam, err = newRealServiceAccountManager()
+		if err != nil {
+			// We need better handling of this, so far we haven't have components that can fail to create.
+			log.Fatal(err)
+		}
+	}
 
 	return &serviceAccountComponent{sam: sam}
 }
