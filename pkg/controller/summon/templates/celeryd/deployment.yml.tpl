@@ -68,6 +68,10 @@ spec:
         - name: NEW_RELIC_APP_NAME
           value: {{ .Instance.Name }}-summon-platform
         {{ end }}
+        {{ if .Instance.Spec.GCPProject }}
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/run/secrets/gcp-service-account/google_service_account.json
+        {{ end }}
         volumeMounts:
         - name: config-volume
           mountPath: /etc/config
@@ -76,6 +80,10 @@ spec:
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           mountPath: /home/ubuntu/summon-platform
+        {{ end }}
+        {{ if .Instance.Spec.GCPProject }}
+        - name: gcp-service-account
+          mountPath: /var/run/secrets/gcp-service-account
         {{ end }}
         livenessProbe:
           exec:
@@ -96,5 +104,10 @@ spec:
         - name: newrelic
           secret:
             secretName: {{ .Instance.Name }}.newrelic
+        {{ end }}
+        {{ if .Instance.Spec.GCPProject }}
+        - name: gcp-service-account
+          secret:
+            secretName: {{ .Instance.Name }}.gcp-credentials
         {{ end }}
 
