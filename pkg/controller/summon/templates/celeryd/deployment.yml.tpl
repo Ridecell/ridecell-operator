@@ -11,7 +11,7 @@ metadata:
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
 spec:
-  replicas: {{ .Instance.Spec.WorkerReplicas }}
+  replicas: {{ .Instance.Spec.Replicas.Celeryd | default 0 }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
@@ -34,7 +34,21 @@ spec:
       - name: default
         image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
         imagePullPolicy: Always
-        command: [python, "-m", celery, "-A", summon_platform, worker, "-l", info]
+        command:
+        - python
+        - "-m"
+        - celery
+        - "-A"
+        - summon_platform
+        - worker
+        - "-l"
+        - info
+        {{ if .Instance.Spec.Celery.Concurrency }}
+        - "--concurrency"
+        - {{ .Instance.Spec.Celery.Concurrency | quote }}
+        {{ end }}
+        - "--pool"
+        - {{ .Instance.Spec.Celery.Pool | default "prefork" }}
         ports:
         - containerPort: 8000
         resources:

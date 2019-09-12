@@ -35,7 +35,7 @@ var _ = Describe("SummonPlatform service Component", func() {
 		comp := summoncomponents.NewService("redis/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-redis", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -43,7 +43,7 @@ var _ = Describe("SummonPlatform service Component", func() {
 		comp := summoncomponents.NewService("static/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-static", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -51,7 +51,7 @@ var _ = Describe("SummonPlatform service Component", func() {
 		comp := summoncomponents.NewService("celerybeat/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-celerybeat", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celerybeat", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -59,7 +59,7 @@ var _ = Describe("SummonPlatform service Component", func() {
 		comp := summoncomponents.NewService("web/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -67,7 +67,7 @@ var _ = Describe("SummonPlatform service Component", func() {
 		comp := summoncomponents.NewService("daphne/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Service{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-daphne", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-daphne", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

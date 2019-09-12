@@ -64,6 +64,7 @@ spec:
         - name: newrelic
           mountPath: /home/ubuntu/summon-platform
         {{ end }}
+        {{ block "containerExtra" . }}{{ end }}
       volumes:
         - name: config-volume
           configMap:
