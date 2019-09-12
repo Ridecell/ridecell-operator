@@ -1,5 +1,7 @@
+// +build !release
+
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2018-2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,14 +16,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package components_test
+package serviceaccount
 
 import (
-	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/gomega"
-	//sacomponents "github.com/Ridecell/ridecell-operator/pkg/controller/serviceaccount/components"
-	// . "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	"net/http"
+	"path"
+	"runtime"
 )
 
-var _ = Describe("serviceaccount Defaults Component", func() {
-})
+//go:generate bash ../../../hack/assets_generate.sh controller/serviceaccount serviceaccount
+var Templates http.FileSystem
+
+func init() {
+	_, line, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("Unable to find caller line")
+	}
+	Templates = http.Dir(path.Dir(line) + "/templates")
+}

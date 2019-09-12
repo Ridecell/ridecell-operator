@@ -4,4 +4,4 @@ metadata:
   name: {{ .Instance.Name }}.gcp-credentials
   namespace: {{ .Instance.Namespace }}
 data:
-  svc.json: {{ .Extra.serviceAccount }}
+  google_service_account.json: {{ .Extra.serviceAccount }}

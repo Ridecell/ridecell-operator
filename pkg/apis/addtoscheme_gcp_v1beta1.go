@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package components_test
+package apis
 
 import (
-	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/gomega"
-	//sacomponents "github.com/Ridecell/ridecell-operator/pkg/controller/serviceaccount/components"
-	// . "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	"github.com/Ridecell/ridecell-operator/pkg/apis/gcp/v1beta1"
 )
 
-var _ = Describe("serviceaccount Defaults Component", func() {
-})
+func init() {
+	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
+	AddToSchemes = append(AddToSchemes, v1beta1.SchemeBuilder.AddToScheme)
+}

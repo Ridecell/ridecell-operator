@@ -19,28 +19,33 @@ package components_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"google.golang.org/api/googleapi"
 	iam "google.golang.org/api/iam/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	sacomponents "github.com/Ridecell/ridecell-operator/pkg/controller/serviceaccount/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("serviceaccount serviceaccount Component", func() {
-	comp := sacomponents.NewServiceAccount()
-	var mock *sacomponents.ServiceAccountManagerMock
+var _ = Describe("serviceaccount key Component", func() {
+	comp := sacomponents.NewKey()
+	var mock *sacomponents.KeyManagerMock
 	BeforeEach(func() {
-		comp = sacomponents.NewServiceAccount()
-		mock = &sacomponents.ServiceAccountManagerMock{
-			CreateFunc: func(_ string, _ *iam.CreateServiceAccountRequest) (*iam.ServiceAccount, error) {
-				return &iam.ServiceAccount{}, nil
+		comp = sacomponents.NewKey()
+		mock = &sacomponents.KeyManagerMock{
+			CreateFunc: func(_ string, _ *iam.CreateServiceAccountKeyRequest) (*iam.ServiceAccountKey, error) {
+				return &iam.ServiceAccountKey{}, nil
 			},
-			GetFunc: func(_ string) (*iam.ServiceAccount, error) {
-				return &iam.ServiceAccount{}, nil
+			DeleteFunc: func(_ string) (*iam.Empty, error) {
+				return &iam.Empty{}, nil
+			},
+			ListFunc: func(_ string, _ ...string) (*iam.ListServiceAccountKeysResponse, error) {
+				return &iam.ListServiceAccountKeysResponse{}, nil
 			},
 		}
-		comp.InjectSAM(mock)
+		comp.InjectKM(mock)
 	})
 
 	Describe("IsReconcilable", func() {
@@ -49,15 +54,16 @@ var _ = Describe("serviceaccount serviceaccount Component", func() {
 		})
 	})
 
-	It("does nothing if the account already exists", func() {
+	It("does nothing if the key already exists", func() {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-user.gcp-credentials", Namespace: "default"},
+		}
+		ctx.Client = fake.NewFakeClient(instance, secret)
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mock.CreateCalls()).To(HaveLen(0))
 	})
 
-	It("creates the account if it doesn't exist", func() {
-		mock.GetFunc = func(_ string) (*iam.ServiceAccount, error) {
-			return nil, &googleapi.Error{Code: 404}
-		}
+	It("creates the key if it doesn't exist", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mock.CreateCalls()).To(HaveLen(1))
 	})

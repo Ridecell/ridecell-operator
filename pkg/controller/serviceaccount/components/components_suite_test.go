@@ -27,6 +27,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	gcpv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/gcp/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/serviceaccount"
 )
 
 var instance *gcpv1beta1.ServiceAccount
@@ -35,13 +36,17 @@ var ctx *components.ComponentContext
 func TestComponents(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "iamuser Components Suite @unit")
+	ginkgo.RunSpecs(t, "serviceaccount Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
-	instance = &awsv1beta1.IAMUser{
+	instance = &gcpv1beta1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-user", Namespace: "default"},
+		Spec: gcpv1beta1.ServiceAccountSpec{
+			AccountName: "test-user",
+			Project:     "test-project",
+		},
 	}
-	ctx = components.NewTestContext(instance, nil)
+	ctx = components.NewTestContext(instance, serviceaccount.Templates)
 })

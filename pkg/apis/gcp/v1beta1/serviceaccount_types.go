@@ -22,13 +22,16 @@ import (
 
 // ServiceAccountSpec defines the desired state of ServiceAccount
 type ServiceAccountSpec struct {
+	Project     string `json:"project"`
 	AccountName string `json:"accountName,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 // ServiceAccountStatus defines the observed state of ServiceAccount
 type ServiceAccountStatus struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
+	Email   string `json:"email"`
 }
 
 // +genclient
