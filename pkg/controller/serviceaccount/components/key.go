@@ -98,7 +98,7 @@ func (_ *keyComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *keyComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*gcpv1beta1.ServiceAccount)
+	instance := ctx.Top.(*gcpv1beta1.GCPServiceAccount)
 
 	projectPath := fmt.Sprintf("projects/%s", instance.Spec.Project)
 	serviceAccountEmail := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", instance.Spec.AccountName, instance.Spec.Project)
@@ -145,7 +145,7 @@ func (comp *keyComponent) Reconcile(ctx *components.ComponentContext) (component
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*gcpv1beta1.ServiceAccount)
+		instance := obj.(*gcpv1beta1.GCPServiceAccount)
 		instance.Status.Status = gcpv1beta1.StatusReady
 		instance.Status.Message = "User exists and has secret"
 		return nil

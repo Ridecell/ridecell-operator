@@ -1,5 +1,5 @@
 apiVersion: gcp.ridecell.io/v1beta1
-kind: ServiceAccount
+kind: GCPServiceAccount
 metadata:
   name: {{ .Instance.Name }}
   namespace: {{ .Instance.Namespace }}

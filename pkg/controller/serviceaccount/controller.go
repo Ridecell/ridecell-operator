@@ -27,7 +27,7 @@ import (
 // Add creates a new iamuser Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("serviceaccount-controller", mgr, &gcpv1beta1.ServiceAccount{}, nil, []components.Component{
+	_, err := components.NewReconciler("serviceaccount-controller", mgr, &gcpv1beta1.GCPServiceAccount{}, nil, []components.Component{
 		sacomponents.NewDefaults(),
 		sacomponents.NewServiceAccount(),
 		sacomponents.NewKey(),

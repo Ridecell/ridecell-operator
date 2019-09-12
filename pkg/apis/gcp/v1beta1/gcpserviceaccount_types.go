@@ -21,14 +21,14 @@ import (
 )
 
 // ServiceAccountSpec defines the desired state of ServiceAccount
-type ServiceAccountSpec struct {
+type GCPServiceAccountSpec struct {
 	Project     string `json:"project"`
 	AccountName string `json:"accountName,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
-// ServiceAccountStatus defines the observed state of ServiceAccount
-type ServiceAccountStatus struct {
+// GCPServiceAccountStatus defines the observed state of GCPServiceAccount
+type GCPServiceAccountStatus struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 	Email   string `json:"email"`
@@ -37,26 +37,26 @@ type ServiceAccountStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ServiceAccount is the Schema for the ServiceAccounts API
+// GCPServiceAccount is the Schema for the GCPServiceAccounts API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-type ServiceAccount struct {
+type GCPServiceAccount struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ServiceAccountSpec   `json:"spec,omitempty"`
-	Status ServiceAccountStatus `json:"status,omitempty"`
+	Spec   GCPServiceAccountSpec   `json:"spec,omitempty"`
+	Status GCPServiceAccountStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ServiceAccountList contains a list of ServiceAccount
-type ServiceAccountList struct {
+// GCPServiceAccountList contains a list of GCPServiceAccount
+type GCPServiceAccountList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ServiceAccount `json:"items"`
+	Items           []GCPServiceAccount `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ServiceAccount{}, &ServiceAccountList{})
+	SchemeBuilder.Register(&GCPServiceAccount{}, &GCPServiceAccountList{})
 }

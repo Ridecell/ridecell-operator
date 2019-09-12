@@ -88,7 +88,7 @@ func (_ *serviceAccountComponent) IsReconcilable(_ *components.ComponentContext)
 }
 
 func (comp *serviceAccountComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*gcpv1beta1.ServiceAccount)
+	instance := ctx.Top.(*gcpv1beta1.GCPServiceAccount)
 
 	projectPath := fmt.Sprintf("projects/%s", instance.Spec.Project)
 	serviceAccountEmail := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", instance.Spec.AccountName, instance.Spec.Project)
@@ -118,7 +118,7 @@ func (comp *serviceAccountComponent) Reconcile(ctx *components.ComponentContext)
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*gcpv1beta1.ServiceAccount)
+		instance := obj.(*gcpv1beta1.GCPServiceAccount)
 		instance.Status.Email = serviceAccountEmail
 		return nil
 	}}, nil

@@ -32,7 +32,7 @@ func NewServiceAccount() *serviceAccountComponent {
 
 func (comp *serviceAccountComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&gcpv1beta1.ServiceAccount{},
+		&gcpv1beta1.GCPServiceAccount{},
 	}
 }
 
@@ -43,8 +43,8 @@ func (_ *serviceAccountComponent) IsReconcilable(ctx *components.ComponentContex
 
 func (comp *serviceAccountComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	res, _, err := ctx.CreateOrUpdate("gcp/serviceaccount.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*gcpv1beta1.ServiceAccount)
-		existing := existingObj.(*gcpv1beta1.ServiceAccount)
+		goal := goalObj.(*gcpv1beta1.GCPServiceAccount)
+		existing := existingObj.(*gcpv1beta1.GCPServiceAccount)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil

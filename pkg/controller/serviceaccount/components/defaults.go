@@ -39,7 +39,7 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*gcpv1beta1.ServiceAccount)
+	instance := ctx.Top.(*gcpv1beta1.GCPServiceAccount)
 
 	if instance.Spec.AccountName == "" {
 		instance.Spec.AccountName = instance.Name

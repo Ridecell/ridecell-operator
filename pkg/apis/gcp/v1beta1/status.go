@@ -20,15 +20,15 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-func (sa *ServiceAccount) GetStatus() components.Status {
+func (sa *GCPServiceAccount) GetStatus() components.Status {
 	return sa.Status
 }
 
-func (sa *ServiceAccount) SetStatus(status components.Status) {
-	sa.Status = status.(ServiceAccountStatus)
+func (sa *GCPServiceAccount) SetStatus(status components.Status) {
+	sa.Status = status.(GCPServiceAccountStatus)
 }
 
-func (sa *ServiceAccount) SetErrorStatus(errorMsg string) {
+func (sa *GCPServiceAccount) SetErrorStatus(errorMsg string) {
 	sa.Status.Status = StatusError
 	sa.Status.Message = errorMsg
 }
