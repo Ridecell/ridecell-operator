@@ -68,7 +68,7 @@ func (_ *extensionsComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
+		instance := obj.(*dbv1beta1.PostgresDatabase)
 		instance.Status.ExtensionStatus = existingStatus
 		instance.Status.Status = dbv1beta1.StatusCreating
 		return nil

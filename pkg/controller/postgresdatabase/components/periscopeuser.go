@@ -88,6 +88,7 @@ func (comp *periscopeUserComponent) Reconcile(ctx *components.ComponentContext) 
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*dbv1beta1.PostgresDatabase)
 		instance.Status.SharedUsers.Periscope = dbv1beta1.StatusGranted
 		return nil
 	}}, nil

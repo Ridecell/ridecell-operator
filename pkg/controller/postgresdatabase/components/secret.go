@@ -80,7 +80,7 @@ func (_ *secretComponent) Reconcile(ctx *components.ComponentContext) (component
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
+		instance := obj.(*dbv1beta1.PostgresDatabase)
 		instance.Status.Status = dbv1beta1.StatusCreating
 		return nil
 	}}, nil
