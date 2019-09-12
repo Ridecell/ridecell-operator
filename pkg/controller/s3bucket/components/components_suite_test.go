@@ -33,9 +33,9 @@ var instance *awsv1beta1.S3Bucket
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
 	err := apis.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "s3bucket Components Suite @unit")
 }
 

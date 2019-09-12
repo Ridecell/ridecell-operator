@@ -35,9 +35,9 @@ var instance *monitoringv1beta1.Monitor
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
 	err := apis.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Monitor Components Suite @unit")
 }
 

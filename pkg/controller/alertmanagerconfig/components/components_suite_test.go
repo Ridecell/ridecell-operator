@@ -17,7 +17,6 @@ limitations under the License.
 package components_test
 
 import (
-	"log"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -35,11 +34,9 @@ var instance *monitorv1beta1.AlertManagerConfig
 var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
-	err := apis.AddToScheme(scheme.Scheme)
-	if err != nil {
-		log.Fatal(err)
-	}
 	RegisterFailHandler(Fail)
+	err := apis.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	RunSpecs(t, "AlertManagerConfig Components Suite @unit")
 }
 

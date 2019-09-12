@@ -33,9 +33,9 @@ var instance *secretsv1beta1.EncryptedSecret
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
 	err := apis.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "encryptedsecret Components Suite @unit")
 }
 
