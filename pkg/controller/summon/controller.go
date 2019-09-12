@@ -40,6 +40,9 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewS3Bucket("aws/staticbucket.yml.tpl"),
 		summoncomponents.NewMIVS3Bucket("aws/mivbucket.yml.tpl"),
 
+		// GCP stuff.
+		summoncomponents.NewServiceAccount(),
+
 		//Rabbitmq components
 		summoncomponents.NewRabbitmqVhost("rabbitmq/vhost.yml.tpl"),
 

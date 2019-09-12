@@ -30,6 +30,7 @@ func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("serviceaccount-controller", mgr, &gcpv1beta1.ServiceAccount{}, nil, []components.Component{
 		sacomponents.NewDefaults(),
 		sacomponents.NewServiceAccount(),
+		sacomponents.NewKey(),
 	})
 	return err
 }
