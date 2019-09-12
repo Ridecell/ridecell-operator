@@ -90,7 +90,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 
 	appSecretsBytes, err := json.Marshal(rawAppSecret.Data)
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "deployment: unable to serialize appsecrets ")
+		return components.Result{}, errors.Wrapf(err, "deployment: unable to serialize appsecrets")
 	}
 	configBytes, err := json.Marshal(config.Data)
 	if err != nil {
@@ -119,7 +119,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		return nil
 	})
 	if err != nil {
-		return res, errors.Wrapf(err, "deployment: failed to update template")
+		return res, errors.Wrapf(err, "deployment: failed to update template %s", comp.templatePath)
 	}
 	return components.Result{}, nil
 }
