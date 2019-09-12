@@ -131,7 +131,7 @@ func (comp *keyComponent) Reconcile(ctx *components.ComponentContext) (component
 		}
 
 		extra := map[string]interface{}{}
-		extra["serviceAccount"] = jsonKey
+		extra["serviceAccount"] = string(jsonKey)
 		_, _, err = ctx.CreateOrUpdate("secret.yml.tpl", extra, func(goalObj, existingObj runtime.Object) error {
 			goal := goalObj.(*corev1.Secret)
 			existing := existingObj.(*corev1.Secret)
