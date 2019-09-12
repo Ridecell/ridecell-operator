@@ -8,11 +8,17 @@
           httpGet:
             path: /healthz
             port: 8000
+            httpHeaders:
+            - name: X_FORWARDED_PROTO
+              value: https
           periodSeconds: 2
         livenessProbe:
           httpGet:
             path: /healthz
             port: 8000
+            httpHeaders:
+            - name: X_FORWARDED_PROTO
+              value: https
           initialDelaySeconds: 60
 {{ end }}
 {{ template "deployment" . }}
