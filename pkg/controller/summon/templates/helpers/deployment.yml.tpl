@@ -43,8 +43,10 @@ spec:
             cpu: 500m
           limits:
             memory: {{ block "memory_limit" . }}1G{{ end }}
-        {{ if .Instance.Spec.EnableNewRelic }}
+        {{ if .Instance.Spec.EnableNewRelic || .Instance.Spec.GCPProject }}
         env:
+        {{ end }}
+        {{ if .Instance.Spec.EnableNewRelic }}
         - name: NEW_RELIC_LICENSE_KEY
           valueFrom:
           secretKeyRef:
