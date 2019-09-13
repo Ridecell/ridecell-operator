@@ -145,7 +145,7 @@ func snapshotExists(rdsSnapshotID *string) bool {
 	_, err := rdssvc.DescribeDBSnapshots(&rds.DescribeDBSnapshotsInput{
 		DBSnapshotIdentifier: rdsSnapshotID,
 	})
-	return err != nil
+	return err == nil
 }
 
 // Setup/teardown
