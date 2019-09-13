@@ -128,6 +128,9 @@ func (c *Client) GetContent(id string) (*JobResult, error) {
 	var jobresult JobResult
 	// Create export Job
 	req, err := c.newRequest("POST", "/api/v2/content/"+id+"/export", nil)
+	if err != nil {
+		return nil, err
+	}
 	var job Job
 	_, err = c.do(req, &job)
 	if err != nil {
@@ -137,6 +140,9 @@ func (c *Client) GetContent(id string) (*JobResult, error) {
 	// Check Job status
 	var status JobStatus
 	req, err = c.newRequest("GET", "/api/v2/content/"+id+"/export/"+job.ID+"/status", nil)
+	if err != nil {
+		return nil, err
+	}
 	for index := 0; status.Status != "Success"; index++ {
 		_, err = c.do(req, &status)
 		if err != nil {
@@ -152,6 +158,9 @@ func (c *Client) GetContent(id string) (*JobResult, error) {
 	}
 	// Get job result
 	req, err = c.newRequest("GET", "/api/v2/content/"+id+"/export/"+job.ID+"/result", nil)
+	if err != nil {
+		return &jobresult, err
+	}
 	_, err = c.do(req, &jobresult)
 	return &jobresult, err
 }
@@ -160,6 +169,9 @@ func (c *Client) CreateSavedSearchWithSchedule(id string, search *SavedSearchWit
 	var status JobStatus
 	// Create import search Job
 	req, err := c.newRequest("POST", "/api/v2/content/folders/"+id+"/import", search)
+	if err != nil {
+		return nil, err
+	}
 	// Add quey parameters
 	if overwrite {
 		q := req.URL.Query()
@@ -195,6 +207,9 @@ func (c *Client) DeleteContent(id string) (*JobStatus, error) {
 	var status JobStatus
 	// Create import search Job
 	req, err := c.newRequest("DELETE", "/api/v2/content/"+id+"/delete", nil)
+	if err != nil {
+		return nil, err
+	}
 	var job Job
 	_, err = c.do(req, &job)
 	if err != nil {

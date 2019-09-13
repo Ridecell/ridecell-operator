@@ -35,8 +35,9 @@ var instance *dbv1beta1.RabbitmqVhost
 var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
+	err := apis.AddToScheme(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	ginkgo.RunSpecs(t, "RabbitmqVhost Components Suite @unit")
 }
 

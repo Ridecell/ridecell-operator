@@ -19,7 +19,6 @@ package djangouser_test
 import (
 	"net/url"
 	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,8 +33,6 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
-
-const timeout = time.Second * 20
 
 const djangoSchema = `
 CREATE TABLE auth_user (
@@ -122,7 +119,8 @@ var _ = Describe("DjangoUser controller @postgres", func() {
 			SSLMode:           "disable",
 		}
 		conn = adminConn.DeepCopy()
-		conn.Database = utils.RandomString(8)
+		conn.Database, err = utils.RandomString(8)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set up the secret.
 		password, _ := parsed.User.Password()

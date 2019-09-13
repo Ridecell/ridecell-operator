@@ -124,7 +124,7 @@ func (r *fakeRows) Next(dest []driver.Value) error {
 	} else {
 		// One fake row
 		r.eof = true
-		for i, _ := range dest {
+		for i := range dest {
 			dest[i] = 0
 		}
 		return nil

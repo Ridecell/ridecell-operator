@@ -34,8 +34,9 @@ var instance *monitorv1beta1.AlertManagerConfig
 var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
-	apis.AddToScheme(scheme.Scheme)
 	RegisterFailHandler(Fail)
+	err := apis.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	RunSpecs(t, "AlertManagerConfig Components Suite @unit")
 }
 
@@ -57,7 +58,7 @@ routes:
 receiver: test-alert`,
 				"receiver": `
 name: 'test-alert2'
-slack_configs: 
+slack_configs:
   - send_resolved: true`,
 			},
 		},

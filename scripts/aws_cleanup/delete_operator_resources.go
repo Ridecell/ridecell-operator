@@ -35,6 +35,9 @@ func main() {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-1"),
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	// Check if this being run on the sandbox account
 	stssvc := sts.New(sess)
@@ -297,7 +300,7 @@ func getRDSInstancesToDelete(rdssvc *rds.RDS, prefix string) ([]*string, error) 
 func deleteRDSInstance(rdssvc *rds.RDS, instanceIdentifier *string) error {
 	fmt.Printf("Starting RDS Instance deletion for %s:\n", aws.StringValue(instanceIdentifier))
 	//TODO:	ew
-	for true {
+	for {
 		describeDBInstancesOutput, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
 			DBInstanceIdentifier: instanceIdentifier,
 		})
@@ -334,7 +337,6 @@ func deleteRDSInstance(rdssvc *rds.RDS, instanceIdentifier *string) error {
 			return err
 		}
 	}
-	return nil
 }
 
 func getSecurityGroupsToDelete(ec2svc *ec2.EC2, prefix string) ([]*string, error) {

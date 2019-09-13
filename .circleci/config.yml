@@ -78,11 +78,21 @@ commands:
         aws: << parameters.aws >>
 
 jobs:
+  lint:
+    docker:
+    - image: golangci/golangci-lint:latest
+    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+    steps:
+    - rc_setup
+    - run: make generate
+    - run: golangci-lint run --disable=govet
+    - run: make vet
+
   test:
     executor: rc_test
     steps:
     - rc_setup
-    - run: make generate vet
+    - run: make generate
     # Use a funky grep and xargs thing to speed this up so it doesn't spend time building the non-unit suites.
     - run: grep -l -R @unit cmd pkg | xargs -n 1 dirname | xargs ginkgo -focus @unit --randomizeAllSpecs --randomizeSuites --cover --trace --progress -v -compilers 4
     - run: gover
@@ -243,27 +253,35 @@ workflows:
   version: 2
   default:
     jobs:
+    - lint
     - test
     - test_postgres:
         requires:
+        - lint
         - test
     - test_aws:
         requires:
+        - lint
         - test
     - test_rds:
         requires:
+        - lint
         - test
     - test_rdssnapshot:
         requires:
+        - lint
         - test
     - test_rabbitmq:
         requires:
+        - lint
         - test
     - test_other:
         requires:
+        - lint
         - test
     - coveralls:
         requires:
+        - lint
         - test
         - test_postgres
         - test_aws
@@ -273,9 +291,11 @@ workflows:
         - test_other
     - crds:
         requires:
+        - lint
         - test
     - build:
         requires:
+        - lint
         - test
         - test_postgres
         - test_aws

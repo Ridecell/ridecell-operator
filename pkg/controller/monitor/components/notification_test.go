@@ -53,6 +53,7 @@ var _ = Describe("Monitor Notification Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		config := &monitoringv1beta1.AlertManagerConfig{}
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "alertmanagerconfig-foo", Namespace: "default"}, config)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(config.Spec.Data).To(HaveKey("receiver"))
 		// Check receiver correct slack channel name
 		receiver := &alertmconfig.Receiver{}

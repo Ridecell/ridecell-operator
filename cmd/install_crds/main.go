@@ -37,7 +37,10 @@ import (
 
 func main() {
 	flag.Parse()
-	apiextv1beta1.AddToScheme(scheme.Scheme)
+	err := apiextv1beta1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()

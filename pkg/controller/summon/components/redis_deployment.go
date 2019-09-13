@@ -39,7 +39,7 @@ func (comp *redisDeploymentComponent) WatchTypes() []runtime.Object {
 func (comp *redisDeploymentComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Check on the pull secret. Not technically needed in some cases, but just wait.
-	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
+	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady { //nolint
 		return false
 	}
 	return true

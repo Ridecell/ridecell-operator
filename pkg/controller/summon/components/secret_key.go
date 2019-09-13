@@ -76,7 +76,10 @@ func (comp *secretKeyComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// Generate random string
 	rawKey := make([]byte, 64)
-	rand.Read(rawKey)
+	_, err = rand.Read(rawKey)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "secret_key: failed to write new key")
+	}
 	newKey := make([]byte, base64.RawStdEncoding.EncodedLen(64))
 	base64.RawStdEncoding.Encode(newKey, rawKey)
 

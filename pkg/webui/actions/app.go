@@ -50,7 +50,10 @@ func App() *buffalo.App {
 		app.ErrorHandlers[403] = func(status int, err error, c buffalo.Context) error {
 			res := c.Response()
 			res.WriteHeader(403)
-			res.Write([]byte("Access Denied"))
+			_, nerr := res.Write([]byte("Access Denied"))
+			if nerr != nil {
+				return nerr
+			}
 			return nil
 		}
 
@@ -58,7 +61,10 @@ func App() *buffalo.App {
 		app.ErrorHandlers[404] = func(status int, err error, c buffalo.Context) error {
 			res := c.Response()
 			res.WriteHeader(403)
-			res.Write([]byte("Access Denied"))
+			_, nerr := res.Write([]byte("Access Denied"))
+			if nerr != nil {
+				return nerr
+			}
 			return nil
 		}
 

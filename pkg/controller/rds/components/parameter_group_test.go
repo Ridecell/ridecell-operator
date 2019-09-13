@@ -300,7 +300,7 @@ func parametersEquals(listOne []*rds.Parameter, listTwo []*rds.Parameter) bool {
 		for _, j := range listTwo {
 			if aws.StringValue(i.ParameterName) == aws.StringValue(j.ParameterName) {
 				foundName = true
-				if aws.StringValue(j.ParameterValue) == aws.StringValue(j.ParameterValue) {
+				if aws.StringValue(i.ParameterValue) == aws.StringValue(j.ParameterValue) {
 					valueMatched = true
 				}
 				break

@@ -88,7 +88,8 @@ var _ = Describe("rds aws Component", func() {
 				"password": []byte("test"),
 			},
 		}
-		ctx.Client.Create(context.TODO(), passwordSecret)
+		err = ctx.Client.Create(context.TODO(), passwordSecret)
+		Expect(err).ToNot(HaveOccurred())
 
 		db, dbMock, err = sqlmock.New()
 		Expect(err).NotTo(HaveOccurred())

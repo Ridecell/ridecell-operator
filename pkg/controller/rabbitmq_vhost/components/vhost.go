@@ -124,7 +124,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 		}
 	}
 	// Remove policies for a vhost which are not in the Spec
-	for existingPolicyName, _ := range existingPolicies {
+	for existingPolicyName := range existingPolicies {
 		_, ok := instance.Spec.Policies[existingPolicyName]
 		if ok {
 			// Still exists.

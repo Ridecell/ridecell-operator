@@ -44,13 +44,19 @@ func RequestLogger(targetMux http.Handler) http.Handler {
 
 func escalation_policies(w http.ResponseWriter, r *http.Request) {
 	file, _ := ioutil.ReadFile(os.Getenv("PWD") + "/pkg/test_helpers/fake_pagerduty/ListEscalationPoliciesResponse.json")
-	w.Write([]byte(file))
+	_, err := w.Write([]byte(file))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 
 func services(w http.ResponseWriter, r *http.Request) {
 	file, _ := ioutil.ReadFile(os.Getenv("PWD") + "/pkg/test_helpers/fake_pagerduty/ListServiceResponse.json")
-	w.Write([]byte(file))
+	_, err := w.Write([]byte(file))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 

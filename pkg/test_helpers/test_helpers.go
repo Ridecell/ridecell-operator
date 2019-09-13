@@ -72,7 +72,8 @@ func New() (*TestHelpers, error) {
 		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
 		UseExistingCluster: os.Getenv("USE_EXISTING_CLUSTER") == "true",
 	}
-	apis.AddToScheme(scheme.Scheme)
+	err := apis.AddToScheme(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// Initialze the RNG.
 	rand.Seed(time.Now().UnixNano())
@@ -136,7 +137,8 @@ func (helpers *TestHelpers) Stop() {
 		close(helpers.ManagerStop)
 	}
 	if helpers != nil && helpers.Environment != nil {
-		helpers.Environment.Stop()
+		err := helpers.Environment.Stop()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}
 }
 
