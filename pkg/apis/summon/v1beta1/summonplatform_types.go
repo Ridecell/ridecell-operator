@@ -44,12 +44,8 @@ type NotificationsSpec struct {
 	DeploymentStatusUrl string `json:"deploymentStatusUrl,omitempty"`
 }
 
-// DatabaseSpec is used to specify whether we are using a shared database or not.
+// DatabaseSpec defines database-related configuration.
 type DatabaseSpec struct {
-	// +optional
-	ExclusiveDatabase bool `json:"exclusiveDatabase,omitempty"`
-	// +optional
-	SharedDatabaseName string `json:"sharedDatabaseName,omitempty"`
 }
 
 // CelerySpec defines configuration and settings for Celery.
