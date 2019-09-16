@@ -14,6 +14,7 @@ spec:
   extensions:
     postgis: ""
     postgis_topology: ""
+  dbConfigRef: {{ .Instance.Spec.Database.DbConfigRef | toJson }}
   {{ if .Instance.Spec.MigrationOverrides.PostgresDatabase }}
   databaseName: {{ .Instance.Spec.MigrationOverrides.PostgresDatabase }}
   {{ end }}

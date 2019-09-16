@@ -189,7 +189,7 @@ var _ = Describe("deployment Component", func() {
 		Expect(target.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
 	})
 
-	FContext("with celeryd", func() {
+	Context("with celeryd", func() {
 		BeforeEach(func() {
 			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
 		})

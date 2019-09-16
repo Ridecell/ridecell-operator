@@ -131,6 +131,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		if dbconfig.Spec.Postgres.Mode == "Exclusive" {
 			return components.Result{}, nil
 		}
+		migrationOverrides = &dbconfig.Spec.MigrationOverrides
 	}
 	var res components.Result
 	var status string
