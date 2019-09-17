@@ -100,6 +100,8 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			default:
 				instance.Spec.SQSQueue = "prod-data-pipeline"
 			}
+		case "qa":
+			instance.Spec.SQSQueue = "us-qa-data-pipeline"
 		default:
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
