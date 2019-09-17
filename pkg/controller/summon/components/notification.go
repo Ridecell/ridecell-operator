@@ -195,14 +195,13 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 
 	// Send to Deployment Status Tool
-	deployEnv := instance.Namespace
-	deployEnv = strings.TrimPrefix(deployEnv, "summon-")
+	instanceName := strings.TrimSuffix(instance.Name, "-"+ instance.Spec.Environment)
 
 	deploymentStatusUrl := os.Getenv("DEPLOY_STAT_URL")
 	if instance.Spec.Notifications.DeploymentStatusUrl != "" {
 		deploymentStatusUrl = instance.Spec.Notifications.DeploymentStatusUrl
 	}
-	err := c.deployStatusClient.PostStatus(deploymentStatusUrl, instance.Name, deployEnv, instance.Spec.Version)
+	err := c.deployStatusClient.PostStatus(deploymentStatusUrl, instanceName, instance.Spec.Environment, instance.Spec.Version)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
 	}
