@@ -63,7 +63,11 @@ spec:
                   "sqs:SendMessage",
                   "sqs:CreateQueue"
                 ],
-                "Resource": "arn:aws:sqs:{{ .Instance.Spec.SQSRegion }}:{{ .Extra.accountId }}:{{ .Instance.Spec.SQSQueue }}"
+                "Resource": [
+                  "arn:aws:sqs:us-west-2:{{ .Extra.accountId }}:{{ .Instance.Spec.SQSQueue }}",
+                  "arn:aws:sqs:eu-central-1:{{ .Extra.accountId }}:{{ .Instance.Spec.SQSQueue }}",
+                  "arn:aws:sqs:ap-south-1:{{ .Extra.accountId }}:{{ .Instance.Spec.SQSQueue }}"
+                ]
               }
             }
  permissionsBoundaryArn: {{ .Extra.permissionsBoundaryArn }}
