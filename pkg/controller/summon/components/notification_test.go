@@ -44,6 +44,8 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 		comp.InjectSlackClient(mockedSlackClient)
 
 		instance.Spec.Notifications.SlackChannel = "#test-channel"
+		// Defaults component would do this, but unit tests doesn't run defaults component.
+		instance.Spec.Environment = "dev"
 
 		mockedDeployStatusClient = &summoncomponents.DeployStatusClientMock{
 			PostStatusFunc: func(_, _, _, _ string) error {
@@ -96,7 +98,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
-			Expect(deployPost.Name).To(Equal("foo-dev"))
+			Expect(deployPost.Name).To(Equal("foo"))
 			Expect(deployPost.Env).To(Equal("dev"))
 			Expect(deployPost.Tag).To(Equal("1234-eb6b515-master"))
 		})
@@ -146,7 +148,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
-			Expect(deployPost.Name).To(Equal("foo-dev"))
+			Expect(deployPost.Name).To(Equal("foo"))
 			Expect(deployPost.Env).To(Equal("dev"))
 			Expect(deployPost.Tag).To(Equal("1234"))
 		})
