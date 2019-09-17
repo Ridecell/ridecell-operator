@@ -18,7 +18,6 @@ package components_test
 
 import (
 	"fmt"
-	"strings"
 	"strconv"
 
 	"github.com/nlopes/slack"
@@ -46,7 +45,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 
 		instance.Spec.Notifications.SlackChannel = "#test-channel"
 		// Defaults component would do this, but unit tests doesn't run defaults component.
-		instance.Spec.Environment = strings.TrimPrefix(instance.Namespace, "summon-")
+		instance.Spec.Environment = "dev"
 
 		mockedDeployStatusClient = &summoncomponents.DeployStatusClientMock{
 			PostStatusFunc: func(_, _, _, _ string) error {
