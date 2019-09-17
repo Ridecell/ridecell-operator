@@ -49,20 +49,20 @@ func (_ *secretComponent) Reconcile(ctx *components.ComponentContext) (component
 	// If namespace is not defaulted and does not match no action is needed
 	if instance.Spec.DbConfigRef.Namespace != "" && instance.Spec.DbConfigRef.Namespace != instance.Namespace {
 		dbconfig := &dbv1beta1.DbConfig{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DbConfigRef.Name, Namespace: instance.Spec.DbConfigRef.Namespace}, dbconfig)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DbConfigRef.Name, Namespace: instance.Spec.DbConfigRef.Namespace}, dbconfig)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "secret: unable to get dbconfig %s/%s for PostgresDatabase %s", instance.Spec.DbConfigRef.Namespace, instance.Spec.DbConfigRef.Name, instance.Name)
+			return components.Result{}, errors.Wrap(err, "secret: unable to get dbconfig")
 		}
 
 		if dbconfig.Spec.Postgres.Mode == "Exclusive" {
-			// the secret must in the current namespace only
+			// the secret must present in the current namespace only
 			fetchSecret := &corev1.Secret{}
 			err := ctx.Client.Get(ctx.Context, types.NamespacedName{
 				Name:      instance.Status.AdminConnection.PasswordSecretRef.Name,
 				Namespace: instance.Namespace,
 			}, fetchSecret)
 			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "secret: unable to get rds secret %s/%s", instance.Namespace, instance.Status.AdminConnection.PasswordSecretRef.Name)
+				return components.Result{}, errors.Wrap(err, "secret: unable to get rds secret")
 			}
 		} else {
 			// the Postgres mode is "Shared", copy the secret from DbConfig's namespace
