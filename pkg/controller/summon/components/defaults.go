@@ -83,17 +83,28 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.FernetKeyLifetime = parsedTimeDuration
 	}
 	if instance.Spec.AwsRegion == "" {
-		instance.Spec.AwsRegion = "us-west-2"
-	}
-	if instance.Spec.SQSQueue == "" {
-		if instance.Spec.Environment == "prod" || instance.Spec.Environment == "uat" {
-			instance.Spec.SQSQueue = "prod-data-pipeline"
-		} else {
-			instance.Spec.SQSQueue = "master-data-pipeline"
+		instance.Spec.AwsRegion = os.Getenv("AWS_REGION")
+		// If the env var isn't present, assume us-west-2. Mostly for local testing stuff.
+		if instance.Spec.AwsRegion == "" {
+			instance.Spec.AwsRegion = "us-west-2"
 		}
 	}
-	if instance.Spec.SQSRegion == "" {
-		instance.Spec.SQSRegion = "us-west-2"
+	if instance.Spec.SQSQueue == "" {
+		switch instance.Spec.Environment {
+		case "prod", "uat":
+			switch instance.Spec.AwsRegion {
+			case "eu-central-1":
+				instance.Spec.SQSQueue = "eu-prod-data-pipeline"
+			case "ap-south-1":
+				instance.Spec.SQSQueue = "in-prod-data-pipeline"
+			default:
+				instance.Spec.SQSQueue = "prod-data-pipeline"
+			}
+		case "qa":
+			instance.Spec.SQSQueue = "us-qa-data-pipeline"
+		default:
+			instance.Spec.SQSQueue = "master-data-pipeline"
+		}
 	}
 
 	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
