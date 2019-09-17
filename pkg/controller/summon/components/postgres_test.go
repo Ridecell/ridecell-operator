@@ -125,5 +125,20 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 				Expect(db.Spec.MigrationOverrides.RDSMasterUsername).To(Equal("root"))
 			})
 		})
+
+		Context("with a DbConfigRef", func() {
+			BeforeEach(func() {
+				instance.Spec.Database.DbConfigRef.Name = "weirddb"
+			})
+
+			It("sets the DbConfigRef correctly", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				db := &dbv1beta1.PostgresDatabase{}
+				err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: "summon-dev"}, db)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(db.Spec.DbConfigRef.Name).To(Equal("weirddb"))
+			})
+		})
+
 	})
 })

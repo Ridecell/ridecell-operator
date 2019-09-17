@@ -55,3 +55,13 @@ type RabbitmqStatusConnection struct {
 type SharedUsersStatus struct {
 	Periscope string `json:"periscope"`
 }
+
+// MigrationOverridesSpec defines value overrides used when migrating Ansible-based Summon instances into Kubernetes/ridecell-operator.
+type MigrationOverridesSpec struct {
+	// An optional RDS instance ID override. Only used if the DbConfig is in RDS mode. Exists for migrations from Ansible Summon.
+	// +optional
+	RDSInstanceID string `json:"rdsInstanceId,omitempty"`
+	// An optional RDS master username override. Only used if the DbConfig is in RDS mode. Exists for migrations from Ansible Summon.
+	// +optional
+	RDSMasterUsername string `json:"rdsMasterUsername,omitempty"`
+}

@@ -146,6 +146,46 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})
+
+		Context("with an RDS ID override", func() {
+			BeforeEach(func() {
+				dbconfig.Spec.Postgres.Mode = "Shared"
+				dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+					MaintenanceWindow: "Mon:00:00-Mon:01:00",
+				}
+				dbconfig.Spec.NoCreatePeriscopeUser = true
+				dbconfig.Spec.MigrationOverrides.RDSInstanceID = "legacy"
+			})
+
+			It("creates the RDS database with the override", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+
+				rds := &dbv1beta1.RDSInstance{}
+				err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev", Namespace: "summon-dev"}, rds)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rds.Spec.InstanceID).To(Equal("legacy"))
+			})
+		})
+
+		Context("with an RDS username override", func() {
+			BeforeEach(func() {
+				dbconfig.Spec.Postgres.Mode = "Shared"
+				dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+					MaintenanceWindow: "Mon:00:00-Mon:01:00",
+				}
+				dbconfig.Spec.NoCreatePeriscopeUser = true
+				dbconfig.Spec.MigrationOverrides.RDSMasterUsername = "root"
+			})
+
+			It("creates the RDS database with the override", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+
+				rds := &dbv1beta1.RDSInstance{}
+				err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev", Namespace: "summon-dev"}, rds)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rds.Spec.Username).To(Equal("root"))
+			})
+		})
 	})
 
 	Context("with top being PostgresDatabase", func() {

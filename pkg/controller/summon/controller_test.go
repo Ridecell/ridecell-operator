@@ -70,11 +70,6 @@ var _ = Describe("Summon controller", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
-			Spec: summonv1beta1.SummonPlatformSpec{
-				Database: summonv1beta1.DatabaseSpec{
-					ExclusiveDatabase: true,
-				},
-			},
 		}
 		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 
@@ -98,9 +93,6 @@ var _ = Describe("Summon controller", func() {
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
 			Secrets: []string{"testsecret"},
-			Database: summonv1beta1.DatabaseSpec{
-				ExclusiveDatabase: true,
-			},
 		}}
 
 		// Create the SummonPlatform object and expect the Reconcile to be created.
@@ -215,9 +207,6 @@ var _ = Describe("Summon controller", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1.2.3",
 				Secrets: []string{"testsecret"},
-				Database: summonv1beta1.DatabaseSpec{
-					ExclusiveDatabase: true,
-				},
 			},
 			Status: summonv1beta1.SummonPlatformStatus{
 				MigrateVersion: "1.2.3",
@@ -355,9 +344,6 @@ var _ = Describe("Summon controller", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1-abcdef1-master",
 				Secrets: []string{"statustester"},
-				Database: summonv1beta1.DatabaseSpec{
-					ExclusiveDatabase: true,
-				},
 			},
 		}
 		err := c.Create(context.TODO(), instance)

@@ -63,9 +63,6 @@ var _ = Describe("Summon controller notifications", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "80813-eb6b515-master",
 				Secrets: []string{"testsecret"},
-				Database: summonv1beta1.DatabaseSpec{
-					ExclusiveDatabase: true,
-				},
 			},
 		}
 	})
