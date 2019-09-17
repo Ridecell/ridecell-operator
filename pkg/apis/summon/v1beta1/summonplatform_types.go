@@ -19,8 +19,10 @@ package v1beta1
 import (
 	"time"
 
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 )
 
 // Gross workaround for limitations the Kubernetes code generator and interface{}.
@@ -44,12 +46,11 @@ type NotificationsSpec struct {
 	DeploymentStatusUrl string `json:"deploymentStatusUrl,omitempty"`
 }
 
-// DatabaseSpec is used to specify whether we are using a shared database or not.
+// DatabaseSpec defines database-related configuration.
 type DatabaseSpec struct {
+	// An optional ref to a DbConfig object to use for configuration. Defaults to the name of the namespace.
 	// +optional
-	ExclusiveDatabase bool `json:"exclusiveDatabase,omitempty"`
-	// +optional
-	SharedDatabaseName string `json:"sharedDatabaseName,omitempty"`
+	DbConfigRef corev1.ObjectReference `json:"dbConfigRef,omitempty"`
 }
 
 // CelerySpec defines configuration and settings for Celery.

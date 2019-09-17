@@ -106,9 +106,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
 	}
-	if instance.Spec.Database.SharedDatabaseName == "" {
-		instance.Spec.Database.SharedDatabaseName = instance.Namespace
-	}
 
 	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
 		defConfig("FIREBASE_APP", "ridecell")
