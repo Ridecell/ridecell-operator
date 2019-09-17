@@ -83,7 +83,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.FernetKeyLifetime = parsedTimeDuration
 	}
 	if instance.Spec.AwsRegion == "" {
-		instance.Spec.AwsRegion = "us-west-2"
+		instance.Spec.AwsRegion = os.Getenv("AWS_REGION")
+		// If the env var isn't present, assume us-west-2. Mostly for local testing stuff.
+		if instance.Spec.AwsRegion == "" {
+			instance.Spec.AwsRegion = "us-west-2"
+		}
 	}
 	if instance.Spec.SQSQueue == "" {
 		if instance.Spec.Environment == "prod" || instance.Spec.Environment == "uat" {
