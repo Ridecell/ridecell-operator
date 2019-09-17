@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -48,34 +48,53 @@ func (_ *secretComponent) Reconcile(ctx *components.ComponentContext) (component
 
 	// If namespace is not defaulted and does not match no action is needed
 	if instance.Spec.DbConfigRef.Namespace != "" && instance.Spec.DbConfigRef.Namespace != instance.Namespace {
-		fetchSecret := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{
-			Name:      instance.Status.AdminConnection.PasswordSecretRef.Name,
-			Namespace: instance.Spec.DbConfigRef.Namespace,
-		}, fetchSecret)
+		dbconfig := &dbv1beta1.DbConfig{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DbConfigRef.Name, Namespace: instance.Spec.DbConfigRef.Namespace}, dbconfig)
 		if err != nil {
-			return components.Result{}, errors.Wrap(err, "secret: unable to get dbconfig secret")
+			return components.Result{}, errors.Wrapf(err, "secret: unable to get dbconfig %s/%s for PostgresDatabase %s", instance.Spec.DbConfigRef.Namespace, instance.Spec.DbConfigRef.Name, instance.Name)
 		}
 
-		newSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fetchSecret.Name,
+		if dbconfig.Spec.Postgres.Mode == "Exclusive" {
+			// the secret must in the current namespace only
+			fetchSecret := &corev1.Secret{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{
+				Name:      instance.Status.AdminConnection.PasswordSecretRef.Name,
 				Namespace: instance.Namespace,
-			},
-			Type: corev1.SecretTypeOpaque,
-			Data: fetchSecret.Data,
-		}
+			}, fetchSecret)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "secret: unable to get rds secret %s/%s", instance.Namespace, instance.Status.AdminConnection.PasswordSecretRef.Name)
+			}
+		} else {
+			// the Postgres mode is "Shared", copy the secret from DbConfig's namespace
+			fetchSecret := &corev1.Secret{}
+			err := ctx.Client.Get(ctx.Context, types.NamespacedName{
+				Name:      instance.Status.AdminConnection.PasswordSecretRef.Name,
+				Namespace: instance.Spec.DbConfigRef.Namespace,
+			}, fetchSecret)
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "secret: unable to get dbconfig secret")
+			}
 
-		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret, func(existingObj runtime.Object) error {
-			existing := existingObj.(*corev1.Secret)
-			// Copy over important bits
-			existing.ObjectMeta = newSecret.ObjectMeta
-			existing.Type = newSecret.Type
-			existing.Data = newSecret.Data
-			return nil
-		})
-		if err != nil {
-			return components.Result{}, errors.Wrap(err, "secret: failed to copy secret")
+			newSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fetchSecret.Name,
+					Namespace: instance.Namespace,
+				},
+				Type: corev1.SecretTypeOpaque,
+				Data: fetchSecret.Data,
+			}
+
+			_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret, func(existingObj runtime.Object) error {
+				existing := existingObj.(*corev1.Secret)
+				// Copy over important bits
+				existing.ObjectMeta = newSecret.ObjectMeta
+				existing.Type = newSecret.Type
+				existing.Data = newSecret.Data
+				return nil
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "secret: failed to copy secret")
+			}
 		}
 	}
 
