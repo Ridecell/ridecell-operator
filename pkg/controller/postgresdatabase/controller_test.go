@@ -397,7 +397,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c := helpers.TestClient
 
 		newSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
 				"password": []byte("test"),
 			},
