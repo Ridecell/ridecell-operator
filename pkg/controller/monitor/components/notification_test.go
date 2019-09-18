@@ -18,7 +18,6 @@ package components_test
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -58,7 +57,7 @@ var _ = Describe("Monitor Notification Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(receiver.SlackConfigs[0].Channel).To(Equal("#test-alert"))
 		// Check pd receiver
-		err = json.Unmarshal([]byte(config.Spec.Receivers[1]), receiver)
+		err = yaml.Unmarshal([]byte(config.Spec.Receivers[1]), receiver)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(receiver.PagerdutyConfigs[0].Severity).To(ContainSubstring("CommonLabels.severity"))
 		// Check Route have correct Receiver name
