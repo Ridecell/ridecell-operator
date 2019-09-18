@@ -36,7 +36,7 @@ var ctx *components.ComponentContext
 func TestComponents(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	err := apis.AddToScheme(scheme.Scheme)
-        gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	ginkgo.RunSpecs(t, "serviceaccount Components Suite @unit")
 }
 

@@ -10,12 +10,12 @@ spec:
     match_re:
       servicename: ".*{{ .Instance.Spec.ServiceName }}.*"
     routes:
-{{ if .Extra.pd -}}
+    {{ if .Extra.pd -}}
     - receiver: {{ .Extra.pd.Name }}
       match:
         severity: critical
       continue: true
-{{ end -}}}
+    {{ end -}}
     - receiver: {{ .Extra.slack.Name }}
   receivers:
     - {{ .Extra.slack  | toJson  | quote}}

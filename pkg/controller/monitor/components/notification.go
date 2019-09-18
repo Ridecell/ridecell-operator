@@ -112,7 +112,6 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 			Name:         instance.Name + "-slack",
 			SlackConfigs: []*alertmconfig.SlackConfig{},
 		}
-		//slackconfigs := []*alertmconfig.SlackConfig{}
 		for _, channel := range instance.Spec.Notify.Slack {
 			// add chanel
 			receiverSlack.SlackConfigs = append(receiverSlack.SlackConfigs, &alertmconfig.SlackConfig{

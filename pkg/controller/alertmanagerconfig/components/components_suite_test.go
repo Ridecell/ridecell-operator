@@ -54,6 +54,5 @@ var _ = BeforeEach(func() {
 			},
 		},
 	}
-
 	ctx = components.NewTestContext(instance, nil)
 })
