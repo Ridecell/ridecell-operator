@@ -51,6 +51,7 @@ var _ = Describe("Monitor Notification Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		config := &monitoringv1beta1.AlertManagerConfig{}
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "alertmanagerconfig-foo", Namespace: "default"}, config)
+		Expect(err).ToNot(HaveOccurred())
 		// Check receiver correct slack channel name
 		receiver := &alertmconfig.Receiver{}
 		err = yaml.Unmarshal([]byte(config.Spec.Receivers[0]), receiver)
@@ -79,6 +80,7 @@ var _ = Describe("Monitor Notification Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		config := &monitoringv1beta1.AlertManagerConfig{}
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "alertmanagerconfig-foo", Namespace: "default"}, config)
+		Expect(err).ToNot(HaveOccurred())
 		// Check receiver correct slack channel name
 		receiver := &alertmconfig.Receiver{}
 		err = yaml.Unmarshal([]byte(config.Spec.Receivers[0]), receiver)
