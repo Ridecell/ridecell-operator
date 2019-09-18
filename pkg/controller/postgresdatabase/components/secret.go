@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
+	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/shared_components/postgres"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,22 +49,13 @@ func (_ *secretComponent) Reconcile(ctx *components.ComponentContext) (component
 	// If namespace is not defaulted and does not match no action is needed
 	if instance.Spec.DbConfigRef.Namespace != "" && instance.Spec.DbConfigRef.Namespace != instance.Namespace {
 		dbconfig := &dbv1beta1.DbConfig{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DbConfigRef.Name, Namespace: instance.Spec.DbConfigRef.Namespace}, dbconfig)
+		dbConfigRef := spcomponents.DbConfigRefFor(instance)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: dbConfigRef.Name, Namespace: dbConfigRef.Namespace}, dbconfig)
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "secret: unable to get dbconfig")
 		}
 
-		if dbconfig.Spec.Postgres.Mode == "Exclusive" {
-			// the secret must present in the current namespace only
-			fetchSecret := &corev1.Secret{}
-			err := ctx.Client.Get(ctx.Context, types.NamespacedName{
-				Name:      instance.Status.AdminConnection.PasswordSecretRef.Name,
-				Namespace: instance.Namespace,
-			}, fetchSecret)
-			if err != nil {
-				return components.Result{}, errors.Wrap(err, "secret: unable to get rds secret")
-			}
-		} else {
+		if dbconfig.Spec.Postgres.Mode == "Shared" {
 			// the Postgres mode is "Shared", copy the secret from DbConfig's namespace
 			fetchSecret := &corev1.Secret{}
 			err := ctx.Client.Get(ctx.Context, types.NamespacedName{

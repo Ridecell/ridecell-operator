@@ -397,7 +397,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c := helpers.TestClient
 
 		newSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-samenamespace", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
 				"password": []byte("test"),
 			},
@@ -423,7 +423,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		rds := &dbv1beta1.RDSInstance{}
 		c.EventuallyGet(helpers.Name(randomName+"-dev"), rds)
 		rds.Status.Status = dbv1beta1.StatusReady
-		conn.PasswordSecretRef = apihelpers.SecretRef{Name: "pgpass-crossnamespace"}
+		conn.PasswordSecretRef = apihelpers.SecretRef{Name: "pgpass-samenamespace"}
 		rds.Status.Connection = *conn
 		c.Status().Update(rds)
 
@@ -432,7 +432,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 
 		// Confirm our secret is copied over
 		fetchSecret := &corev1.Secret{}
-		c.EventuallyGet(types.NamespacedName{Name: "pgpass-crossnamespace", Namespace: helpers.Namespace}, fetchSecret)
+		c.EventuallyGet(types.NamespacedName{Name: "pgpass-samenamespace", Namespace: helpers.Namespace}, fetchSecret)
 
 		// Expect periscope postgresuser to be created.
 		puser := &dbv1beta1.PostgresUser{}

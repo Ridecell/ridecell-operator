@@ -62,14 +62,14 @@ var _ = Describe("postgresdatabase Secret Component", func() {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "mysecret", Namespace: "summon-dev"},
 			Data: map[string][]byte{
-				"password": []byte("cross-namespace"),
+				"password": []byte("same-namespace"),
 			},
 		}
 		ctx.Client = fake.NewFakeClient(dbconfig,secret)
 		Expect(comp).To(ReconcileContext(ctx))
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "mysecret", Namespace: "summon-dev"}, secret)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(secret.Data).To(HaveKeyWithValue("password", []byte("cross-namespace")))
+		Expect(secret.Data).To(HaveKeyWithValue("password", []byte("same-namespace")))
 	})
 
 	It("copies secret from target to current namespace", func() {

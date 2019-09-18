@@ -87,7 +87,7 @@ func (comp *postgresComponent) WatchMap(obj handler.MapObject, c client.Client) 
 
 		for _, db := range dbs.Items {
 			// Check the DbConfig field.
-			dbConfigRef := comp.dbConfigRefFor(&db)
+			dbConfigRef := DbConfigRefFor(&db)
 			if dbConfigRef.Name == obj.Meta.GetName() && dbConfigRef.Namespace == obj.Meta.GetNamespace() {
 				requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: db.Name, Namespace: db.Namespace}})
 			}
@@ -107,7 +107,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if comp.mode == "Exclusive" {
 		// This is a PostgresDatabase so try to load the relevant DbConfig.
 		pqdb := ctx.Top.(*dbv1beta1.PostgresDatabase)
-		dbconfigRef := comp.dbConfigRefFor(pqdb)
+		dbconfigRef := DbConfigRefFor(pqdb)
 		dbconfig = &dbv1beta1.DbConfig{}
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: dbconfigRef.Name, Namespace: dbconfigRef.Namespace}, dbconfig)
 		if err != nil {
@@ -350,7 +350,7 @@ func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentC
 	}
 }
 
-func (comp *postgresComponent) dbConfigRefFor(db *dbv1beta1.PostgresDatabase) *corev1.ObjectReference {
+func DbConfigRefFor(db *dbv1beta1.PostgresDatabase) *corev1.ObjectReference {
 	name := db.Spec.DbConfigRef.Name
 	if name == "" {
 		name = db.Namespace
