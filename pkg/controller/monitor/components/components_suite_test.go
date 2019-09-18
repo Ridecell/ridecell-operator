@@ -46,6 +46,9 @@ var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &monitoringv1beta1.Monitor{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Spec: monitoringv1beta1.MonitorSpec{
+			ServiceName: "dev-foo-service",
+		},
 	}
 	ctx = components.NewTestContext(instance, monitor.Templates)
 })

@@ -99,19 +99,15 @@ var _ = Describe("monitor controller", func() {
 		// Check alert config from here
 		alertConfig := &monitoringv1beta1.AlertManagerConfig{}
 		c.EventuallyGet(helpers.Name("alertmanagerconfig-foo"), alertConfig)
-		Expect(alertConfig.Spec.Data).To(HaveKey("receiver"))
 		// Check receiver correct slack channel name
 		receiver := &alertmconfig.Receiver{}
-		err := yaml.Unmarshal([]byte(alertConfig.Spec.Data["receiver"]), receiver)
+		err := yaml.Unmarshal([]byte(alertConfig.Spec.Receivers[0]), receiver)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(receiver.SlackConfigs[0].Channel).To(Equal("#test-alert"))
-		Expect(receiver.PagerdutyConfigs[0].Severity).To(Equal(`{{ .CommonLabels.severity }}`))
 		//Check Route have correct Receiver name
-		Expect(alertConfig.Spec.Data).To(HaveKey("routes"))
 		route := &alertmconfig.Route{}
-		err = yaml.Unmarshal([]byte(alertConfig.Spec.Data["routes"]), route)
+		err = yaml.Unmarshal([]byte(alertConfig.Spec.Route), route)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(route.Receiver).To(Equal("foo"))
 		// Check correct & default route condition present
 		Expect(route.MatchRE["servicename"]).Should(ContainSubstring(instance.Spec.ServiceName))
 	})

@@ -22,7 +22,6 @@ import (
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -106,15 +105,17 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		return components.Result{}, nil
 	}
 
-	receiver := &alertmconfig.Receiver{
-		Name: instance.Name,
-	}
+	extras := map[string]interface{}{}
 
 	if len(instance.Spec.Notify.Slack) > 0 {
-		slackconfigs := []*alertmconfig.SlackConfig{}
+		receiverSlack := &alertmconfig.Receiver{
+			Name:         instance.Name + "-slack",
+			SlackConfigs: []*alertmconfig.SlackConfig{},
+		}
+		//slackconfigs := []*alertmconfig.SlackConfig{}
 		for _, channel := range instance.Spec.Notify.Slack {
 			// add chanel
-			slackconfigs = append(slackconfigs, &alertmconfig.SlackConfig{
+			receiverSlack.SlackConfigs = append(receiverSlack.SlackConfigs, &alertmconfig.SlackConfig{
 				NotifierConfig: alertmconfig.NotifierConfig{
 					VSendResolved: true,
 				},
@@ -122,25 +123,51 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 				Title:     `{{ template "slack.ridecell.title" . }}`,
 				IconEmoji: `{{ template "slack.ridecell.icon_emoji" . }}`,
 				Color:     `{{ template "slack.ridecell.color" . }}`,
-				Text:      `{{ template "slack.ridecell.text" . }}`})
+				Text:      `{{ template "slack.ridecell.text" . }}`,
+				Actions: []*alertmconfig.SlackAction{
+					&alertmconfig.SlackAction{
+						URL:  `{{ (index .Alerts 0).Annotations.runbook }}`,
+						Text: "Runbook :green_book:",
+						Type: "button",
+					},
+					&alertmconfig.SlackAction{
+						URL:  fmt.Sprintf("https://%s/#/silences", os.Getenv("ALERTMANAGER_NAME")),
+						Text: "Silence :no_bell:",
+						Type: "button",
+					},
+					&alertmconfig.SlackAction{
+						URL:  `{{ (index .Alerts 0).Annotations.dashboard }}`,
+						Text: "Dashboard :grafana:",
+						Type: "button",
+					},
+					&alertmconfig.SlackAction{
+						URL:  `{{ (index .Alerts 0).GeneratorURL }}`,
+						Text: "Query :mag:",
+						Type: "button",
+					},
+				},
+			})
 		}
-		receiver.SlackConfigs = slackconfigs
+		extras["slack"] = receiverSlack
 	}
+
 	var eventid string
 	if len(instance.Spec.Notify.PagerdutyTeam) > 0 {
 		// Add add PD config in receiver
-		pagerdutyconfig := []*alertmconfig.PagerdutyConfig{
-			&alertmconfig.PagerdutyConfig{
-				NotifierConfig: alertmconfig.NotifierConfig{
-					VSendResolved: true,
-				},
-				RoutingKey:  alertmconfig.Secret(os.Getenv("PG_ROUTING_KEY")),
-				Severity:    `{{ .CommonLabels.severity }}`,
-				Client:      os.Getenv("ALERTMANAGER_NAME"),
-				ClientURL:   fmt.Sprintf("https://%s", os.Getenv("ALERTMANAGER_NAME")),
-				Description: `{{ template "pagerduty.ridecell.description" .}}`},
-		}
-		receiver.PagerdutyConfigs = pagerdutyconfig
+		receiverPD := &alertmconfig.Receiver{
+			Name: instance.Name + "-pd",
+
+			PagerdutyConfigs: []*alertmconfig.PagerdutyConfig{
+				&alertmconfig.PagerdutyConfig{
+					NotifierConfig: alertmconfig.NotifierConfig{
+						VSendResolved: true,
+					},
+					RoutingKey:  alertmconfig.Secret(os.Getenv("PG_ROUTING_KEY")),
+					Severity:    `{{ if .CommonLabels.severity }}{{ .CommonLabels.severity | toLower }}{{ else }}critical{{ end }}`,
+					Client:      os.Getenv("ALERTMANAGER_NAME"),
+					ClientURL:   fmt.Sprintf("https://%s", os.Getenv("ALERTMANAGER_NAME")),
+					Description: `{{ template "pagerduty.ridecell.description" .}}`},
+			}}
 
 		// Check if EscalationPolicy present in pagerduty
 		ep := &pagerduty.EscalationPolicy{}
@@ -186,6 +213,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 					Summary: ep.Summary,
 					Type:    ep.Type,
 				},
+				AlertCreation: "create_alerts_and_incidents",
 			}
 			s, _, err := client.Services.Create(&service)
 			if err != nil {
@@ -196,7 +224,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 			// This will will route events from alertmanager on th basics of ServiceName in PG
 			var condition, conditions, action []interface{}
 
-			condition = append(condition, "contains", []string{"path", "description"}, instance.Spec.ServiceName)
+			condition = append(condition, "contains", []string{"path", "payload.summary"}, instance.Spec.ServiceName)
 			conditions = append(conditions, "or", condition)
 
 			action = append(action, []string{"route", s.ID})
@@ -224,11 +252,8 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 					instance.Spec.ServiceName, ep.Name)
 			}
 		}
+		extras["pd"] = receiverPD
 	}
-
-	extras := map[string]interface{}{}
-	marshled, _ := yaml.Marshal(receiver)
-	extras["receiver"] = string(marshled)
 
 	_, _, err = ctx.CreateOrUpdate("alertmanagerconfig.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*monitoringv1beta1.AlertManagerConfig)

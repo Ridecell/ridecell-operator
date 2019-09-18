@@ -17,6 +17,8 @@ limitations under the License.
 package alertmanagerconfig_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -29,6 +31,7 @@ import (
 
 var _ = Describe("alertmanagerconfig controller", func() {
 	var helpers *test_helpers.PerTestHelpers
+	os.Setenv("PG_ROUTING_KEY", "foopdkey")
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
@@ -84,19 +87,10 @@ receivers:
 			Spec: monitoringv1beta1.AlertManagerConfigSpec{
 				AlertManagerName:      "alertmanager-infra",
 				AlertManagerNamespace: helpers.Namespace,
-				Data: map[string]string{
-					"routes": `
-match_re:
-service: ^(foo1|foo2|baz)$
-receiver: test-alert
-routes:
-- match:
-  severity: critical
-receiver: test-alert`,
-					"receiver": `
-name: 'test-alert2'
-slack_configs: 
-  - send_resolved: true`,
+				Route:                 "{\"match_re\":{\"servicename\":\".*dev-foo-service.*\"},\"routes\":[{\"receiver\":\"foo-pd\",\"match\":{\"severity\":\"critical\"},\"continue\":true},{\"receiver\":\"foo-slack\"}]}",
+				Receivers: []string{
+					"{\"name\":\"foo-slack\",\"slack_configs\":[{\"send_resolved\":true,\"channel\":\"#test-alert\",\"color\":\"{{ template \\\"slack.ridecell.color\\\" . }}\",\"title\":\"{{ template \\\"slack.ridecell.title\\\" . }}\",\"text\":\"{{ template \\\"slack.ridecell.text\\\" . }}\",\"icon_emoji\":\"{{ template \\\"slack.ridecell.icon_emoji\\\" . }}\",\"actions\":[{\"type\":\"button\",\"text\":\"Runbook :green_book:\",\"url\":\"{{ (index .Alerts 0).Annotations.runbook }}\"},{\"type\":\"button\",\"text\":\"Silence :no_bell:\",\"url\":\"https://dummy/#/silences\"},{\"type\":\"button\",\"text\":\"Dashboard :grafana:\",\"url\":\"{{ (index .Alerts 0).Annotations.dashboard }}\"},{\"type\":\"button\",\"text\":\"Query :mag:\",\"url\":\"{{ (index .Alerts 0).GeneratorURL }}\"}]},{\"send_resolved\":true,\"channel\":\"#test\",\"color\":\"{{ template \\\"slack.ridecell.color\\\" . }}\",\"title\":\"{{ template \\\"slack.ridecell.title\\\" . }}\",\"text\":\"{{ template \\\"slack.ridecell.text\\\" . }}\",\"icon_emoji\":\"{{ template \\\"slack.ridecell.icon_emoji\\\" . }}\",\"actions\":[{\"type\":\"button\",\"text\":\"Runbook :green_book:\",\"url\":\"{{ (index .Alerts 0).Annotations.runbook }}\"},{\"type\":\"button\",\"text\":\"Silence :no_bell:\",\"url\":\"https://dummy/#/silences\"},{\"type\":\"button\",\"text\":\"Dashboard :grafana:\",\"url\":\"{{ (index .Alerts 0).Annotations.dashboard }}\"},{\"type\":\"button\",\"text\":\"Query :mag:\",\"url\":\"{{ (index .Alerts 0).GeneratorURL }}\"}]}]}",
+					"{\"name\":\"foo-pd\",\"pagerduty_configs\":[{\"send_resolved\":true,\"routing_key\":\"secret\",\"client\":\"dummy\",\"client_url\":\"https://dummy\",\"description\":\"{{ template \\\"pagerduty.ridecell.description\\\" .}}\",\"severity\":\"{{ if .CommonLabels.severity }}{{ .CommonLabels.severity | toLower }}{{ else }}critical{{ end }}\"}]}",
 				},
 			},
 		}
@@ -104,11 +98,10 @@ slack_configs:
 		fconfig := &corev1.Secret{}
 		c.EventuallyGet(helpers.Name("alertmanager-alertmanager-infra"), fconfig)
 		Expect(fconfig.Data).To(HaveKey("alertmanager.yaml"))
-		config, _ := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
-		Expect(len(config.Receivers)).Should(BeNumerically(">=", 2))
-		Expect(config.Route.Routes[0].Receiver).To(Equal("test-alert"))
 		config, err := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
 		Expect(err).ToNot(HaveOccurred())
+		Expect(len(config.Receivers)).Should(BeNumerically(">=", 2))
+		Expect(string(config.Receivers[2].PagerdutyConfigs[0].RoutingKey)).Should(Equal(os.Getenv("PG_ROUTING_KEY")))
 		Expect(config.Global.SlackAPIURL.String()).Should(Equal("https://hooks.slack.com/services/test123/test123"))
 
 	})

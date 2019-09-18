@@ -81,7 +81,7 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 	connection := sumologic.WebHookConnection{
 		Type:           "WebhookDefinition",
 		Name:           os.Getenv("ALERTMANAGER_NAME"),
-		Description:    "Created by ridecell-operator do NOT modify",
+		Description:    "Created by ridecell-operator DO NOT modify",
 		URL:            fmt.Sprintf("https://%s/api/v1/alerts", os.Getenv("ALERTMANAGER_NAME")),
 		DefaultPayload: "{}",
 		Headers: []sumologic.WebHookHeaders{
@@ -167,7 +167,7 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 			"status": "firing",
 			"labels": {
 					"alertname": "{{SearchName}}",
-					"service": "%s",
+					"servicename": "%s",
 					"severity":"%s"
 			},
 			"annotations": {
