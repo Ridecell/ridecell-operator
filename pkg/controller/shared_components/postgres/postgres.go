@@ -141,16 +141,18 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if dbconfig.Spec.Postgres.RDS != nil {
 		var rdsStatus *dbv1beta1.RDSInstanceStatus
 		res, rdsStatus, conn, err = comp.reconcileRDS(ctx, dbconfig, migrationOverrides)
+		if err != nil {
+			return res, errors.Wrap(err, "error while reconciling RDS")
+		}
 		status = rdsStatus.Status
 		rdsInstanceID = rdsStatus.InstanceID
-
 	} else if dbconfig.Spec.Postgres.Local != nil {
 		res, status, conn, err = comp.reconcileLocal(ctx, dbconfig)
+		if err != nil {
+			return res, errors.Wrap(err, "error while reconciling local database")
+		}
 	} else {
 		return components.Result{}, errors.New("unexpected error, postgres database is not a known type")
-	}
-	if err != nil {
-		return res, err
 	}
 
 	_, err = comp.reconcileExporter(ctx, conn)
