@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"os"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -36,11 +37,10 @@ var _ = Describe("AlertManagerConfig Component", func() {
 	comp := amccomponents.NewAlertManagerConfig()
 	var defaultConfig *corev1.Secret
 	spec := monitorv1beta1.AlertManagerConfigSpec{
-		Data:                  map[string]string{},
 		AlertManagerName:      "alertmanager-infra",
 		AlertManagerNamespace: "default",
 	}
-
+	os.Setenv("PG_ROUTING_KEY", "foopdkey")
 	BeforeEach(func() {
 		defaultConfig = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -89,6 +89,10 @@ receivers:
 		Expect(fconfig.Data).To(HaveKey("alertmanager.yaml"))
 		config, err := alertconfig.Load(string(fconfig.Data["alertmanager.yaml"]))
 		Expect(err).ToNot(HaveOccurred())
+		//check slack api
 		Expect(config.Global.SlackAPIURL.String()).Should(Equal("https://hooks.slack.com/services/test123/test123"))
+		Expect(config.Receivers[1].SlackConfigs[0].APIURL.String()).Should(Equal("https://hooks.slack.com/services/test123/test123"))
+		// Check PD key
+		Expect(string(config.Receivers[2].PagerdutyConfigs[0].RoutingKey)).Should(Equal(os.Getenv("PG_ROUTING_KEY")))
 	})
 })

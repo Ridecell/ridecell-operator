@@ -195,7 +195,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 
 	// Send to Deployment Status Tool
-	instanceName := strings.TrimSuffix(instance.Name, "-"+ instance.Spec.Environment)
+	instanceName := strings.TrimSuffix(instance.Name, "-"+instance.Spec.Environment)
 
 	deploymentStatusUrl := os.Getenv("DEPLOY_STAT_URL")
 	if instance.Spec.Notifications.DeploymentStatusUrl != "" {

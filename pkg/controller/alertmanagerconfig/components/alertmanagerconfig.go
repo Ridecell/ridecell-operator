@@ -43,7 +43,10 @@ func NewAlertManagerConfig() *alertManageConfigComponent {
 }
 
 func (_ *alertManageConfigComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&monitoringv1beta1.AlertManagerConfig{},
+		&corev1.Secret{},
+	}
 }
 
 func (_ *alertManageConfigComponent) IsReconcilable(_ *components.ComponentContext) bool {
@@ -65,6 +68,7 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "Looks like default config in bad format.")
 	}
+
 	// Get all AlertManagerConfig's
 	alertList := &monitoringv1beta1.AlertManagerConfigList{}
 	err = ctx.List(ctx.Context, &client.ListOptions{}, alertList)
@@ -73,24 +77,26 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	}
 	// Merge  all AlertManagerConfig's
 	for _, config := range alertList.Items {
-		routetype := &alertconfig.Route{}
-		receivertype := &alertconfig.Receiver{}
-		inhibitRuletype := &alertconfig.InhibitRule{}
+
 		if config.Spec.AlertManagerName == instance.Spec.AlertManagerName {
-			errRo := yaml.Unmarshal([]byte(config.Spec.Data["routes"]), routetype)
-			errRe := yaml.Unmarshal([]byte(config.Spec.Data["receiver"]), receivertype)
-			errIn := yaml.Unmarshal([]byte(config.Spec.Data["receiver"]), inhibitRuletype)
-			if errRo != nil || errRe != nil || errIn != nil {
-				glog.Errorf("failed to load yaml for %s in %s", config.Name, config.Namespace)
-				if instance.UID == config.UID {
-					return components.Result{}, errors.Errorf("failed to load yaml for %s in %s", config.Name, config.Namespace)
-				}
-				continue
+			// Routes
+			routetype := &alertconfig.Route{}
+			errRo := yaml.Unmarshal([]byte(config.Spec.Route), routetype)
+			if errRo != nil {
+				glog.Errorf("failed to load Routes form yaml for %s in %s", config.Name, config.Namespace)
 			}
 			defaultConfig.Route.Routes = append(defaultConfig.Route.Routes, routetype)
-			defaultConfig.Receivers = append(defaultConfig.Receivers, receivertype)
-			defaultConfig.InhibitRules = append(defaultConfig.InhibitRules, inhibitRuletype)
+			// Receivers
+			for _, receiver := range config.Spec.Receivers {
+				receivertype := &alertconfig.Receiver{}
+				errRe := yaml.Unmarshal([]byte(receiver), receivertype)
+				if errRe != nil {
+					glog.Errorf("failed to load Receivers form yaml for %s in %s", config.Name, config.Namespace)
+				}
+				defaultConfig.Receivers = append(defaultConfig.Receivers, receivertype)
+			}
 		}
+
 	}
 	// Merged config
 	finalConfig, _ := yaml.Marshal(defaultConfig)

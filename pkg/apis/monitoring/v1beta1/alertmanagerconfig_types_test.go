@@ -53,8 +53,10 @@ var _ = Describe("AlertManagerConfig types", func() {
 			Spec: monitorv1beta1.AlertManagerConfigSpec{
 				AlertManagerName:      "",
 				AlertManagerNamespace: "",
-				Data: map[string]string{
-					"alertmanager.yaml": "2356123",
+				Route:                 "here",
+				Receivers: []string{
+					"slack",
+					"pd",
 				},
 			},
 		}

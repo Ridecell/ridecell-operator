@@ -39,7 +39,7 @@ type MonitorStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	Status      string `json:"status"`
 	Message     string `json:"message"`
-	EventRuleID string `json:"eventruleid"`
+	EventRuleID string `json:"eventruleid,omitempty"`
 }
 
 // +genclient

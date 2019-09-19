@@ -47,19 +47,10 @@ var _ = BeforeEach(func() {
 		Spec: monitorv1beta1.AlertManagerConfigSpec{
 			AlertManagerName:      "alertmanager-infra",
 			AlertManagerNamespace: "default",
-			Data: map[string]string{
-				"routes": `
-match_re:
-service: ^(foo1|foo2|baz)$
-receiver: test-alert
-routes:
-- match:
-  severity: critical
-receiver: test-alert`,
-				"receiver": `
-name: 'test-alert2'
-slack_configs:
-  - send_resolved: true`,
+			Route:                 "{\"match_re\":{\"servicename\":\".*dev-foo-service.*\"},\"routes\":[{\"receiver\":\"foo-pd\",\"match\":{\"severity\":\"critical\"},\"continue\":true},{\"receiver\":\"foo-slack\"}]}",
+			Receivers: []string{
+				"{\"name\":\"foo-slack\",\"slack_configs\":[{\"send_resolved\":true,\"channel\":\"#test-alert\",\"color\":\"{{ template \\\"slack.ridecell.color\\\" . }}\",\"title\":\"{{ template \\\"slack.ridecell.title\\\" . }}\",\"text\":\"{{ template \\\"slack.ridecell.text\\\" . }}\",\"icon_emoji\":\"{{ template \\\"slack.ridecell.icon_emoji\\\" . }}\",\"actions\":[{\"type\":\"button\",\"text\":\"Runbook :green_book:\",\"url\":\"{{ (index .Alerts 0).Annotations.runbook }}\"},{\"type\":\"button\",\"text\":\"Silence :no_bell:\",\"url\":\"https://dummy/#/silences\"},{\"type\":\"button\",\"text\":\"Dashboard :grafana:\",\"url\":\"{{ (index .Alerts 0).Annotations.dashboard }}\"},{\"type\":\"button\",\"text\":\"Query :mag:\",\"url\":\"{{ (index .Alerts 0).GeneratorURL }}\"}]},{\"send_resolved\":true,\"channel\":\"#test\",\"color\":\"{{ template \\\"slack.ridecell.color\\\" . }}\",\"title\":\"{{ template \\\"slack.ridecell.title\\\" . }}\",\"text\":\"{{ template \\\"slack.ridecell.text\\\" . }}\",\"icon_emoji\":\"{{ template \\\"slack.ridecell.icon_emoji\\\" . }}\",\"actions\":[{\"type\":\"button\",\"text\":\"Runbook :green_book:\",\"url\":\"{{ (index .Alerts 0).Annotations.runbook }}\"},{\"type\":\"button\",\"text\":\"Silence :no_bell:\",\"url\":\"https://dummy/#/silences\"},{\"type\":\"button\",\"text\":\"Dashboard :grafana:\",\"url\":\"{{ (index .Alerts 0).Annotations.dashboard }}\"},{\"type\":\"button\",\"text\":\"Query :mag:\",\"url\":\"{{ (index .Alerts 0).GeneratorURL }}\"}]}]}",
+				"{\"name\":\"foo-pd\",\"pagerduty_configs\":[{\"send_resolved\":true,\"routing_key\":\"secret\",\"client\":\"dummy\",\"client_url\":\"https://dummy\",\"description\":\"{{ template \\\"pagerduty.ridecell.description\\\" .}}\",\"severity\":\"{{ if .CommonLabels.severity }}{{ .CommonLabels.severity | toLower }}{{ else }}critical{{ end }}\"}]}",
 			},
 		},
 	}
