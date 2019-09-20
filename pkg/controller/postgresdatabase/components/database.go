@@ -60,12 +60,23 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.Wrap(err, "database: error running db check query")
 	}
 
-	if count == 0 {
+	// Checks if adminuser already a member of the database owner
+	row = db.QueryRow(`SELECT pg_has_role($1, $2, 'member')`, instance.Status.AdminConnection.Username, instance.Spec.Owner)
+	var aMember bool
+	err = row.Scan(&aMember)
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "database: error querying pg_has_role")
+	}
+
+	if !aMember {
 		// Grant our admin user access to the owner role. This matters on RDS where the admin user is not a true superuser.
 		_, err := db.Exec(fmt.Sprintf(`GRANT %s TO %s`, pq.QuoteIdentifier(instance.Spec.Owner), pq.QuoteIdentifier(instance.Status.AdminConnection.Username)))
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "database: error granting role")
 		}
+	}
+
+	if count == 0 {
 		// Time to make the database.
 		_, err = db.Exec(fmt.Sprintf(`CREATE DATABASE %s WITH OWNER = %s`, pq.QuoteIdentifier(instance.Spec.DatabaseName), utils.QuoteLiteral(instance.Spec.Owner)))
 		if err != nil {

@@ -84,6 +84,8 @@ var _ = Describe("PostgresDatabase Database Component", func() {
 	It("creates a database", func() {
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
 		dbMock.ExpectQuery(`SELECT COUNT`).WithArgs("foo_dev").WillReturnRows(rows)
+		tf_row := sqlmock.NewRows([]string{"pg_has_role"}).AddRow(0)
+		dbMock.ExpectQuery(`SELECT pg_has_role`).WithArgs("myuser", "foo").WillReturnRows(tf_row)
 		dbMock.ExpectExec(`GRANT "foo" TO "myuser"`).WillReturnResult(sqlmock.NewResult(0, 1))
 		dbMock.ExpectExec(`CREATE DATABASE "foo_dev" WITH OWNER = 'foo'`).WillReturnResult(sqlmock.NewResult(0, 1))
 
