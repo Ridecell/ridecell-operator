@@ -92,11 +92,11 @@ spec:
             command:
             - bash
             - -c
-            - python -m celery -A summon_platform inspect ping --timeout 20 -d celery@$HOSTNAME
+            - python -m celery -A summon_platform inspect ping --timeout 60 -d celery@$HOSTNAME
           initialDelaySeconds: 300
           periodSeconds: 60
           failureThreshold: 5
-          timeoutSeconds: 30
+          timeoutSeconds: 100
       volumes:
         - name: config-volume
           configMap:
