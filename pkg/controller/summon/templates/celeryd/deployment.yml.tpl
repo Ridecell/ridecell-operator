@@ -93,8 +93,9 @@ spec:
             - bash
             - -c
             - python -m celery -A summon_platform inspect ping -d celery@$HOSTNAME
-          initialDelaySeconds: 10
-          periodSeconds: 5
+          initialDelaySeconds: 300
+          periodSeconds: 60
+          failureThreshold: 5
       volumes:
         - name: config-volume
           configMap:
