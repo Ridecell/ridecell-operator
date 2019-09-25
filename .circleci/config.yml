@@ -85,7 +85,14 @@ jobs:
     steps:
     - rc_setup
     - run: make generate
-    - run: golangci-lint run --disable=govet
+    - run: |
+        golangci-lint run --disable=govet
+        rv=$?
+        if [[ "$rv" -eq 137 && "$CIRCLE_BRANCH" = master ]]; then
+          echo "Likely OOM, ignoring because this is master"
+        else
+          exit "$rv"
+        fi
     - run: make vet
 
   test:
