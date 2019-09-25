@@ -43,12 +43,10 @@ spec:
         - worker
         - "-l"
         - info
-        {{ if .Instance.Spec.Celery.Concurrency }}
         - "--concurrency"
-        - {{ .Instance.Spec.Celery.Concurrency | quote }}
-        {{ end }}
+        - {{ .Instance.Spec.Celery.Concurrency | default 30 | quote }}
         - "--pool"
-        - {{ .Instance.Spec.Celery.Pool | default "prefork" }}
+        - {{ .Instance.Spec.Celery.Pool | default "eventlet" | quote }}
         ports:
         - containerPort: 8000
         resources:
