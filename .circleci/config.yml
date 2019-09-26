@@ -85,7 +85,7 @@ jobs:
     steps:
     - rc_setup
     - run: make generate
-    - run: golangci-lint run --disable=govet
+    - run: golangci-lint run --fast
     - run: make vet
 
   test:
@@ -257,31 +257,24 @@ workflows:
     - test
     - test_postgres:
         requires:
-        - lint
         - test
     - test_aws:
         requires:
-        - lint
         - test
     - test_rds:
         requires:
-        - lint
         - test
     - test_rdssnapshot:
         requires:
-        - lint
         - test
     - test_rabbitmq:
         requires:
-        - lint
         - test
     - test_other:
         requires:
-        - lint
         - test
     - coveralls:
         requires:
-        - lint
         - test
         - test_postgres
         - test_aws
@@ -291,11 +284,9 @@ workflows:
         - test_other
     - crds:
         requires:
-        - lint
         - test
     - build:
         requires:
-        - lint
         - test
         - test_postgres
         - test_aws
