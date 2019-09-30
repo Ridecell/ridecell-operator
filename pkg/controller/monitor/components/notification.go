@@ -165,7 +165,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 					Severity:    `{{ if .CommonLabels.severity }}{{ .CommonLabels.severity | toLower }}{{ else }}critical{{ end }}`,
 					Client:      os.Getenv("ALERTMANAGER_NAME"),
 					ClientURL:   fmt.Sprintf("https://%s", os.Getenv("ALERTMANAGER_NAME")),
-					Description: `{{ template "pagerduty.ridecell.description" .}}`},
+					Description: `{{ template "pagerduty.default.description" .}}`},
 			}}
 
 		// Check if EscalationPolicy present in pagerduty
