@@ -24,6 +24,7 @@ import (
 	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -71,7 +72,9 @@ func (comp *promruleComponent) Reconcile(ctx *components.ComponentContext) (comp
 				}}
 			err := ctx.Delete(ctx.Context, promrule)
 			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "failed to delete PrometheusRule ")
+				if !k8serr.IsNotFound(err) {
+					return components.Result{}, errors.Wrapf(err, "failed to delete PrometheusRule ")
+				}
 			}
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(promruleFinalizer, instance)
