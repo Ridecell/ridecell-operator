@@ -44,6 +44,8 @@ type NotificationsSpec struct {
 	// Override for the global default deployment-status server to use.
 	// +optional
 	DeploymentStatusUrl string `json:"deploymentStatusUrl,omitempty"`
+	// Name of pagerduty team. Team will be paged for all critical alerts
+	Pagerdutyteam string `json:"pagerdutyteam,omitempty"`
 }
 
 // DatabaseSpec defines database-related configuration.
@@ -183,7 +185,9 @@ type SummonPlatformSpec struct {
 	// Google Cloud project to use.
 	// +optional
 	GCPProject string `json:"gcpProject,omitempty"`
-
+	// Enable monitoring
+	// +optional
+	Monitoring MonitorSpec `json:"monitoring,omitempty"`
 	// Backwards compat fields from before ReplicasSpec. Clean up once all instances are converted to the new config format.
 	WebReplicas           *int32 `json:"webReplicas,omitempty"`
 	DaphneReplicas        *int32 `json:"daphneReplicas,omitempty"`
@@ -276,4 +280,9 @@ type SummonPlatformList struct {
 
 func init() {
 	SchemeBuilder.Register(&SummonPlatform{}, &SummonPlatformList{})
+}
+
+// MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
+type MonitorSpec struct {
+	Enabled bool `json:"enabled,omitempty"`
 }
