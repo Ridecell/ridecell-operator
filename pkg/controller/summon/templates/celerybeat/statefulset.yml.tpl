@@ -56,8 +56,12 @@ spec:
           limits:
             memory: 1G
             cpu: 200m
-        {{ if .Instance.Spec.EnableNewRelic }}
         env:
+        - name: SUMMON_COMPONENT
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['app.kubernetes.io/name']
+        {{ if .Instance.Spec.EnableNewRelic }}
         - name: NEW_RELIC_LICENSE_KEY
           valueFrom:
           secretKeyRef:
