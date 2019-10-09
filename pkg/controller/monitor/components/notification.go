@@ -223,7 +223,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 			// This will will route events from alertmanager on th basics of ServiceName in PG
 			var condition, conditions, action []interface{}
 
-			condition = append(condition, "contains", []string{"path", "payload.summary"}, instance.Spec.ServiceName)
+			condition = append(condition, "contains", []string{"path", "payload", "summary"}, instance.Spec.ServiceName)
 			conditions = append(conditions, "or", condition)
 
 			action = append(action, []string{"route", s.ID})
