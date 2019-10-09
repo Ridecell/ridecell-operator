@@ -44,9 +44,9 @@ spec:
         - "-l"
         - info
         - "--concurrency"
-        - {{ .Instance.Spec.Celery.Concurrency | default 30 | quote }}
+        - {{ .Instance.Spec.Celery.Concurrency | default 4 | quote }}
         - "--pool"
-        - {{ .Instance.Spec.Celery.Pool | default "eventlet" | quote }}
+        - {{ .Instance.Spec.Celery.Pool | default "prefork" | quote }}
         ports:
         - containerPort: 8000
         resources:
@@ -56,9 +56,11 @@ spec:
           limits:
             memory: 3G
             cpu: 1000m
-        {{ if or .Instance.Spec.EnableNewRelic .Instance.Spec.GCPProject }}
         env:
-        {{ end }}
+        - name: SUMMON_COMPONENT
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['app.kubernetes.io/name']
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: NEW_RELIC_LICENSE_KEY
           valueFrom:

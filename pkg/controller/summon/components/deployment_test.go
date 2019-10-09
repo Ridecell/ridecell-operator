@@ -213,7 +213,7 @@ var _ = Describe("deployment Component", func() {
 			target := &appsv1.Deployment{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "30", "--pool", "eventlet"}))
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "4", "--pool", "prefork"}))
 		})
 
 		It("passes concurrency when set", func() {
@@ -236,7 +236,7 @@ var _ = Describe("deployment Component", func() {
 			target := &appsv1.Deployment{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "10", "--pool", "eventlet"}))
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "10", "--pool", "prefork"}))
 		})
 
 		It("passes pool when set", func() {
@@ -259,7 +259,7 @@ var _ = Describe("deployment Component", func() {
 			target := &appsv1.Deployment{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "30", "--pool", "solo"}))
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "4", "--pool", "solo"}))
 		})
 	})
 })

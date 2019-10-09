@@ -43,9 +43,11 @@ spec:
             cpu: 500m
           limits:
             memory: {{ block "memory_limit" . }}1G{{ end }}
-        {{ if or .Instance.Spec.EnableNewRelic .Instance.Spec.GCPProject }}
         env:
-        {{ end }}
+        - name: SUMMON_COMPONENT
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['app.kubernetes.io/name']
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: NEW_RELIC_LICENSE_KEY
           valueFrom:
