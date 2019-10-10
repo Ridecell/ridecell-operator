@@ -199,6 +199,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.Config["ENABLE_NEW_RELIC"] = summonv1beta1.ConfigValue{Bool: &val}
 	}
 
+	// Enable monitoring for prod env
+	if instance.Spec.Environment == "prod" {
+		instance.Spec.Monitoring.Enabled = true
+	}
+
 	return components.Result{}, nil
 }
 
