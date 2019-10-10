@@ -88,6 +88,9 @@ func Add(mgr manager.Manager) error {
 		// Channelworker components.
 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl"),
 
+		// Set Monitoring
+		summoncomponents.NewMonitoring(),
+
 		// End of converge status checks.
 		summoncomponents.NewStatus(),
 
