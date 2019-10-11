@@ -26,3 +26,11 @@ spec:
         servicename: {{ .Instance.Name }}
       annotations:
         summary: Newrelic error % greater than 1 for {{ .Instance.Name }}
+    - alert: uptime check failed for {{ .Instance.Name }}-web
+      expr: probe_success{name={{ .Instance.Name | quote }}-web} == 0
+      for: 5m
+      labels:
+        severity: critical
+        servicename: {{ .Instance.Name }}
+      annotations:
+        summary: prober not able to reach {{ .Instance.Name }}-web
