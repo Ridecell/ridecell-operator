@@ -29,8 +29,6 @@ import (
 	"time"
 )
 
-const timeout = time.Second * 30
-
 var _ = Describe("mockcarservertenant controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.MockCarServerTenant
