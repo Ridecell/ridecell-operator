@@ -91,13 +91,13 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 	}
 	// Get data from secret
 	postData := map[string]string{}
-	postData["apiKey"] = string(otakeysSecret.Data["OTAKEYS_API_KEY"])
-	postData["secretKey"] = string(otakeysSecret.Data["OTAKEYS_SECRET_KEY"])
-	postData["apiToken"] = string(otakeysSecret.Data["OTAKEYS_TOKEN"])
-	postData["pushApiKey"] = string(otakeysSecret.Data["OTAKEYS_PUSH_API_KEY"])
-	postData["pushSecretKey"] = string(otakeysSecret.Data["OTAKEYS_PUSH_SECRET_KEY"])
-	postData["pushToken"] = string(otakeysSecret.Data["OTAKEYS_PUSH_TOKEN"])
-
+	postData["api_key"] = string(otakeysSecret.Data["OTAKEYS_API_KEY"])
+	postData["sec_key"] = string(otakeysSecret.Data["OTAKEYS_SECRET_KEY"])
+	postData["api_token"] = string(otakeysSecret.Data["OTAKEYS_TOKEN"])
+	postData["push_api_key"] = string(otakeysSecret.Data["OTAKEYS_PUSH_API_KEY"])
+	postData["push_sec_key"] = string(otakeysSecret.Data["OTAKEYS_PUSH_SECRET_KEY"])
+	postData["push_token"] = string(otakeysSecret.Data["OTAKEYS_PUSH_TOKEN"])
+	
 	// Build callback url
 	callbackurl := ""
 	if env := strings.TrimPrefix(instance.Namespace, "summon-"); env == "uat" || env == "prod" {
@@ -108,8 +108,8 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 
 	// Add Name, hardware type, Callback url field
 	postData["name"] = instance.Name
-	postData["tenantHardwareType"] = instance.Spec.TenantHardwareType
-	postData["callbackUrl"] = callbackurl
+	postData["tenant_hardware_type"] = instance.Spec.TenantHardwareType
+	postData["callback_url"] = callbackurl
 	// Create mock tenant
 	isCreated, err := utils.CreateOrUpdateMockTenant(postData)
 	if err != nil && !(isCreated) {
