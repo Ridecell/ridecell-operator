@@ -97,7 +97,7 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 	postData["push_api_key"] = string(otakeysSecret.Data["OTAKEYS_PUSH_API_KEY"])
 	postData["push_sec_key"] = string(otakeysSecret.Data["OTAKEYS_PUSH_SECRET_KEY"])
 	postData["push_token"] = string(otakeysSecret.Data["OTAKEYS_PUSH_TOKEN"])
-	
+
 	// Build callback url
 	callbackurl := ""
 	if env := strings.TrimPrefix(instance.Namespace, "summon-"); env == "uat" || env == "prod" {

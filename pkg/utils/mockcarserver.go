@@ -17,13 +17,25 @@ limitations under the License.
 package utils
 
 import (
+	"bytes"
+	"crypto/tls"
+	"encoding/json"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 )
+
+func GetHttpClient() http.Client {
+	return http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+}
 
 // Get the mock tenant
 // GET request
@@ -36,15 +48,13 @@ func GetMockTenant(tenantName string) (bool, error) {
 
 	RETRY_COUNT := 3
 	for RETRY_COUNT > 0 {
-		client := http.Client{
-			Timeout: 30 * time.Second,
-		}
+		client := GetHttpClient()
 		request, err := http.NewRequest("GET", URI+"/common/tenant?name="+tenantName, nil)
 		if err != nil {
 			return false, errors.Wrapf(err, "Unable to create request.")
 		}
-		request.Header.Set("AUTH-KEY", AUTH)
-		request.Header.Set("AUTH-CLIENT", AUTH_CLIENT)
+		request.Header.Set("API-KEY", AUTH)
+		request.Header.Set("API-CLIENT", AUTH_CLIENT)
 		resp, err := client.Do(request)
 		if err != nil {
 			return false, errors.Wrapf(err, "Something bad happened while connecting to Mock car server.")
@@ -52,8 +62,10 @@ func GetMockTenant(tenantName string) (bool, error) {
 		defer resp.Body.Close()
 		if resp.StatusCode == 200 {
 			return true, nil
+		} else if resp.StatusCode == 404 {
+			return false, errors.New("Resource not found")
 		} else if resp.StatusCode == 401 {
-			return false, errors.New("Request not authorized.")
+			return false, errors.New("Request not authorized")
 		} else if resp.StatusCode == 400 {
 			return false, errors.New("Bad request to server")
 		}
@@ -73,23 +85,21 @@ func CreateOrUpdateMockTenant(postData map[string]string) (bool, error) {
 	AUTH := os.Getenv("MOCKCARSERVER_AUTH")
 	AUTH_CLIENT := "ridecell-operator"
 
-	formData := url.Values{}
-	for k, v := range postData {
-		formData.Add(k, v)
+	jsonData, err := json.Marshal(postData)
+	if err != nil {
+		return false, errors.Wrapf(err, "Unable to convert data into json format")
 	}
 
 	RETRY_COUNT := 3
 	for RETRY_COUNT > 0 {
-		client := http.Client{
-			Timeout: 30 * time.Second,
-		}
-		request, err := http.NewRequest("POST", URI+"/common/tenant", strings.NewReader(formData.Encode()))
+		client := GetHttpClient()
+		request, err := http.NewRequest("POST", URI+"/common/tenant", bytes.NewBuffer(jsonData))
 		if err != nil {
-			return false, errors.Wrapf(err, "Unable to create request.")
+			return false, errors.Wrapf(err, "Unable to create request")
 		}
-		request.Header.Set("AUTH-KEY", AUTH)
-		request.Header.Set("Content-type", "application/x-www-form-urlencoded")
-		request.Header.Set("AUTH-CLIENT", AUTH_CLIENT)
+		request.Header.Set("API-KEY", AUTH)
+		request.Header.Set("Content-type", "application/json")
+		request.Header.Set("API-CLIENT", AUTH_CLIENT)
 		resp, err := client.Do(request)
 		if err != nil {
 			return false, errors.Wrapf(err, "Something bad happened while connecting to Mock car server.")
@@ -98,7 +108,7 @@ func CreateOrUpdateMockTenant(postData map[string]string) (bool, error) {
 		if resp.StatusCode == 201 || resp.StatusCode == 200 {
 			return true, nil
 		} else if resp.StatusCode == 401 {
-			return false, errors.New("Request not authorized.")
+			return false, errors.New("Request not authorized")
 		} else if resp.StatusCode == 400 {
 			return false, errors.New("Bad request to server")
 		}
@@ -120,16 +130,13 @@ func DeleteMockTenant(tenantName string) (bool, error) {
 
 	RETRY_COUNT := 3
 	for RETRY_COUNT > 0 {
-		client := http.Client{
-			Timeout: 30 * time.Second,
-		}
+		client := GetHttpClient()
 		request, err := http.NewRequest("DELETE", URI+"/common/tenant?name="+tenantName, nil)
 		if err != nil {
-			return false, errors.Wrapf(err, "Unable to create request.")
+			return false, errors.Wrapf(err, "Unable to create request")
 		}
-		request.Header.Set("AUTH-KEY", AUTH)
-		request.Header.Set("Content-type", "application/x-www-form-urlencoded")
-		request.Header.Set("AUTH-CLIENT", AUTH_CLIENT)
+		request.Header.Set("API-KEY", AUTH)
+		request.Header.Set("API-CLIENT", AUTH_CLIENT)
 		resp, err := client.Do(request)
 		if err != nil {
 			return false, errors.Wrapf(err, "Something bad happened while connecting to Mock car server.")
@@ -138,7 +145,7 @@ func DeleteMockTenant(tenantName string) (bool, error) {
 		if resp.StatusCode == 200 {
 			return true, nil
 		} else if resp.StatusCode == 401 {
-			return false, errors.New("Request not authorized.")
+			return false, errors.New("Request not authorized")
 		} else if resp.StatusCode == 400 {
 			return false, errors.New("Bad request to server")
 		}
