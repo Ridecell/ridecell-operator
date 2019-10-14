@@ -114,7 +114,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		}
 
 		goalStatefulSet := goalObj.(*appsv1.StatefulSet)
-		existing := goalObj.(*appsv1.StatefulSet)
+		existing := existingObj.(*appsv1.StatefulSet)
 		existing.Spec = goalStatefulSet.Spec
 		return nil
 	})
