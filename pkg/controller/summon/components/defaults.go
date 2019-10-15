@@ -71,9 +71,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "error setting replica defaults")
 	}
-	if len(instance.Spec.Secrets) == 0 {
-		instance.Spec.Secrets = []string{instance.Namespace, instance.Name}
-	}
 	if instance.Spec.PullSecret == "" {
 		instance.Spec.PullSecret = "pull-secret"
 	}

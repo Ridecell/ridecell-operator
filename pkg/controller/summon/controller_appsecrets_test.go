@@ -51,9 +51,20 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 	createInputSecret := func() *corev1.Secret {
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"TOKEN": "secrettoken",
+			},
+		}
+		helpers.TestClient.Create(secret)
+		return secret
+	}
+
+	createInputNamespaceSecret := func() *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: helpers.Namespace, Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"TEST123": "123",
 			},
 		}
 		helpers.TestClient.Create(secret)
@@ -114,7 +125,6 @@ var _ = Describe("Summon controller appsecrets", func() {
 	}
 
 	createInstance := func() {
-		instance.Spec.Secrets = []string{"testsecret"}
 		helpers.TestClient.Create(instance)
 
 		// Advance db to running.
@@ -171,6 +181,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create all the input secrets.
 		createInputSecret()
+		createInputNamespaceSecret()
 		createAwsSecret()
 		createDbSecret()
 		createRmqSecret()
@@ -197,6 +208,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create some of the input secrets.
 		createInputSecret()
+		createInputNamespaceSecret()
 		createAwsSecret()
 		createRmqSecret()
 
@@ -224,6 +236,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the input secrets.
 		createInputSecret()
+		createInputNamespaceSecret()
 		dbSecret := createDbSecret()
 		createAwsSecret()
 		createRmqSecret()
@@ -263,6 +276,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the input secrets.
 		inputSecret := createInputSecret()
+		inputNamespaceSecret := createInputNamespaceSecret()
 		createDbSecret()
 		createAwsSecret()
 		createRmqSecret()
@@ -278,6 +292,12 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Get the output app secrets.
 		appSecret := &corev1.Secret{}
+
 		c.EventuallyGet(helpers.Name("appsecretstest.app-secrets"), appSecret, c.EventuallyValue(HaveKeyWithValue("TOKEN", "other"), getData))
+
+		inputNamespaceSecret.StringData["TEST123"] = "456"
+		c.Update(inputNamespaceSecret)
+
+		c.EventuallyGet(helpers.Name("appsecretstest.app-secrets"), appSecret, c.EventuallyValue(HaveKeyWithValue("TEST123", "456"), getData))
 	})
 })
