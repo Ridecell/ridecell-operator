@@ -51,7 +51,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 	createInputSecret := func() *corev1.Secret {
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"TOKEN": "secrettoken",
 			},
@@ -114,7 +114,6 @@ var _ = Describe("Summon controller appsecrets", func() {
 	}
 
 	createInstance := func() {
-		instance.Spec.Secrets = []string{"testsecret"}
 		helpers.TestClient.Create(instance)
 
 		// Advance db to running.
@@ -258,7 +257,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		c.EventuallyGet(helpers.Name("appsecretstest"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
 	})
 
-	It("updates the app secrets if an input secret is changed afterwards", func() {
+	FIt("updates the app secrets if an input secret is changed afterwards", func() {
 		c := helpers.TestClient
 
 		// Create the input secrets.
