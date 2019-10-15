@@ -257,7 +257,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 		c.EventuallyGet(helpers.Name("appsecretstest"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
 	})
 
-	FIt("updates the app secrets if an input secret is changed afterwards", func() {
+	It("updates the app secrets if an input secret is changed afterwards", func() {
 		c := helpers.TestClient
 
 		// Create the input secrets.
