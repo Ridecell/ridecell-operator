@@ -273,7 +273,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the input secrets.
 		inputSecret := createInputSecret()
-		createInputNamespaceSecret()
+		inputNamespaceSecret := createInputNamespaceSecret()
 		createDbSecret()
 		createAwsSecret()
 		createRmqSecret()
@@ -289,6 +289,12 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Get the output app secrets.
 		appSecret := &corev1.Secret{}
+
 		c.EventuallyGet(helpers.Name("appsecretstest.app-secrets"), appSecret, c.EventuallyValue(HaveKeyWithValue("TOKEN", "other"), getData))
+
+		inputNamespaceSecret.StringData["TEST123"] = "456"
+		c.Update(inputNamespaceSecret)
+
+		c.EventuallyGet(helpers.Name("appsecretstest.app-secrets"), appSecret, c.EventuallyValue(HaveKeyWithValue("TEST123", "456"), getData))
 	})
 })
