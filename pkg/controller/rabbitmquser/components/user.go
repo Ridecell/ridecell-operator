@@ -68,7 +68,7 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 		return components.Result{}, errors.Wrapf(err, "error connection to rabbitmq host")
 	}
 	if resp.StatusCode == 201 {
-		// If this is the initial creation of the reconcile again after 10 seconds
+		// If this is the initial creation of the user reconcile again after 10 seconds
 		// This is a hack to remedy amqp permissions being applied incorrectly immediately after creation.
 		return components.Result{RequeueAfter: time.Second * 10}, nil
 	}
