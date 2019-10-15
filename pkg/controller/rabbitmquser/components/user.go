@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -65,6 +66,11 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 	resp, err := rmqc.PutUser(instance.Spec.Username, rabbithole.UserSettings{Password: string(userPassword), Tags: instance.Spec.Tags})
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "error connection to rabbitmq host")
+	}
+	if resp.StatusCode == 201 {
+		// If this is the initial creation of the user reconcile again after 10 seconds
+		// This is a hack to remedy amqp permissions being applied incorrectly immediately after creation.
+		return components.Result{RequeueAfter: time.Second * 10}, nil
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, err := ioutil.ReadAll(resp.Body)

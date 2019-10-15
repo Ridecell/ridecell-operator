@@ -97,11 +97,13 @@ var _ = Describe("RabbitmqUser User Component", func() {
 	It("set the output connection info", func() {
 		instance.Spec.Username = "foo"
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Connection.Host).To(Equal("mockhost"))
 		Expect(instance.Status.Connection.Port).To(Equal(5671))
 	})
 	It("creates permission for a user", func() {
 		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(frc.Permissions["rabbitmq-user-test1"]).To(HaveLen(2))
 	})
@@ -115,6 +117,7 @@ var _ = Describe("RabbitmqUser User Component", func() {
 		})
 		instance.Spec = spec1
 		Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(frc.Permissions["rabbitmq-user-test1"][1].Configure).To(Equal(".*"))
 	})
 	It("removes unwanted permissions for a user and vhost", func() {
@@ -126,6 +129,7 @@ var _ = Describe("RabbitmqUser User Component", func() {
 			Write:     ".*",
 		})
 		instance.Spec = spec1
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(comp).To(ReconcileContext(ctx))
 		for key := range frc.Permissions["rabbitmq-user-test1"] {
 			Expect(frc.Permissions["rabbitmq-user-test1"][key].Vhost).ToNot(Equal("rabbitmq-test3"))
