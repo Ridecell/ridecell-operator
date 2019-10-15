@@ -60,6 +60,14 @@ var _ = Describe("Summon controller appsecrets", func() {
 		return secret
 	}
 
+	createInputNamespaceSecret := func() *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: helpers.Namespace, Namespace: helpers.Namespace},
+		}
+		helpers.TestClient.Create(secret)
+		return secret
+	}
+
 	createAwsSecret := func() *corev1.Secret {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest.aws-credentials", Namespace: helpers.Namespace},
@@ -170,6 +178,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create all the input secrets.
 		createInputSecret()
+		createInputNamespaceSecret()
 		createAwsSecret()
 		createDbSecret()
 		createRmqSecret()
@@ -196,6 +205,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create some of the input secrets.
 		createInputSecret()
+		createInputNamespaceSecret()
 		createAwsSecret()
 		createRmqSecret()
 
@@ -223,6 +233,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the input secrets.
 		createInputSecret()
+		createInputNamespaceSecret()
 		dbSecret := createDbSecret()
 		createAwsSecret()
 		createRmqSecret()
@@ -262,6 +273,7 @@ var _ = Describe("Summon controller appsecrets", func() {
 
 		// Create the input secrets.
 		inputSecret := createInputSecret()
+		createInputNamespaceSecret()
 		createDbSecret()
 		createAwsSecret()
 		createRmqSecret()
