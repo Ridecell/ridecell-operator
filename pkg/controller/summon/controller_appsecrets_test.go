@@ -63,6 +63,9 @@ var _ = Describe("Summon controller appsecrets", func() {
 	createInputNamespaceSecret := func() *corev1.Secret {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: helpers.Namespace, Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"TEST123": "123",
+			},
 		}
 		helpers.TestClient.Create(secret)
 		return secret
