@@ -19,7 +19,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/pkg/errors"
