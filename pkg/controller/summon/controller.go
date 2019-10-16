@@ -66,6 +66,7 @@ func Add(mgr manager.Manager) error {
 		// Web components.
 		summoncomponents.NewDeployment("web/deployment.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
+		summoncomponents.NewServiceMonitor("web/servicemonitor.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
 
 		// Daphne components.
