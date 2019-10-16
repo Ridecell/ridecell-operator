@@ -119,6 +119,12 @@ type ReplicasSpec struct {
 	Static *int32 `json:"static,omitempty"`
 }
 
+// MetricsSpec defines what metrics should be enabled and exported
+type MetricsSpec struct {
+	// Enables metrics exporting for web pods
+	Web *bool `json:"web,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -185,6 +191,9 @@ type SummonPlatformSpec struct {
 	// Google Cloud project to use.
 	// +optional
 	GCPProject string `json:"gcpProject,omitempty"`
+	// Toggle bools for enabling metrics exporting
+	// +optional
+	Metrics MetricsSpec `json:"metrics,omitempty"`
 	// Enable monitoring
 	// +optional
 	Monitoring MonitorSpec `json:"monitoring,omitempty"`
