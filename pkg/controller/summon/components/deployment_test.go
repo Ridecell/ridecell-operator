@@ -70,6 +70,30 @@ var _ = Describe("deployment Component", func() {
 		Expect(deploymentPodAnnotations["summon.ridecell.io/configHash"]).To(HaveLen(40))
 	})
 
+	It("runs a basic web deployment reconcile", func() {
+		comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string]string{"summon-platform.yml": "{}\n"},
+		}
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"filler": []byte("test"),
+				"test":   []byte("another_test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		deployment := &appsv1.Deployment{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, deployment)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 	It("makes sure keys are sorted before hash", func() {
 		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
