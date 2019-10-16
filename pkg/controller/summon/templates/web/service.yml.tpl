@@ -6,7 +6,7 @@
 {{ end }}
 {{ define "servicePorts" }}
 {{- if .Instance.Spec.Metrics.Web -}}
-[{protocol: TCP, port: 8000}, {protocol: TCP, port: 9000, name: metrics}]
+[{protocol: TCP, port: 8000, name: web}, {protocol: TCP, port: 9000, name: metrics}]
 {{- else -}}
 [{protocol: TCP, port: 8000}]
 {{- end -}}
