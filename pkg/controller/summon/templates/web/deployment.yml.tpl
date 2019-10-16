@@ -9,7 +9,7 @@
 {{ end }}
 {{ define "deploymentPorts" }}
 {{- if .Instance.Spec.Metrics.Web -}}
-[{containerPort: 8000}, {containerPort: 9000, name: metrics}]
+[{containerPort: 8000, name: web}, {containerPort: 9000, name: metrics}]
 {{- else -}}
 [{containerPort: 8000}]
 {{- end -}}
