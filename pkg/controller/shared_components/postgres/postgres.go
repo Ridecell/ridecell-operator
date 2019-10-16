@@ -19,6 +19,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/pkg/errors"
@@ -155,7 +156,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.New("unexpected error, postgres database is not a known type")
 	}
 
-	_, err = comp.reconcileExporter(ctx, conn)
+	exporterResult, err := comp.reconcileExporter(ctx, conn)
 	if err != nil {
 		return res, errors.Wrap(err, "error while reconciling exporter deployment")
 	}
@@ -172,6 +173,9 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return res, errors.Wrap(err, "error while reconciling periscope postgres user")
 	}
 
+	if exporterResult.RequeueAfter != 0 {
+		res.RequeueAfter = exporterResult.RequeueAfter
+	}
 	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
 		res.StatusModifier = func(obj runtime.Object) error {
@@ -280,6 +284,10 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 }
 
 func (comp *postgresComponent) reconcileExporter(ctx *components.ComponentContext, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
+	// If the password doesn't yet exist don't try to create the exporter
+	if conn.PasswordSecretRef.Name == "" {
+		return components.Result{RequeueAfter: time.Second * 30}, nil
+	}
 	extras := map[string]interface{}{}
 	extras["Conn"] = conn
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("postgres-exporter.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
