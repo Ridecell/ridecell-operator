@@ -28,6 +28,7 @@ import (
 
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	promv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 var _ = Describe("servicemonitor Component", func() {
@@ -42,7 +43,7 @@ var _ = Describe("servicemonitor Component", func() {
 
 		monitor := &promv1.ServiceMonitor{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
-		Expect(err).To(HaveOccurred())
+		Expect(kerrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("runs with false flag", func() {
@@ -52,7 +53,7 @@ var _ = Describe("servicemonitor Component", func() {
 
 		monitor := &promv1.ServiceMonitor{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
-		Expect(err).To(HaveOccurred())
+		Expect(kerrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("runs with true flag", func() {
@@ -63,5 +64,20 @@ var _ = Describe("servicemonitor Component", func() {
 		monitor := &promv1.ServiceMonitor{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("delete servicemonitor after disable", func() {
+		trueBool := true
+		instance.Spec.Metrics.Web = &trueBool
+		Expect(comp).To(ReconcileContext(ctx))
+
+		monitor := &promv1.ServiceMonitor{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
+		Expect(err).ToNot(HaveOccurred())
+
+		instance.Spec.Metrics.Web = nil
+		Expect(comp).To(ReconcileContext(ctx))
+		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
+		Expect(kerrors.IsNotFound(err)).To(BeTrue())
 	})
 })
