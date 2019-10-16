@@ -49,6 +49,10 @@ var _ = Describe("MockCarServerTenant types", func() {
 				Name:      "foo",
 				Namespace: helpers.Namespace,
 			},
+			Spec: summonv1beta1.MockCarServerTenantSpec{
+				TenantHardwareType: "OTAKEYS",
+				CallbackUrl:        "https://foo.ridecell.us/",
+			},
 		}
 		fetched := &summonv1beta1.MockCarServerTenant{}
 		err := c.Create(context.TODO(), created)

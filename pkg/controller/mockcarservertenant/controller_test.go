@@ -45,6 +45,7 @@ var _ = Describe("mockcarservertenant controller", func() {
 			},
 			Spec: summonv1beta1.MockCarServerTenantSpec{
 				TenantHardwareType: "OTAKEYS",
+				CallbackUrl:        "https://foo-sample.ridecell.us/",
 			},
 		}
 	})
