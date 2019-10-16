@@ -156,7 +156,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.New("unexpected error, postgres database is not a known type")
 	}
 
-	exporterResult, err := comp.reconcileExporter(ctx, conn)
+	_, err = comp.reconcileExporter(ctx, conn)
 	if err != nil {
 		return res, errors.Wrap(err, "error while reconciling exporter deployment")
 	}
@@ -173,9 +173,6 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return res, errors.Wrap(err, "error while reconciling periscope postgres user")
 	}
 
-	if exporterResult.RequeueAfter != 0 {
-		res.RequeueAfter = exporterResult.RequeueAfter
-	}
 	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
 		res.StatusModifier = func(obj runtime.Object) error {
@@ -286,7 +283,7 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 func (comp *postgresComponent) reconcileExporter(ctx *components.ComponentContext, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
 	// If the password doesn't yet exist don't try to create the exporter
 	if conn.PasswordSecretRef.Name == "" {
-		return components.Result{RequeueAfter: time.Second * 30}, nil
+		return components.Result{}, nil
 	}
 	extras := map[string]interface{}{}
 	extras["Conn"] = conn
