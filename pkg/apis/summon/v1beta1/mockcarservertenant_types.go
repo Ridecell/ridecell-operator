@@ -23,7 +23,7 @@ import (
 
 type MockCarServerTenantSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
-	// +kubebuilder:validation:Enum=OTAKEYS;MENSA
+	// +kubebuilder:validation:Enum=OTAKEYS,MENSA
 	TenantHardwareType string `json:"tenantHardwareType"`
 	// Callback url for Mock Tenant
 	CallbackUrl string `json:"callbackUrl"`

@@ -193,7 +193,7 @@ type SummonPlatformSpec struct {
 	EnableMockCarServer bool `json:"enableMockCarServer,omitempty"`
 	// If Mock car server enabled, provide tenant hardware type
 	// +optional
-	// +kubebuilder:validation:Enum=OTAKEYS;MENSA
+	// +kubebuilder:validation:Enum=OTAKEYS,MENSA
 	MockTenantHardwareType string `json:"mockTenantHardwareType,omitempty"`
 
 	// Backwards compat fields from before ReplicasSpec. Clean up once all instances are converted to the new config format.
