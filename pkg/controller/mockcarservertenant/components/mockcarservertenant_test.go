@@ -62,6 +62,5 @@ var _ = Describe("MockCarServerTenant Component", func() {
 	It("fills the status", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal("Success"))
-		Expect(instance.Status.CallbackUrl).To(Equal("https://test-dev.ridecell.us/"))
 	})
 })

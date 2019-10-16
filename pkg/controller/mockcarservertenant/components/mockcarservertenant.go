@@ -23,9 +23,9 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"strings"
 )
 
 const mockCarServerTenantFinalizer = "finalizer.mockcarservertenant.summon.ridecell.io"
@@ -61,17 +61,18 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 		}
 	} else {
 		if helpers.ContainsFinalizer(mockCarServerTenantFinalizer, instance) {
-			secret := &corev1.Secret{}
-			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + ".tenant-otakeys", Namespace: instance.Namespace}, secret)
-			if err != nil {
-				return components.Result{}, errors.Wrap(err, "mockcarservertenant-finalizer: failed to get otakeys secret")
-			}
 			isDeleted, err := utils.DeleteMockTenant(instance.Name)
 			if err != nil && !(isDeleted) {
 				return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant from server")
 			}
-			err = ctx.Delete(ctx.Context, secret)
-			if err != nil {
+			secret := &corev1.Secret{}
+			err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + ".tenant-otakeys", Namespace: instance.Namespace}, secret)
+			if err == nil {
+				err = ctx.Delete(ctx.Context, secret)
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant secret")
+				}
+			} else if err != nil && !k8serrors.IsNotFound(err) {
 				return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant secret")
 			}
 			// All operations complete, remove finalizer
@@ -98,18 +99,10 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 	postData["push_sec_key"] = string(otakeysSecret.Data["OTAKEYS_PUSH_SECRET_KEY"])
 	postData["push_token"] = string(otakeysSecret.Data["OTAKEYS_PUSH_TOKEN"])
 
-	// Build callback url
-	callbackurl := ""
-	if env := strings.TrimPrefix(instance.Namespace, "summon-"); env == "uat" || env == "prod" {
-		callbackurl = "https://" + instance.Name + ".ridecell.com/"
-	} else {
-		callbackurl = "https://" + instance.Name + ".ridecell.us/"
-	}
-
 	// Add Name, hardware type, Callback url field
 	postData["name"] = instance.Name
 	postData["tenant_hardware_type"] = instance.Spec.TenantHardwareType
-	postData["callback_url"] = callbackurl
+	postData["callback_url"] = instance.Spec.CallbackUrl
 	// Create mock tenant
 	isCreated, err := utils.CreateOrUpdateMockTenant(postData)
 	if err != nil && !(isCreated) {
@@ -119,7 +112,6 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 		instance := obj.(*summonv1beta1.MockCarServerTenant)
 		instance.Status.Status = "Success"
 		instance.Status.Message = "Mock car server tenant created."
-		instance.Status.CallbackUrl = callbackurl
 		return nil
 	}}, nil
 }

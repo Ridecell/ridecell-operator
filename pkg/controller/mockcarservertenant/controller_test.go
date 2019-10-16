@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	"time"
 )
 
 var _ = Describe("mockcarservertenant controller", func() {
@@ -73,6 +74,7 @@ var _ = Describe("mockcarservertenant controller", func() {
 		c.EventuallyGet(helpers.Name("foo-sample"), target, c.EventuallyStatus("Success"))
 		// Delete the instance and check for secret
 		c.Delete(instance)
+		time.Sleep(1 * time.Second)
 		secret := &corev1.Secret{}
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name("foo-sample.tenant-otakeys"), secret)

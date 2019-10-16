@@ -44,6 +44,7 @@ var _ = ginkgo.BeforeEach(func() {
 		ObjectMeta: metav1.ObjectMeta{Name: "test-dev", Namespace: "summon-dev"},
 		Spec: summonv1beta1.MockCarServerTenantSpec{
 			TenantHardwareType: "OTAKEYS",
+			CallbackUrl:        "https://test-dev.ridecell.us/",
 		},
 	}
 	ctx = components.NewTestContext(instance, mockcarservertenant.Templates)

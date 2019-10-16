@@ -4,4 +4,5 @@ metadata:
   name: {{ .Instance.Name }}
   namespace: {{ .Instance.Namespace }}
 spec:
-  TenantHardwareType: {{ .Instance.Spec.MockTenantHardwareType }}
+  tenantHardwareType: {{ .Instance.Spec.MockTenantHardwareType }}
+  callbackUrl: {{ .Extra.Vars.CallbackUrl }}

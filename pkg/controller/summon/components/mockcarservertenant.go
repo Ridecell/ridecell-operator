@@ -56,7 +56,10 @@ func (comp *newMockCarServerTenantComponent) Reconcile(ctx *components.Component
 		return components.Result{}, nil
 	}
 
-	res, _, err := ctx.CreateOrUpdate("mockcarservertenant.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
+	extraVar := map[string]interface{}{}
+	vars := map[string]string{"CallbackUrl": "https://" + instance.Spec.Hostname + "/"}
+	extraVar["Vars"] = vars
+	res, _, err := ctx.CreateOrUpdate("mockcarservertenant.yml.tpl", extraVar, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*summonv1beta1.MockCarServerTenant)
 		existing := existingObj.(*summonv1beta1.MockCarServerTenant)
 		// Copy the Spec over.
