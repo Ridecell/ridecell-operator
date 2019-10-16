@@ -104,10 +104,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	}
 
-	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
-		defConfig("FIREBASE_APP", "ridecell")
-	}
-
 	if instance.Spec.EnableNewRelic == nil && instance.Spec.Environment == "prod" {
 		val := true
 		instance.Spec.EnableNewRelic = &val
@@ -180,6 +176,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// Set our gateway environment for GATEWAY_BASE_URL
 	gatewayEnv := "prod"
 
+	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
+		defVal("FIREBASE_APP", "ridecell")
+	}
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
 		val := true
