@@ -35,14 +35,14 @@ var _ = Describe("servicemonitor Component", func() {
 	var comp components.Component
 
 	BeforeEach(func() {
-		comp = summoncomponents.NewServiceMonitor("web/servicemonitor.yml.tpl")
+		comp = summoncomponents.NewServiceMonitor("metrics/servicemonitor.yml.tpl")
 	})
 
 	It("runs with nil flag", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		monitor := &promv1.ServiceMonitor{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-metrics", Namespace: instance.Namespace}, monitor)
 		Expect(kerrors.IsNotFound(err)).To(BeTrue())
 	})
 
@@ -52,7 +52,7 @@ var _ = Describe("servicemonitor Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		monitor := &promv1.ServiceMonitor{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-metrics", Namespace: instance.Namespace}, monitor)
 		Expect(kerrors.IsNotFound(err)).To(BeTrue())
 	})
 
@@ -62,7 +62,7 @@ var _ = Describe("servicemonitor Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		monitor := &promv1.ServiceMonitor{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-metrics", Namespace: instance.Namespace}, monitor)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -72,12 +72,12 @@ var _ = Describe("servicemonitor Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		monitor := &promv1.ServiceMonitor{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-metrics", Namespace: instance.Namespace}, monitor)
 		Expect(err).ToNot(HaveOccurred())
 
 		instance.Spec.Metrics.Web = nil
 		Expect(comp).To(ReconcileContext(ctx))
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, monitor)
+		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-metrics", Namespace: instance.Namespace}, monitor)
 		Expect(kerrors.IsNotFound(err)).To(BeTrue())
 	})
 })

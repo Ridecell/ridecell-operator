@@ -15,6 +15,6 @@ metadata:
 {{ block "extraAnnotations" . }}{{ end -}}
 spec:
   selector:
-    app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
+    {{ block "selectors" . }}{app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}}{{ end }}
   ports: {{ block "servicePorts" . }}[{protocol: TCP, port: 8000}]{{ end }}
 {{ end }}

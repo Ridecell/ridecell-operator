@@ -50,7 +50,7 @@ func (comp *serviceMonitorComponent) Reconcile(ctx *components.ComponentContext)
 	// If our flag is not set or is false attempt to delete the object and move on
 	if instance.Spec.Metrics.Web == nil || !*instance.Spec.Metrics.Web {
 		existing := &promv1.ServiceMonitor{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-web", instance.Name), Namespace: instance.Namespace}, existing)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-metrics", instance.Name), Namespace: instance.Namespace}, existing)
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				return components.Result{}, nil
