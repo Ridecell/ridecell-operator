@@ -42,13 +42,13 @@ func httpRequest(method string, resourcePath string, data *bytes.Buffer) (*http.
 	AUTH := os.Getenv("MOCKCARSERVER_AUTH")
 	AUTH_CLIENT := "ridecell-operator"
 	client := GetHttpClient()
-	request := &http.Request{}
-	var err error
-	if data != nil {
-		request, err = http.NewRequest(method, URI+resourcePath, data)
-	} else {
-		request, err = http.NewRequest(method, URI+resourcePath, nil)
-	}
+	request, err := func() (*http.Request, error) {
+		if data != nil {
+			return http.NewRequest(method, URI+resourcePath, data)
+		} else {
+			return http.NewRequest(method, URI+resourcePath, nil)
+		}
+	}()
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to create request.")
 	}
