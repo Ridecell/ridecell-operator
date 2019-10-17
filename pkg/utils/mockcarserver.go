@@ -63,31 +63,33 @@ func httpRequest(method string, resourcePath string, data *bytes.Buffer) (*http.
 	return resp, nil
 }
 
+func checkResponseStatus(statusCode int) error {
+	if statusCode == 201 || statusCode == 200 {
+		return nil
+	} else if statusCode == 404 {
+		return errors.New("Resource not found")
+	} else if statusCode == 401 {
+		return errors.New("Request not authorized")
+	} else if statusCode == 400 {
+		return errors.New("Bad request to server")
+	}
+	return errors.Errorf("Unknown Server Response Status code: %d", statusCode)
+}
+
 // Get the mock tenant
 // GET request
 // query param: name
 // response code: 200 success (present), 404 (not found), 401 (invalid auth)
 func GetMockTenant(tenantName string) (bool, error) {
-	RETRY_COUNT := 3
-	for RETRY_COUNT > 0 {
-		response, err := httpRequest("GET", "/common/tenant?name="+tenantName, nil)
-		if err != nil {
-			return false, errors.Wrapf(err, "mockcarserver error")
-		}
-		if response.StatusCode == 200 {
-			return true, nil
-		} else if response.StatusCode == 404 {
-			return false, errors.New("Resource not found")
-		} else if response.StatusCode == 401 {
-			return false, errors.New("Request not authorized")
-		} else if response.StatusCode == 400 {
-			return false, errors.New("Bad request to server")
-		}
-		// request interval
-		time.Sleep(10 * time.Second)
-		RETRY_COUNT -= 1
+	response, err := httpRequest("GET", "/common/tenant?name="+tenantName, nil)
+	if err != nil {
+		return false, errors.Wrapf(err, "mockcarserver error")
 	}
-	return false, errors.New("Unable to get mock car server tenant")
+	err = checkResponseStatus(response.StatusCode)
+	if err != nil {
+		return false, errors.Wrapf(err, "Unable to get mock car server tenant")
+	}
+	return true, nil
 }
 
 // Create the mock tenant
@@ -100,24 +102,15 @@ func CreateOrUpdateMockTenant(postData map[string]string) (bool, error) {
 		return false, errors.Wrapf(err, "Unable to convert data into json format")
 	}
 
-	RETRY_COUNT := 3
-	for RETRY_COUNT > 0 {
-		response, err := httpRequest("POST", "/common/tenant", bytes.NewBuffer(jsonData))
-		if err != nil {
-			return false, errors.Wrapf(err, "mockcarserver error")
-		}
-		if response.StatusCode == 201 || response.StatusCode == 200 {
-			return true, nil
-		} else if response.StatusCode == 401 {
-			return false, errors.New("Request not authorized")
-		} else if response.StatusCode == 400 {
-			return false, errors.New("Bad request to server")
-		}
-		// request interval
-		time.Sleep(10 * time.Second)
-		RETRY_COUNT -= 1
+	response, err := httpRequest("POST", "/common/tenant", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return false, errors.Wrapf(err, "mockcarserver error")
 	}
-	return false, errors.New("Unable to create/update mock car server tenant")
+	err = checkResponseStatus(response.StatusCode)
+	if err != nil {
+		return false, errors.Wrapf(err, "Unable to create/update mock car server tenant")
+	}
+	return true, nil
 }
 
 // Delete the mock tenant
@@ -125,22 +118,13 @@ func CreateOrUpdateMockTenant(postData map[string]string) (bool, error) {
 // query param: name
 // response code: 200 success, 400 (bad params), 401 (invalid auth)
 func DeleteMockTenant(tenantName string) (bool, error) {
-	RETRY_COUNT := 3
-	for RETRY_COUNT > 0 {
-		response, err := httpRequest("DELETE", "/common/tenant?name="+tenantName, nil)
-		if err != nil {
-			return false, errors.Wrapf(err, "mockcarserver error")
-		}
-		if response.StatusCode == 200 {
-			return true, nil
-		} else if response.StatusCode == 401 {
-			return false, errors.New("Request not authorized")
-		} else if response.StatusCode == 400 {
-			return false, errors.New("Bad request to server")
-		}
-		// request interval
-		time.Sleep(10 * time.Second)
-		RETRY_COUNT -= 1
+	response, err := httpRequest("DELETE", "/common/tenant?name="+tenantName, nil)
+	if err != nil {
+		return false, errors.Wrapf(err, "mockcarserver error")
 	}
-	return false, errors.New("Unable to delete tenant on mock car server")
+	err = checkResponseStatus(response.StatusCode)
+	if err != nil {
+		return false, errors.Wrapf(err, "Unable to delete tenant on mock car server")
+	}
+	return true, nil
 }
