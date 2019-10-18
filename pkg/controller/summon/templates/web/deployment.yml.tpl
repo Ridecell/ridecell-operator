@@ -14,6 +14,7 @@
 [{containerPort: 8000}]
 {{- end -}}
 {{ end }}
+{{ define "metricsEnabled" }}{{ if .Instance.Spec.Metrics.Web }}"true"{{ else }}"false"{{ end }}{{ end }}
 {{ define "replicas" }}{{ .Instance.Spec.Replicas.Web | default 0 }}{{ end }}
 {{ define "memory_limit" }}2G{{ end }}
 {{ define "containerExtra" }}

@@ -330,4 +330,87 @@ var _ = Describe("deployment Component", func() {
 			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "4", "--pool", "solo"}))
 		})
 	})
+
+	Context("Tests the metric flags", func() {
+		BeforeEach(func() {
+			configMap := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+				Data:       map[string]string{"summon-platform.yml": "{}\n"},
+			}
+
+			appSecrets := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+				Data: map[string][]byte{
+					"filler": []byte("test"),
+					"test":   []byte("another_test"),
+				},
+			}
+
+			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
+		})
+
+		It("Web flag true on web deployment", func() {
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+			trueBool := true
+			instance.Spec.Metrics.Web = &trueBool
+			Expect(comp).To(ReconcileContext(ctx))
+
+			deployment := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, deployment)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
+			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
+		})
+
+		It("Web flag false on web deployment", func() {
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+			falseBool := false
+			instance.Spec.Metrics.Web = &falseBool
+			Expect(comp).To(ReconcileContext(ctx))
+
+			deployment := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, deployment)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+		})
+
+		It("Web flag nil on web deployment", func() {
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+			instance.Spec.Metrics.Web = nil
+			Expect(comp).To(ReconcileContext(ctx))
+
+			deployment := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, deployment)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+		})
+
+		It("Web flag true on static deployment", func() {
+			comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
+			trueBool := true
+			instance.Spec.Metrics.Web = &trueBool
+			Expect(comp).To(ReconcileContext(ctx))
+
+			deployment := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-static", Namespace: instance.Namespace}, deployment)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+		})
+
+		It("Web flag true on celeryd deployment", func() {
+			comp := summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
+			trueBool := true
+			instance.Spec.Metrics.Web = &trueBool
+			Expect(comp).To(ReconcileContext(ctx))
+
+			deployment := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, deployment)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+		})
+	})
 })

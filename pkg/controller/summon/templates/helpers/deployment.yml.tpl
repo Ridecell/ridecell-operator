@@ -11,7 +11,7 @@ metadata:
     app.kubernetes.io/component: {{ block "componentType" . }}{{ end }}
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
-    metrics-enabled: "{{ .Instance.Spec.Metrics.Web }}"
+    metrics-enabled: {{ block "metricsEnabled" . }}{{ end }}
 spec:
   replicas: {{ block "replicas" . }}1{{ end }}
   selector:
@@ -26,7 +26,7 @@ spec:
         app.kubernetes.io/component: {{ block "componentType" . }}{{ end }}
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
-        metrics-enabled: "{{ .Instance.Spec.Metrics.Web }}"
+        metrics-enabled: {{ block "metricsEnabled" . }}{{ end }}
       annotations:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
