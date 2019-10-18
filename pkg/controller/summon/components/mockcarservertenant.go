@@ -57,8 +57,7 @@ func (comp *newMockCarServerTenantComponent) Reconcile(ctx *components.Component
 	}
 
 	extraVar := map[string]interface{}{}
-	vars := map[string]string{"CallbackUrl": "https://" + instance.Spec.Hostname + "/"}
-	extraVar["Vars"] = vars
+	extraVar["CallbackUrl"] = "https://" + instance.Spec.Hostname + "/"
 	res, _, err := ctx.CreateOrUpdate("mockcarservertenant.yml.tpl", extraVar, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*summonv1beta1.MockCarServerTenant)
 		existing := existingObj.(*summonv1beta1.MockCarServerTenant)

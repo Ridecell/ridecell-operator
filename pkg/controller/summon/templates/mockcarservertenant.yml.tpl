@@ -5,4 +5,4 @@ metadata:
   namespace: {{ .Instance.Namespace }}
 spec:
   tenantHardwareType: {{ .Instance.Spec.MockTenantHardwareType }}
-  callbackUrl: {{ .Extra.Vars.CallbackUrl }}
+  callbackUrl: {{ .Extra.CallbackUrl }}
