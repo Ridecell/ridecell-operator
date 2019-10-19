@@ -18,7 +18,6 @@ package templates
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"path"
 	"text/template"
