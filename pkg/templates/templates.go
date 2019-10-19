@@ -18,6 +18,7 @@ package templates
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"path"
 	"text/template"
@@ -31,8 +32,17 @@ import (
 )
 
 func parseTemplate(fs http.FileSystem, filename string) (*template.Template, error) {
+	customFuncMap := template.FuncMap{
+		"deRefBool": func(input *bool) bool {
+			if input == nil {
+				return false
+			}
+			return *input
+		},
+	}
+
 	// Create a template object.
-	tmpl := template.New(path.Base(filename)).Funcs(sprig.TxtFuncMap())
+	tmpl := template.New(path.Base(filename)).Funcs(sprig.TxtFuncMap()).Funcs(customFuncMap)
 
 	// Parse any helpers if present.
 	helpers, err := vfspath.Glob(fs, "helpers/*.tpl")
@@ -71,6 +81,8 @@ func renderTemplate(tmpl *template.Template, data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	fmt.Println(buffer.String())
 	return buffer.String(), nil
 }
 
