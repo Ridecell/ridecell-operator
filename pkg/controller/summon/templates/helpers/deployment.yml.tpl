@@ -37,13 +37,13 @@ spec:
               topologyKey: failure-domain.beta.kubernetes.io/zone
               labelSelector:
                 matchLabels:
-                  app: <what should go here, if at all?>
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
           - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
-                  app: <what should go here, if at all?>
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
       imagePullSecrets:
       - name: pull-secret
       containers:
