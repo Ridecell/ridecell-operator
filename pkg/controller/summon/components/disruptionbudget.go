@@ -18,9 +18,12 @@ package components
 
 import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"reflect"
 
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type podDisruptionBudgetComponent struct {
@@ -44,12 +47,29 @@ func (_ *podDisruptionBudgetComponent) IsReconcilable(ctx *components.ComponentC
 }
 
 func (comp *podDisruptionBudgetComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	requeue := false
+
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*policyv1beta1.PodDisruptionBudget)
 		existing := existingObj.(*policyv1beta1.PodDisruptionBudget)
+		// This comparison and deletion section is a temporary hack until kubernetes 1.15
+		// where pod disruption budgets aren't immuatable
+		if !reflect.DeepEqual(goal.Spec, existing.Spec) {
+			err := ctx.Client.Delete(ctx.Context, existing)
+			if err != nil && !kerrors.IsNotFound(err) {
+				return errors.Wrap(err, "disruptionbudget: failed to delete disruption budget")
+			}
+			requeue = true
+			return nil
+		}
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil
 	})
+
+	// This update prevents a notfound error on update, also part of the temporary hack
+	if requeue {
+		return components.Result{Requeue: true}, nil
+	}
 	return res, err
 }
