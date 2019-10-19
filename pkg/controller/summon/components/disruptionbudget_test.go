@@ -158,4 +158,26 @@ var _ = Describe("servicemonitor Component", func() {
 		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("10%"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 	})
+
+	It("edits an already created disruption budget", func() {
+		comp = summoncomponents.NewPodDisruptionBudget("web/podDisruptionBudget.yml.tpl")
+		instance.Spec.Replicas.Web = intp(2)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		disruptionBudget := &policyv1beta1.PodDisruptionBudget{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, disruptionBudget)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("10%"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
+
+		instance.Spec.Replicas.Web = intp(1)
+		Expect(comp).To(ReconcileContext(ctx))
+		// second reconcile to handle requeue
+		Expect(comp).To(ReconcileContext(ctx))
+		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, disruptionBudget)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
+
+	})
 })
