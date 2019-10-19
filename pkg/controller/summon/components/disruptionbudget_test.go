@@ -175,6 +175,7 @@ var _ = Describe("servicemonitor Component", func() {
 		// second reconcile to handle requeue
 		Expect(comp).To(ReconcileContext(ctx))
 		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, disruptionBudget)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 
