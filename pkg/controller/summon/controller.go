@@ -65,29 +65,35 @@ func Add(mgr manager.Manager) error {
 
 		// Web components.
 		summoncomponents.NewDeployment("web/deployment.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("web/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
 		summoncomponents.NewServiceMonitor("web/servicemonitor.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
 
 		// Daphne components.
 		summoncomponents.NewDeployment("daphne/deployment.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("daphne/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("daphne/service.yml.tpl"),
 		summoncomponents.NewIngress("daphne/ingress.yml.tpl"),
 
 		// Static file components.
 		summoncomponents.NewDeployment("static/deployment.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("static/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("static/service.yml.tpl"),
 		summoncomponents.NewIngress("static/ingress.yml.tpl"),
 
 		// Celery components.
 		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("celeryd/podDisruptionBudget.yml.tpl"),
 
 		// Celerybeat components.
 		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl"),
+		// Does not have a pod disruption budget intentionally
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
 		// Channelworker components.
 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("channelworker/podDisruptionBudget.yml.tpl"),
 
 		// Set Monitoring
 		summoncomponents.NewMonitoring(),
