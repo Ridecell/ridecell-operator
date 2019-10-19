@@ -11,7 +11,7 @@ metadata:
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
 spec:
-  maxUnavailable: 10%
+  maxUnavailable: {{ block "maxUnavailable" . }}{{ end }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
