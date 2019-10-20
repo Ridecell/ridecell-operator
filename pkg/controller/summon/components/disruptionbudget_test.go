@@ -63,7 +63,7 @@ var _ = Describe("servicemonitor Component", func() {
 		disruptionBudget := &policyv1beta1.PodDisruptionBudget{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, disruptionBudget)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("100%"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 	})
 
@@ -74,7 +74,7 @@ var _ = Describe("servicemonitor Component", func() {
 		disruptionBudget := &policyv1beta1.PodDisruptionBudget{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-static", Namespace: instance.Namespace}, disruptionBudget)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("100%"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 	})
 
@@ -97,7 +97,7 @@ var _ = Describe("servicemonitor Component", func() {
 		disruptionBudget := &policyv1beta1.PodDisruptionBudget{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-daphne", Namespace: instance.Namespace}, disruptionBudget)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("100%"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 	})
 
@@ -120,7 +120,7 @@ var _ = Describe("servicemonitor Component", func() {
 		disruptionBudget := &policyv1beta1.PodDisruptionBudget{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-channelworker", Namespace: instance.Namespace}, disruptionBudget)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("100%"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 	})
 
@@ -143,7 +143,7 @@ var _ = Describe("servicemonitor Component", func() {
 		disruptionBudget := &policyv1beta1.PodDisruptionBudget{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, disruptionBudget)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("100%"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 	})
 
@@ -176,7 +176,7 @@ var _ = Describe("servicemonitor Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, disruptionBudget)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("0"))
+		Expect(disruptionBudget.Spec.MaxUnavailable.String()).To(Equal("100%"))
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 
 	})
