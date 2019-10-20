@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"net/http"
 	"path"
+	"reflect"
 	"text/template"
 
 	// "github.com/golang/glog"
@@ -31,12 +32,14 @@ import (
 )
 
 func parseTemplate(fs http.FileSystem, filename string) (*template.Template, error) {
+	// Wrote this because if statements with pointers don't work how you'd think they would
 	customFuncMap := template.FuncMap{
-		"deRefBool": func(input *bool) bool {
-			if input == nil {
-				return false
+		"deref": func(input interface{}) interface{} {
+			val := reflect.ValueOf(input)
+			if val.IsNil() {
+				return nil
 			}
-			return *input
+			return val.Elem().Interface()
 		},
 	}
 
