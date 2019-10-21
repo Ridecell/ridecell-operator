@@ -67,7 +67,6 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewDeployment("web/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("web/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
-		summoncomponents.NewServiceMonitor("web/servicemonitor.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
 
 		// Daphne components.
@@ -97,6 +96,10 @@ func Add(mgr manager.Manager) error {
 
 		// Set Monitoring
 		summoncomponents.NewMonitoring(),
+
+		// metrics components
+		summoncomponents.NewServiceMonitor("metrics/servicemonitor.yml.tpl"),
+		summoncomponents.NewService("metrics/service.yml.tpl"),
 
 		// End of converge status checks.
 		summoncomponents.NewStatus(),

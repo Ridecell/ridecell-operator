@@ -9,11 +9,12 @@
 {{ end }}
 {{ define "deploymentPorts" }}
 {{- if .Instance.Spec.Metrics.Web -}}
-[{containerPort: 8000, name: web}, {containerPort: 9000, name: metrics}]
+[{containerPort: 8000}, {containerPort: 9000}]
 {{- else -}}
 [{containerPort: 8000}]
 {{- end -}}
 {{ end }}
+{{ define "metricsEnabled" }}"{{ .Instance.Spec.Metrics.Web | default false }}"{{ end }}
 {{ define "replicas" }}{{ .Instance.Spec.Replicas.Web | default 0 }}{{ end }}
 {{ define "memory_limit" }}2G{{ end }}
 {{ define "containerExtra" }}

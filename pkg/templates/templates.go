@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"net/http"
 	"path"
+	"reflect"
 	"text/template"
 
 	// "github.com/golang/glog"
@@ -31,8 +32,19 @@ import (
 )
 
 func parseTemplate(fs http.FileSystem, filename string) (*template.Template, error) {
+	// Wrote this because if statements with pointers don't work how you'd think they would
+	customFuncMap := template.FuncMap{
+		"deref": func(input interface{}) interface{} {
+			val := reflect.ValueOf(input)
+			if val.IsNil() {
+				return nil
+			}
+			return val.Elem().Interface()
+		},
+	}
+
 	// Create a template object.
-	tmpl := template.New(path.Base(filename)).Funcs(sprig.TxtFuncMap())
+	tmpl := template.New(path.Base(filename)).Funcs(sprig.TxtFuncMap()).Funcs(customFuncMap)
 
 	// Parse any helpers if present.
 	helpers, err := vfspath.Glob(fs, "helpers/*.tpl")
@@ -71,6 +83,7 @@ func renderTemplate(tmpl *template.Template, data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return buffer.String(), nil
 }
 
