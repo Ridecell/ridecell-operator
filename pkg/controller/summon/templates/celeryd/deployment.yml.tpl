@@ -36,13 +36,13 @@ spec:
               topologyKey: failure-domain.beta.kubernetes.io/zone
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
           - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
       imagePullSecrets:
       - name: pull-secret
       containers:
