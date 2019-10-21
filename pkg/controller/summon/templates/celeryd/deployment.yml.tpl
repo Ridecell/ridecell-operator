@@ -30,6 +30,21 @@ spec:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
       imagePullSecrets:
       - name: pull-secret
       containers:
