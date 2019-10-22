@@ -186,8 +186,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	// If OTAKEYS_API_KEY is provided externally and EnableMockCarServer is also true, it is a conflict
-	_, exists := appSecretsData["OTAKEYS_API_KEY"]
-	if exists && instance.Spec.EnableMockCarServer {
+	v, _ := appSecretsData["OTAKEYS_API_KEY"]
+	if len(v.(string)) > 0 && instance.Spec.EnableMockCarServer {
 		return components.Result{}, errors.Errorf("app_secrets: Conflict in OTA Keys configuration")
 	}
 	if instance.Spec.EnableMockCarServer {
