@@ -109,6 +109,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.EnableNewRelic = &val
 	}
 
+	if instance.Spec.MockTenantHardwareType == "" {
+		instance.Spec.MockTenantHardwareType = "OTAKEYS"
+	}
+
 	if instance.Spec.Backup.TTL.Duration == 0 {
 		instance.Spec.Backup.TTL.Duration = time.Hour * 720
 		if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {

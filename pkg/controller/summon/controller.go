@@ -49,6 +49,7 @@ func Add(mgr manager.Manager) error {
 		// Secrets components
 		summoncomponents.NewSecretKey(),
 		summoncomponents.NewFernetRotate(),
+		summoncomponents.NewMockCarServerTenant(),
 		summoncomponents.NewAppSecret(),
 		summoncomponents.NewNewRelic(),
 

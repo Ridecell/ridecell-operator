@@ -45,3 +45,16 @@ func (s *DjangoUser) SetErrorStatus(errorMsg string) {
 	s.Status.Status = StatusError
 	s.Status.Message = errorMsg
 }
+
+func (s *MockCarServerTenant) GetStatus() components.Status {
+	return s.Status
+}
+
+func (s *MockCarServerTenant) SetStatus(status components.Status) {
+	s.Status = status.(MockCarServerTenantStatus)
+}
+
+func (s *MockCarServerTenant) SetErrorStatus(errorMsg string) {
+	s.Status.Status = StatusError
+	s.Status.Message = errorMsg
+}

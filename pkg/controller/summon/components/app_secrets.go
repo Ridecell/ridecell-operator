@@ -185,6 +185,22 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		}
 	}
 
+	// If OTAKEYS_API_KEY is provided externally and EnableMockCarServer is also true, it is a conflict
+	_, exists := appSecretsData["OTAKEYS_API_KEY"]
+	if exists && instance.Spec.EnableMockCarServer {
+		return components.Result{}, errors.Errorf("app_secrets: Conflict in OTA Keys configuration")
+	}
+	if instance.Spec.EnableMockCarServer {
+		otaSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Name + ".tenant-otakeys", Namespace: instance.Namespace}, otaSecret)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "app_secrets: Unable to fetch otakeys secret")
+		}
+		for k, v := range otaSecret.Data {
+			appSecretsData[k] = string(v)
+		}
+	}
+
 	// Pull out specific keys into the secondary SAML-specific secret.
 	samlSecretsData := map[string][]byte{}
 	privateKey, ok := appSecretsData["SAML_PRIVATE_KEY"]
