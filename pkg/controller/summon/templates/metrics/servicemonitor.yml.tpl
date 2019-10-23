@@ -9,8 +9,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/part-of: {{ .Instance.Name }}
-      metrics-enabled: "true"
+      app.kubernetes.io/instance: {{ .Instance.Name }}-metrics
   endpoints:
   - targetPort: 9000
     interval: 30s
