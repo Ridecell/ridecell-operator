@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -29,6 +30,7 @@ var _ = Describe("MockCarServerTenant Secret Component", func() {
 	var comp components.Component
 
 	BeforeEach(func() {
+		os.Setenv("MOCKCARSERVER_URI", "http://localhost:9090")
 		comp = mockcarservertenantcomponent.NewSecret()
 	})
 
@@ -43,6 +45,7 @@ var _ = Describe("MockCarServerTenant Secret Component", func() {
 		Expect(secret.Data["OTAKEYS_PUSH_API_KEY"]).To(HaveLen(32))
 		Expect(secret.Data["OTAKEYS_PUSH_SECRET_KEY"]).To(HaveLen(32))
 		Expect(secret.Data["OTAKEYS_PUSH_TOKEN"]).To(HaveLen(32))
+		Expect(string(secret.Data["OTAKEYS_BASE_URL"])).To(Equal("http://localhost:9090/otakeys/"))
 	})
 
 	It("does not update an existing data", func() {
@@ -67,6 +70,7 @@ var _ = Describe("MockCarServerTenant Secret Component", func() {
 		Expect(secret.Data).To(HaveKeyWithValue("OTAKEYS_PUSH_API_KEY", []byte("1234567890poiuytrewqasdfghjklmnb")))
 		Expect(secret.Data).To(HaveKeyWithValue("OTAKEYS_PUSH_SECRET_KEY", []byte("1234567890poiuytrewqasdfghjklmnb")))
 		Expect(secret.Data).To(HaveKeyWithValue("OTAKEYS_PUSH_TOKEN", []byte("1234567890poiuytrewqasdfghjklmnb")))
+		Expect(secret.Data).To(HaveKeyWithValue("OTAKEYS_BASE_URL", []byte("http://localhost:9090/otakeys/")))
 	})
 
 	It("fills in the secret info in the status", func() {

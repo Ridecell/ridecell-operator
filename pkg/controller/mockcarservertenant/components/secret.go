@@ -17,14 +17,14 @@ limitations under the License.
 package components
 
 import (
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"math/rand"
+	"os"
 	"time"
-
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 const letterBytes = "1234567890abcdefghijklmnopqrstuvwxyz"
@@ -75,6 +75,7 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (compon
 		if !ok || len(val) == 0 {
 			existing.Data["OTAKEYS_PUSH_TOKEN"] = RandStringBytes(32)
 		}
+		existing.Data["OTAKEYS_BASE_URL"] = []byte(os.Getenv("MOCKCARSERVER_URI") + "/otakeys/")
 		return nil
 	})
 	if err != nil {
