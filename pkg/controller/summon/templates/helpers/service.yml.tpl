@@ -11,6 +11,7 @@ metadata:
     app.kubernetes.io/component: {{ block "componentType" . }}{{ end }}
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
+    {{ block "extraLabels" . }}{{ end -}}
   annotations:
 {{ block "extraAnnotations" . }}{{ end -}}
 spec:
