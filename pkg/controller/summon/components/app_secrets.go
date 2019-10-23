@@ -299,12 +299,16 @@ func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform
 		fmt.Sprintf("%s.secret-key", instance.Name),
 		fmt.Sprintf("%s.aws-credentials", instance.Name),
 		instance.Status.RabbitMQConnection.PasswordSecretRef.Name,
+		fmt.Sprintf("%s.tenant-otakeys", instance.Name),
 	}
 }
 
 func (_ *appSecretComponent) fetchSecrets(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, secretNames []string, allowMissing bool) ([]*corev1.Secret, error) {
 	secrets := []*corev1.Secret{}
 	for _, secretName := range secretNames {
+		if secretName == instance.Name+".tenant-otakeys" {
+			continue // ignore this secret, seperate logic written for this
+		}
 		secret := &corev1.Secret{}
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
 		if err != nil {
