@@ -162,24 +162,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		})
 	})
 
-	It("Sets a default Secret for dev", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
-		instance.Namespace = "dev"
-
-		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.Secrets[0]).To(Equal("dev"))
-		Expect(instance.Spec.Secrets[1]).To(Equal("foo-dev"))
-	})
-
-	It("Sets a default Secret for prod", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
-		instance.Namespace = "summon-prod"
-
-		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.Secrets[0]).To(Equal("summon-prod"))
-		Expect(instance.Spec.Secrets[1]).To(Equal("foo-dev"))
-	})
-
 	It("Sets a default environment with summon prefix", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
 		instance.Namespace = "summon-dev"

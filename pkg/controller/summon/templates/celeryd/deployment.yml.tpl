@@ -10,6 +10,7 @@ metadata:
     app.kubernetes.io/component: worker
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
+    metrics-enabled: "false"
 spec:
   replicas: {{ .Instance.Spec.Replicas.Celeryd | default 0 }}
   selector:
@@ -24,10 +25,26 @@ spec:
         app.kubernetes.io/component: worker
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
+        metrics-enabled: "false"
       annotations:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
       imagePullSecrets:
       - name: pull-secret
       containers:
@@ -114,4 +131,3 @@ spec:
           secret:
             secretName: {{ .Instance.Name }}.gcp-credentials
         {{ end }}
-

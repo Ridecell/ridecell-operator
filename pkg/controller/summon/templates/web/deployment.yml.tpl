@@ -1,6 +1,20 @@
 {{ define "componentName" }}web{{ end }}
 {{ define "componentType" }}web{{ end }}
-{{ define "command" }}[python, -m, twisted, --log-format, text, web, --listen, tcp:8000, --wsgi, summon_platform.wsgi.application]{{ end }}
+{{ define "command" }}
+{{- if .Instance.Spec.Metrics.Web -}}
+[python, -m, summon_platform]
+{{- else -}}
+[python, -m, twisted, --log-format, text, web, --listen, tcp:8000, --wsgi, summon_platform.wsgi.application]
+{{- end -}}
+{{ end }}
+{{ define "deploymentPorts" }}
+{{- if .Instance.Spec.Metrics.Web -}}
+[{containerPort: 8000}, {containerPort: 9000}]
+{{- else -}}
+[{containerPort: 8000}]
+{{- end -}}
+{{ end }}
+{{ define "metricsEnabled" }}"{{ .Instance.Spec.Metrics.Web | default false }}"{{ end }}
 {{ define "replicas" }}{{ .Instance.Spec.Replicas.Web | default 0 }}{{ end }}
 {{ define "memory_limit" }}2G{{ end }}
 {{ define "containerExtra" }}

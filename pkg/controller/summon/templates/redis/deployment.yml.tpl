@@ -11,6 +11,10 @@ metadata:
     app.kubernetes.io/managed-by: summon-operator
 spec:
   replicas: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-redis

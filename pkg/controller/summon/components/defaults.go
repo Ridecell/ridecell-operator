@@ -71,9 +71,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "error setting replica defaults")
 	}
-	if len(instance.Spec.Secrets) == 0 {
-		instance.Spec.Secrets = []string{instance.Namespace, instance.Name}
-	}
 	if instance.Spec.PullSecret == "" {
 		instance.Spec.PullSecret = "pull-secret"
 	}
@@ -105,10 +102,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		default:
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
-	}
-
-	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
-		defConfig("FIREBASE_APP", "ridecell")
 	}
 
 	if instance.Spec.EnableNewRelic == nil && instance.Spec.Environment == "prod" {
@@ -187,6 +180,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// Set our gateway environment for GATEWAY_BASE_URL
 	gatewayEnv := "prod"
 
+	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
+		defVal("FIREBASE_APP", "ridecell")
+	}
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
 		val := true

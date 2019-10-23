@@ -95,7 +95,7 @@ func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client)
 		}
 
 		// Check the input secrets.
-		for _, secret := range append(summon.Spec.Secrets, comp.inputSecrets(&summon)...) {
+		for _, secret := range append(comp.specSecrets(&summon), comp.inputSecrets(&summon)...) {
 			if secret != "" && obj.Meta.GetName() == secret {
 				requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: summon.Name, Namespace: summon.Namespace}})
 				break
@@ -123,7 +123,7 @@ func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bo
 func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	specInputSecrets, err := comp.fetchSecrets(ctx, instance, instance.Spec.Secrets, false)
+	specInputSecrets, err := comp.fetchSecrets(ctx, instance, comp.specSecrets(instance), false)
 	if err != nil {
 		return components.Result{}, err
 	}
@@ -302,6 +302,13 @@ func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform
 		instance.Status.RabbitMQConnection.PasswordSecretRef.Name,
 		mockCarServerSecret,
 	}
+}
+
+func (c *appSecretComponent) specSecrets(instance *summonv1beta1.SummonPlatform) []string {
+	if len(instance.Spec.Secrets) == 0 {
+		return []string{instance.Namespace, instance.Name}
+	}
+	return instance.Spec.Secrets
 }
 
 func (_ *appSecretComponent) fetchSecrets(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, secretNames []string, allowMissing bool) ([]*corev1.Secret, error) {

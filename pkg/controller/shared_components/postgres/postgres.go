@@ -280,6 +280,10 @@ func (comp *postgresComponent) reconcileLocal(ctx *components.ComponentContext, 
 }
 
 func (comp *postgresComponent) reconcileExporter(ctx *components.ComponentContext, conn *dbv1beta1.PostgresConnection) (components.Result, error) {
+	// If the password doesn't yet exist don't try to create the exporter
+	if conn.PasswordSecretRef.Name == "" {
+		return components.Result{}, nil
+	}
 	extras := map[string]interface{}{}
 	extras["Conn"] = conn
 	res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("postgres-exporter.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
