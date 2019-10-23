@@ -96,7 +96,7 @@ func (comp *appSecretComponent) WatchMap(obj handler.MapObject, c client.Client)
 
 		// Check the input secrets.
 		for _, secret := range append(comp.specSecrets(&summon), comp.inputSecrets(&summon)...) {
-			if obj.Meta.GetName() == secret {
+			if secret != "" && obj.Meta.GetName() == secret {
 				requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: summon.Name, Namespace: summon.Namespace}})
 				break
 			}
@@ -138,6 +138,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	secretKey := dynamicInputSecrets[2]
 	awsSecret := dynamicInputSecrets[3]
 	rabbitmqSecret := dynamicInputSecrets[4]
+	mockCarServerSecret := dynamicInputSecrets[5]
 
 	postgresConnection := instance.Status.PostgresConnection
 	postgresPassword, ok := postgresSecret.Data[postgresConnection.PasswordSecretRef.Key]
@@ -187,16 +188,11 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// If OTAKEYS_API_KEY is provided externally and EnableMockCarServer is also true, it is a conflict
 	v := appSecretsData["OTAKEYS_API_KEY"]
-	if (v != nil && len(v.(string)) > 0) && instance.Spec.EnableMockCarServer {
-		return components.Result{}, errors.Errorf("app_secrets: Conflict in OTA Keys configuration")
+	if v != nil && len(v.(string)) > 0 && instance.Spec.EnableMockCarServer {
+		return components.Result{}, errors.Errorf("app_secrets: Conflict in OTA Keys configuration, cannot provide OTAKEYS_API_KEY and enableMockCarServer")
 	}
 	if instance.Spec.EnableMockCarServer {
-		otaSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Name + ".tenant-otakeys", Namespace: instance.Namespace}, otaSecret)
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "app_secrets: Unable to fetch otakeys secret")
-		}
-		for k, v := range otaSecret.Data {
+		for k, v := range mockCarServerSecret.Data {
 			appSecretsData[k] = string(v)
 		}
 	}
@@ -292,6 +288,11 @@ func (_ *appSecretComponent) formatFernetKeys(fernetData map[string][]byte) ([]s
 }
 
 func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform) []string {
+	var mockCarServerSecret string
+	// Only try to fetch this secret if we need it.
+	if instance.Spec.EnableMockCarServer {
+		mockCarServerSecret = fmt.Sprintf("%s.tenant-otakeys", instance.Name)
+	}
 	// The order of these must match the code using it. Do not change. I mean it.
 	return []string{
 		instance.Status.PostgresConnection.PasswordSecretRef.Name,
@@ -299,6 +300,7 @@ func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform
 		fmt.Sprintf("%s.secret-key", instance.Name),
 		fmt.Sprintf("%s.aws-credentials", instance.Name),
 		instance.Status.RabbitMQConnection.PasswordSecretRef.Name,
+		mockCarServerSecret,
 	}
 }
 
@@ -312,6 +314,10 @@ func (c *appSecretComponent) specSecrets(instance *summonv1beta1.SummonPlatform)
 func (_ *appSecretComponent) fetchSecrets(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, secretNames []string, allowMissing bool) ([]*corev1.Secret, error) {
 	secrets := []*corev1.Secret{}
 	for _, secretName := range secretNames {
+		if secretName == "" {
+			secrets = append(secrets, nil)
+			continue // Not a real secret, move it along.
+		}
 		secret := &corev1.Secret{}
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, secret)
 		if err != nil {
