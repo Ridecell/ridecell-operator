@@ -34,3 +34,35 @@ spec:
         servicename: {{ .Instance.Name }}
       annotations:
         summary: prober not able to reach {{ .Instance.Name }}-web
+    - alert: Pods are not running
+      expr: kube_pod_container_status_running{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}.*" ,pod!~ "{{ .Instance.Name }}-migrations-.*"} 
+      for: 3m
+      labels:
+        severity: critical
+        servicename: {{ .Instance.Name }}
+      annotations:
+        summary: "{{ $labels.pod }} pod is not running."
+    - alert: Memory Critical
+      expr: container_memory_rss{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*" }  / on(pod, container) kube_pod_container_resource_limits_memory_bytes{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*"}  * 100 > 80
+      for: 10m
+      labels:
+        severity: info
+        servicename: {{ .Instance.Name }}
+      annotations:
+        summary: "{{ $labels.pod }}/{{ $labels.container }} pod utilized {{ $value }}%  memory"
+    - alert: Too Many Messages In Queue
+      expr: rabbitmq_queue_messages_ready{queue="celery", vhost="{{ .Instance.Name }}"} > 100
+      for: 5m
+      labels:
+        severity: info
+        servicename: {{ .Instance.Name }}
+      annotations:
+        summary: "Too many messages in {{ .Instance.Name }}/celery queue"
+    - alert: No Consumers
+      expr: rabbitmq_queue_consumers{vhost="{{ .Instance.Name }}"} == 0
+      for: 5m
+      labels:
+        severity: info
+        servicename: {{ .Instance.Name }}
+      annotations:
+        summary: "No consumers for {{ .Instance.Name }}/celery queue. Check celery pods"
