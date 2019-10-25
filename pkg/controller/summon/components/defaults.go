@@ -54,6 +54,20 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
+	// Helper method to set a string value if not already set.
+	defVal := func(key, valueTemplate string, args ...interface{}) {
+		_, ok := instance.Spec.Config[key]
+		if !ok {
+			value := fmt.Sprintf(valueTemplate, args...)
+			instance.Spec.Config[key] = summonv1beta1.ConfigValue{String: &value}
+		}
+	}
+
+	// Initialize the config map.
+	if instance.Spec.Config == nil {
+		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
+	}
+
 	// Fill in defaults.
 	if instance.Spec.Environment == "" {
 		x := instance.Namespace
@@ -128,11 +142,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.Backup.WaitUntilReady = &devWaitBool
 		}
 	}
+	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
+		defVal("FIREBASE_APP", "ridecell")
+	}
 
 	// Fill in static default config values.
-	if instance.Spec.Config == nil {
-		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
-	}
 	for key, value := range configDefaults {
 		_, ok := instance.Spec.Config[key]
 		if !ok {
@@ -140,15 +154,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	}
 
-	// Fill in the two config values that need the instance name in them.
-	defVal := func(key, valueTemplate string, args ...interface{}) {
-		_, ok := instance.Spec.Config[key]
-		if !ok {
-			value := fmt.Sprintf(valueTemplate, args...)
-			instance.Spec.Config[key] = summonv1beta1.ConfigValue{String: &value}
-		}
-	}
-
+	// Fill in the config values that need the instance name in them.
 	webURL := instance.Spec.Hostname
 	if instance.Spec.Aliases != nil && len(instance.Spec.Aliases) > 0 {
 		webURL = instance.Spec.Aliases[0]
@@ -180,9 +186,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// Set our gateway environment for GATEWAY_BASE_URL
 	gatewayEnv := "prod"
 
-	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
-		defVal("FIREBASE_APP", "ridecell")
-	}
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
 		val := true

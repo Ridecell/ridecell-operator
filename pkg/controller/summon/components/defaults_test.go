@@ -204,4 +204,16 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 			Expect(instance.Spec.Config["CACHE_URL"].String).To(PointTo(Equal("redis://awsredis/1")))
 		})
 	})
+
+	It("sets a default prod FIREBASE_APP", func() {
+		instance.Namespace = "summon-prod"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Config["FIREBASE_APP"].String).To(PointTo(Equal("ridecell")))
+	})
+
+	It("sets a default qa FIREBASE_APP", func() {
+		instance.Namespace = "summon-qa"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Config["FIREBASE_APP"].String).To(PointTo(Equal("instant-stage")))
+	})
 })
