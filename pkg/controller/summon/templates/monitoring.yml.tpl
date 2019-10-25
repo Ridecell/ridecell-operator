@@ -43,7 +43,7 @@ spec:
       annotations:
         summary: "{{ $labels.pod }} pod is not running."
     - alert: Memory Critical
-      expr: container_memory_rss{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*" }  / on(pod, container) kube_pod_container_resource_limits_memory_bytes{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*"}  * 100 > 80
+      expr: container_memory_usage_bytes{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*" }  / on(pod, container) kube_pod_container_resource_limits_memory_bytes{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*"}  * 100 > 80
       for: 10m
       labels:
         severity: info
