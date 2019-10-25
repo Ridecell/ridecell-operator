@@ -216,4 +216,14 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Config["FIREBASE_APP"].String).To(PointTo(Equal("instant-stage")))
 	})
+
+	It("does not set a default FIREBASE_APP if one is already present", func() {
+		instance.Namespace = "summon-qa"
+		f := "foo"
+		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{
+			"FIREBASE_APP": summonv1beta1.ConfigValue{String: &f},
+		}
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Config["FIREBASE_APP"].String).To(PointTo(Equal("foo")))
+	})
 })
