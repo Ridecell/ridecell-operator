@@ -204,7 +204,10 @@ type SummonPlatformSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum=OTAKEYS,MENSA
 	MockTenantHardwareType string `json:"mockTenantHardwareType,omitempty"`
-
+	// If true, finalizers will be ignored while deleting kubernetes resources
+	// +optional
+	SkipFinalizers bool `json:"skipFinalizers,omitempty"`
+	
 	// Backwards compat fields from before ReplicasSpec. Clean up once all instances are converted to the new config format.
 	WebReplicas           *int32 `json:"webReplicas,omitempty"`
 	DaphneReplicas        *int32 `json:"daphneReplicas,omitempty"`

@@ -75,26 +75,27 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		}
 	} else {
 		if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
-			describeDBInstancesOutput, err := comp.rdsAPI.DescribeDBInstances(&rds.DescribeDBInstancesInput{
-				DBInstanceIdentifier: aws.String(instance.Spec.InstanceID),
-			})
-			if err != nil {
-				if aerr, ok := err.(awserr.Error); ok && aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
-					return components.Result{}, errors.Wrapf(err, "rds: unable to describe db instance")
+			if !instance.Spec.SkipFinalizers {
+				describeDBInstancesOutput, err := comp.rdsAPI.DescribeDBInstances(&rds.DescribeDBInstancesInput{
+					DBInstanceIdentifier: aws.String(instance.Spec.InstanceID),
+				})
+				if err != nil {
+					if aerr, ok := err.(awserr.Error); ok && aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
+						return components.Result{}, errors.Wrapf(err, "rds: unable to describe db instance")
+					}
+				} else {
+					// If there was no error our instance exists
+					if aws.StringValue(describeDBInstancesOutput.DBInstances[0].DBInstanceStatus) == "deleting" {
+						return components.Result{RequeueAfter: time.Minute * 1}, nil
+					}
+					// if the instance is not currently being deleted, attempt a delete and exit accordingly.
+					result, err := comp.deleteDependencies(ctx)
+					return result, err
 				}
-			} else {
-				// If there was no error our instance exists
-				if aws.StringValue(describeDBInstancesOutput.DBInstances[0].DBInstanceStatus) == "deleting" {
-					return components.Result{RequeueAfter: time.Minute * 1}, nil
-				}
-				// if the instance is not currently being deleted, attempt a delete and exit accordingly.
-				//result, err := comp.deleteDependencies(ctx)
-				//return result, err
 			}
-
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(RDSInstanceDatabaseFinalizer, instance)
-			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update instance while removing finalizer")
 			}
@@ -304,28 +305,28 @@ func (comp *rdsInstanceComponent) modifyRDSInstance(modifyInput *rds.ModifyDBIns
 	return nil
 }
 
-//func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
-//	instance := ctx.Top.(*dbv1beta1.RDSInstance)
-//
-//	_, err := comp.rdsAPI.DeleteDBInstance(&rds.DeleteDBInstanceInput{
-//		DBInstanceIdentifier:      aws.String(instance.Spec.InstanceID),
-//		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Spec.InstanceID, time.Now().UTC().Format("2006-01-02-15-04"))),
-//	})
-//
-//	if err != nil {
-//		// This obnoxious block of error checking reduces api calls and error spam.
-//		aerr, ok := err.(awserr.Error)
-//		if ok {
-//			if aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
-//				// If the instance isn't ready to be deleted wait a minute and try again
-//				if aerr.Code() == rds.ErrCodeInvalidDBInstanceStateFault {
-//					return components.Result{RequeueAfter: time.Minute * 1}, nil
-//				}
-//				return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
-//			}
-//		} else {
-//			return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
-//		}
-//	}
-//	return components.Result{Requeue: true}, nil
-//}
+func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+
+	_, err := comp.rdsAPI.DeleteDBInstance(&rds.DeleteDBInstanceInput{
+		DBInstanceIdentifier:      aws.String(instance.Spec.InstanceID),
+		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Spec.InstanceID, time.Now().UTC().Format("2006-01-02-15-04"))),
+	})
+
+	if err != nil {
+		// This obnoxious block of error checking reduces api calls and error spam.
+		aerr, ok := err.(awserr.Error)
+		if ok {
+			if aerr.Code() != rds.ErrCodeDBInstanceNotFoundFault {
+				// If the instance isn't ready to be deleted wait a minute and try again
+				if aerr.Code() == rds.ErrCodeInvalidDBInstanceStateFault {
+					return components.Result{RequeueAfter: time.Minute * 1}, nil
+				}
+				return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
+			}
+		} else {
+			return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
+		}
+	}
+	return components.Result{Requeue: true}, nil
+}

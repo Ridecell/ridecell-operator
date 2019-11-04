@@ -25,6 +25,8 @@ type IAMUserSpec struct {
 	UserName               string            `json:"username,omitempty"`
 	InlinePolicies         map[string]string `json:"inlinePolicies,omitempty"`
 	PermissionsBoundaryArn string            `json:"permissionsBoundaryArn"`
+	// +optional
+	SkipFinalizers bool `json:"skipFinalizers,omitempty"`
 }
 
 // IAMUserStatus defines the observed state of IAMUser

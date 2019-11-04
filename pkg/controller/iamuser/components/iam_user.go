@@ -81,10 +81,12 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		}
 	} else {
 		if helpers.ContainsFinalizer(iamUserFinalizer, instance) {
-			//result, err := comp.deleteDependencies(ctx)
-			//if err != nil {
-			//	return result, err
-			//}
+			if !instance.Spec.SkipFinalizers {
+				result, err := comp.deleteDependencies(ctx)
+				if err != nil {
+					return result, err
+				}
+			}
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(iamUserFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance)
@@ -291,48 +293,48 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}}, nil
 }
 
-//func (comp *iamUserComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
-//	instance := ctx.Top.(*awsv1beta1.IAMUser)
-//	// Have to delete access keys before user deletion
-//	listAccessKeysOutput, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: aws.String(instance.Spec.UserName)})
-//	// If the user doesn't exist skip error
-//	if err != nil {
-//		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
-//			return components.Result{}, errors.Wrapf(err, "iamuser: failed to list access keys for finalizer")
-//		}
-//	}
-//	for _, accessKey := range listAccessKeysOutput.AccessKeyMetadata {
-//		_, err = comp.iamAPI.DeleteAccessKey(&iam.DeleteAccessKeyInput{
-//			UserName:    aws.String(instance.Spec.UserName),
-//			AccessKeyId: accessKey.AccessKeyId,
-//		})
-//		if err != nil {
-//			return components.Result{}, errors.Wrapf(err, "iamuser: failed to delete access key for finalizer")
-//		}
-//	}
-//	// Have to delete attached policies before user deletion
-//	listUserPoliciesOutput, err := comp.iamAPI.ListUserPolicies(&iam.ListUserPoliciesInput{UserName: aws.String(instance.Spec.UserName)})
-//	// If the user doesn't exist skip error
-//	if err != nil {
-//		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
-//			return components.Result{}, errors.Wrapf(err, "iamuser: failed to list user policies for finalizer")
-//		}
-//	}
-//	for _, userPolicy := range listUserPoliciesOutput.PolicyNames {
-//		_, err = comp.iamAPI.DeleteUserPolicy(&iam.DeleteUserPolicyInput{
-//			UserName:   aws.String(instance.Spec.UserName),
-//			PolicyName: userPolicy,
-//		})
-//		if err != nil {
-//			return components.Result{}, errors.Wrapf(err, "iamuser: failed to delete user policy for finalizer")
-//		}
-//	}
-//	_, err = comp.iamAPI.DeleteUser(&iam.DeleteUserInput{UserName: aws.String(instance.Spec.UserName)})
-//	// If the user doesn't exist skip error
-//	if err != nil {
-//		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
-//			return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to delete user for finalizer")
-//		}
-//	}
-//	return components.Result{}, nil
-//}
+func (comp *iamUserComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*awsv1beta1.IAMUser)
+	// Have to delete access keys before user deletion
+	listAccessKeysOutput, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: aws.String(instance.Spec.UserName)})
+	// If the user doesn't exist skip error
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to list access keys for finalizer")
+		}
+	}
+	for _, accessKey := range listAccessKeysOutput.AccessKeyMetadata {
+		_, err = comp.iamAPI.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+			UserName:    aws.String(instance.Spec.UserName),
+			AccessKeyId: accessKey.AccessKeyId,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to delete access key for finalizer")
+		}
+	}
+	// Have to delete attached policies before user deletion
+	listUserPoliciesOutput, err := comp.iamAPI.ListUserPolicies(&iam.ListUserPoliciesInput{UserName: aws.String(instance.Spec.UserName)})
+	// If the user doesn't exist skip error
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to list user policies for finalizer")
+		}
+	}
+	for _, userPolicy := range listUserPoliciesOutput.PolicyNames {
+		_, err = comp.iamAPI.DeleteUserPolicy(&iam.DeleteUserPolicyInput{
+			UserName:   aws.String(instance.Spec.UserName),
+			PolicyName: userPolicy,
+		})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iamuser: failed to delete user policy for finalizer")
+		}
+	}
+	_, err = comp.iamAPI.DeleteUser(&iam.DeleteUserInput{UserName: aws.String(instance.Spec.UserName)})
+	// If the user doesn't exist skip error
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to delete user for finalizer")
+		}
+	}
+	return components.Result{}, nil
+}

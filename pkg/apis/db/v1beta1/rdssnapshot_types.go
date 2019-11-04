@@ -30,6 +30,8 @@ type RDSSnapshotSpec struct {
 	// TTL is the time until the object cleans itself up
 	// +optional
 	TTL metav1.Duration `json:"ttl,omitempty"`
+	// +optional
+	SkipFinalizers bool `json:"skipFinalizers,omitempty"`
 }
 
 // RDSSnapshotStatus defines the observed state of RDSSnapshot

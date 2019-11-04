@@ -27,6 +27,8 @@ type MockCarServerTenantSpec struct {
 	TenantHardwareType string `json:"tenantHardwareType"`
 	// Callback url for Mock Tenant
 	CallbackUrl string `json:"callbackUrl"`
+	// +optional
+	SkipFinalizers bool `json:"skipFinalizers,omitempty"`
 }
 
 type MockCarServerTenantStatus struct {

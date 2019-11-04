@@ -84,17 +84,19 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		}
 	} else {
 		if helpers.ContainsFinalizer(notificationFinalizer, instance) {
-			//remove alertmanagrconfig
-			amc := &monitoringv1beta1.AlertManagerConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("alertmanagerconfig-%s", instance.Name),
-					Namespace: instance.Namespace,
-				}}
-			err := ctx.Delete(ctx.Context, amc)
-			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "failed to delete notification %s", instance.Name)
+			if !instance.Spec.SkipFinalizers {
+				//remove alertmanagrconfig
+				amc := &monitoringv1beta1.AlertManagerConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fmt.Sprintf("alertmanagerconfig-%s", instance.Name),
+						Namespace: instance.Namespace,
+					}}
+				err := ctx.Delete(ctx.Context, amc)
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "failed to delete notification %s", instance.Name)
+				}
+				// TODO remove service/event rule from PG
 			}
-			// TODO remove service/event rule from PG
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(notificationFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance.DeepCopy())

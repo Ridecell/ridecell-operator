@@ -31,6 +31,8 @@ type MonitorSpec struct {
 	MetricAlertRules []MetricAlertRule `json:"metricAlertRules,omitempty"`
 	LogAlertRules    []LogAlertRule    `json:"logAlertRules,omitempty"`
 	ServiceName      string            `json:"servicename"`
+	// +optional
+	SkipFinalizers bool `json:"skipFinalizers,omitempty"`
 }
 
 // MonitorStatus defines the observed state of Monitor

@@ -34,6 +34,8 @@ type RDSInstanceSpec struct {
 	Username          string            `json:"username,omitempty"`
 	SubnetGroupName   string            `json:"subnetGroupName,omitempty"`
 	VPCID             string            `json:"vpcID,omitempty"`
+	// +optional
+	SkipFinalizers bool `json:"skipFinalizers,omitempty"`
 }
 
 // RDSInstanceStatus defines the observed state of RDSInstance

@@ -131,23 +131,22 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		}
 	} else {
 		if helpers.ContainsFinalizer(logruleFinalizer, instance) {
-			contents, err := client.GetFolder(serviceFolderid)
-			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "Failed to get folder at the time Finalizer")
-			}
-			for _, content := range contents.Children {
-				for _, rule := range instance.Spec.LogAlertRules {
-					if rule.Name == content.Name && content.ItemType == "Search" {
-						_, err := client.DeleteContent(content.ID)
-						if err != nil {
-							return components.Result{}, errors.Wrapf(err, "failed to delete rule with name %s", rule.Name)
+			if !instance.Spec.SkipFinalizers {
+				contents, err := client.GetFolder(serviceFolderid)
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "Failed to get folder at the time Finalizer")
+				}
+				for _, content := range contents.Children {
+					for _, rule := range instance.Spec.LogAlertRules {
+						if rule.Name == content.Name && content.ItemType == "Search" {
+							_, err := client.DeleteContent(content.ID)
+							if err != nil {
+								return components.Result{}, errors.Wrapf(err, "failed to delete rule with name %s", rule.Name)
+							}
 						}
-
 					}
-
 				}
 			}
-
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(logruleFinalizer, instance)
 			err = ctx.Update(ctx.Context, instance.DeepCopy())
