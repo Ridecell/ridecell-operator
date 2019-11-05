@@ -65,20 +65,22 @@ func (comp *promruleComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	} else {
 		if helpers.ContainsFinalizer(promruleFinalizer, instance) {
-			promrule := &pomonitoringv1.PrometheusRule{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-				}}
-			err := ctx.Delete(ctx.Context, promrule)
-			if err != nil {
-				if !k8serr.IsNotFound(err) {
-					return components.Result{}, errors.Wrapf(err, "failed to delete PrometheusRule ")
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+				promrule := &pomonitoringv1.PrometheusRule{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      instance.Name,
+						Namespace: instance.Namespace,
+					}}
+				err := ctx.Delete(ctx.Context, promrule)
+				if err != nil {
+					if !k8serr.IsNotFound(err) {
+						return components.Result{}, errors.Wrapf(err, "failed to delete PrometheusRule ")
+					}
 				}
 			}
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(promruleFinalizer, instance)
-			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "failed to update PrometheusRule while removing finalizer")
 			}

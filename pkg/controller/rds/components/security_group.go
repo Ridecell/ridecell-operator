@@ -83,10 +83,12 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
 				return components.Result{RequeueAfter: time.Minute * 1}, nil
 			}
-			//result, err := comp.deleteDependencies(ctx)
-			//if err != nil {
-			//	return result, err
-			//}
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+				result, err := comp.deleteDependencies(ctx)
+				if err != nil {
+					return result, err
+				}
+			}
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(rdsInstanceSecurityGroupFinalizer, instance)
 			err := ctx.Update(ctx.Context, instance.DeepCopy())
@@ -191,32 +193,32 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	}}, nil
 }
 
-//func (comp *dbSecurityGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
-//	instance := ctx.Top.(*dbv1beta1.RDSInstance)
-//	describeSecurityGroupsOutput, err := comp.ec2API.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
-//		Filters: []*ec2.Filter{
-//			&ec2.Filter{
-//				Name:   aws.String("group-name"),
-//				Values: []*string{aws.String(fmt.Sprintf("ridecell-operator-rds-%s", instance.Name))},
-//			},
-//		},
-//	})
-//
-//	// This shouldn't happen but leaving it here for sanity
-//	if len(describeSecurityGroupsOutput.SecurityGroups) < 1 {
-//		// Our security group no longer exists
-//		return components.Result{}, nil
-//	}
-//
-//	_, err = comp.ec2API.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
-//		GroupId: describeSecurityGroupsOutput.SecurityGroups[0].GroupId,
-//	})
-//	if err != nil {
-//		return components.Result{}, errors.Wrap(err, "rds: failed to delete security group for finalizer")
-//	}
-//	// SecurityGroup in the process of being deleted
-//	return components.Result{}, nil
-//}
+func (comp *dbSecurityGroupComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.RDSInstance)
+	describeSecurityGroupsOutput, _ := comp.ec2API.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-name"),
+				Values: []*string{aws.String(fmt.Sprintf("ridecell-operator-rds-%s", instance.Name))},
+			},
+		},
+	})
+
+	// This shouldn't happen but leaving it here for sanity
+	if len(describeSecurityGroupsOutput.SecurityGroups) < 1 {
+		// Our security group no longer exists
+		return components.Result{}, nil
+	}
+
+	_, err := comp.ec2API.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
+		GroupId: describeSecurityGroupsOutput.SecurityGroups[0].GroupId,
+	})
+	if err != nil {
+		return components.Result{}, errors.Wrap(err, "rds: failed to delete security group for finalizer")
+	}
+	// SecurityGroup in the process of being deleted
+	return components.Result{}, nil
+}
 
 func (comp *dbSecurityGroupComponent) getVPCID(ctx *components.ComponentContext) (*string, error) {
 	instance := ctx.Top.(*dbv1beta1.RDSInstance)

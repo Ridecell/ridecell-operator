@@ -61,19 +61,21 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 		}
 	} else {
 		if helpers.ContainsFinalizer(mockCarServerTenantFinalizer, instance) {
-			isDeleted, err := utils.DeleteMockTenant(instance.Name)
-			if err != nil && !(isDeleted) {
-				return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant from server")
-			}
-			secret := &corev1.Secret{}
-			err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + ".tenant-otakeys", Namespace: instance.Namespace}, secret)
-			if err == nil {
-				err = ctx.Delete(ctx.Context, secret)
-				if err != nil {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+				isDeleted, err := utils.DeleteMockTenant(instance.Name)
+				if err != nil && !(isDeleted) {
+					return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant from server")
+				}
+				secret := &corev1.Secret{}
+				err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + ".tenant-otakeys", Namespace: instance.Namespace}, secret)
+				if err == nil {
+					err = ctx.Delete(ctx.Context, secret)
+					if err != nil {
+						return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant secret")
+					}
+				} else if err != nil && !k8serrors.IsNotFound(err) {
 					return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant secret")
 				}
-			} else if err != nil && !k8serrors.IsNotFound(err) {
-				return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant secret")
 			}
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(mockCarServerTenantFinalizer, instance)
