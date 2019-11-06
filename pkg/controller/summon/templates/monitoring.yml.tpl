@@ -35,13 +35,21 @@ spec:
       annotations:
         summary: prober not able to reach {{ .Instance.Name }}-web
     - alert: Pods are not running
-      expr: kube_pod_container_status_running{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}.*" ,pod!~"{{ .Instance.Name }}-migrations-.*"} 
+      expr: kube_pod_container_status_running{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}.*" ,pod!~"{{ .Instance.Name }}-migrations-.*"} == 0 
       for: 3m
       labels:
         severity: critical
         servicename: {{ .Instance.Name }}
       annotations:
         summary: "{{"{{"}} $labels.pod {{"}}"}} pod is not running."
+    - alert: Pods is not ready
+      expr: kube_pod_status_ready{condition="true", namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}.*" ,pod!~"{{ .Instance.Name }}-migrations-.*"} == 0 
+      for: 3m
+      labels:
+        severity: critical
+        servicename: {{ .Instance.Name }}
+      annotations:
+        summary: "{{"{{"}} $labels.pod {{"}}"}} pod is not ins ready state."
     - alert: Memory Critical
       expr: container_memory_usage_bytes{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*" }  / on(pod, container) kube_pod_container_resource_limits_memory_bytes{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}-.*"}  * 100 > 80
       for: 10m
