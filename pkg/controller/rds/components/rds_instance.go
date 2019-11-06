@@ -90,7 +90,9 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 					}
 					// if the instance is not currently being deleted, attempt a delete and exit accordingly.
 					result, err := comp.deleteDependencies(ctx)
-					return result, err
+					if err != nil {
+						return result, err
+					}
 				}
 			}
 			// All operations complete, remove finalizer
@@ -325,8 +327,8 @@ func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentCo
 				return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
 			}
 		} else {
-			return components.Result{}, errors.Wrap(err, "rds: failed to delete db for finalizer")
+			return components.Result{}, nil
 		}
 	}
-	return components.Result{Requeue: true}, nil
+	return components.Result{}, nil
 }
