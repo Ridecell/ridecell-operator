@@ -84,7 +84,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		}
 	} else {
 		if helpers.ContainsFinalizer(notificationFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
 				//remove alertmanagrconfig
 				amc := &monitoringv1beta1.AlertManagerConfig{
 					ObjectMeta: metav1.ObjectMeta{

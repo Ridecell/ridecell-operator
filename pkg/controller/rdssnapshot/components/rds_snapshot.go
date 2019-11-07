@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -79,7 +80,7 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		}
 	} else {
 		if helpers.ContainsFinalizer(RDSSnapshotFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
 				result, err := comp.deleteDependencies(ctx)
 				if err != nil {
 					return result, err

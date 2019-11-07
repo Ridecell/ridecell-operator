@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -75,7 +76,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		}
 	} else {
 		if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
 				describeDBInstancesOutput, err := comp.rdsAPI.DescribeDBInstances(&rds.DescribeDBInstancesInput{
 					DBInstanceIdentifier: aws.String(instance.Spec.InstanceID),
 				})
@@ -312,7 +313,7 @@ func (comp *rdsInstanceComponent) deleteDependencies(ctx *components.ComponentCo
 
 	_, err := comp.rdsAPI.DeleteDBInstance(&rds.DeleteDBInstanceInput{
 		DBInstanceIdentifier:      aws.String(instance.Spec.InstanceID),
-		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("%s-%s", instance.Spec.InstanceID, time.Now().UTC().Format("2006-01-02-15-04"))),
+		FinalDBSnapshotIdentifier: aws.String(fmt.Sprintf("final-%s-%s", instance.Spec.InstanceID, time.Now().UTC().Format("2006-01-02-15-04"))),
 	})
 
 	if err != nil {

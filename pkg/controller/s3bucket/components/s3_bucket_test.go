@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"encoding/json"
+	"os"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -52,6 +53,7 @@ type mockS3Client struct {
 var _ = Describe("s3bucket aws Component", func() {
 	comp := s3bucketcomponents.NewS3Bucket()
 	var mockS3 *mockS3Client
+	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
 		comp = s3bucketcomponents.NewS3Bucket()

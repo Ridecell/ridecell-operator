@@ -26,6 +26,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 )
 
 const mockCarServerTenantFinalizer = "finalizer.mockcarservertenant.summon.ridecell.io"
@@ -61,7 +62,7 @@ func (comp *MockCarServerTenantComponent) Reconcile(ctx *components.ComponentCon
 		}
 	} else {
 		if helpers.ContainsFinalizer(mockCarServerTenantFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
 				isDeleted, err := utils.DeleteMockTenant(instance.Name)
 				if err != nil && !(isDeleted) {
 					return components.Result{}, errors.Wrapf(err, "failed to delete MockCarServerTenant from server")

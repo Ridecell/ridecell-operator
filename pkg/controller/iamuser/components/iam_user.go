@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -81,7 +82,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		}
 	} else {
 		if helpers.ContainsFinalizer(iamUserFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
 				result, err := comp.deleteDependencies(ctx)
 				if err != nil {
 					return result, err

@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -83,7 +84,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			if helpers.ContainsFinalizer(RDSInstanceDatabaseFinalizer, instance) {
 				return components.Result{RequeueAfter: time.Minute * 1}, nil
 			}
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
 				result, err := comp.deleteDependencies(ctx)
 				if err != nil {
 					return result, err

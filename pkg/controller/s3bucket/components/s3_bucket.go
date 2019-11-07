@@ -18,6 +18,7 @@ package components
 
 import (
 	"encoding/json"
+	"os"
 	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -88,7 +89,7 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	} else {
 		if helpers.ContainsFinalizer(s3BucketFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
 				result, err := comp.deleteDependencies(ctx)
 				if err != nil {
 					return result, err

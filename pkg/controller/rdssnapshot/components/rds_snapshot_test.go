@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -53,6 +54,7 @@ type mockRDSDBClient struct {
 var _ = Describe("rdssnapshot db Component", func() {
 	comp := rdssnapshotcomponents.NewRDSSnapshot()
 	var mockRDS *mockRDSDBClient
+	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
 		comp = rdssnapshotcomponents.NewRDSSnapshot()

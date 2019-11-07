@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"os"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -145,6 +146,7 @@ var _ = Describe("rds parameter group Component", func() {
 	})
 
 	It("tests finalizer behavior during deletion", func() {
+		os.Setenv("ENABLE_FINALIZERS", "true")
 		mockRDS.parameterGroupExists = true
 		currentTime := metav1.Now()
 		instance.ObjectMeta.SetDeletionTimestamp(&currentTime)
@@ -153,7 +155,7 @@ var _ = Describe("rds parameter group Component", func() {
 		fetchDBInstance := &dbv1beta1.RDSInstance{}
 		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, fetchDBInstance)
 		Expect(err).ToNot(HaveOccurred())
-		//Expect(mockRDS.deletedParameterGroup).To(BeTrue())
+		Expect(mockRDS.deletedParameterGroup).To(BeTrue())
 		Expect(fetchDBInstance.ObjectMeta.Finalizers).To(HaveLen(0))
 	})
 })
