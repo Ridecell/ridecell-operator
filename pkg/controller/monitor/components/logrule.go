@@ -199,7 +199,7 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 				TimeZone: "Etc/UTC",
 				Threshold: sumologic.Threshold{
-					ThresholdType: "group",
+					ThresholdType: "message",
 					Operator:      rule.Condition,
 					Count:         rule.Threshold,
 				},
