@@ -27,7 +27,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/aws/aws-sdk-go/aws"
-	//"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -51,6 +51,7 @@ var rdsInstanceName string
 
 var _ = Describe("rds controller", func() {
 	var helpers *test_helpers.PerTestHelpers
+	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
@@ -110,9 +111,9 @@ var _ = Describe("rds controller", func() {
 		c.Delete(rdsInstance)
 
 		// Database deletion may take a long time
-		//Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
-		//Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
-		//Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
+		Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
+		Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
+		Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
 
 		// Make sure the object is deleted
 		fetchRDSInstance := &dbv1beta1.RDSInstance{}
@@ -211,48 +212,48 @@ func runTestQuery(db *sql.DB) error {
 	return nil
 }
 
-//func dbInstanceExists() bool {
-//	_, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
-//		DBInstanceIdentifier: aws.String(rdsInstanceName),
-//	})
-//	if err != nil {
-//		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBInstanceNotFoundFault {
-//			return false
-//		}
-//	}
-//	return true
-//}
+func dbInstanceExists() bool {
+	_, err := rdssvc.DescribeDBInstances(&rds.DescribeDBInstancesInput{
+		DBInstanceIdentifier: aws.String(rdsInstanceName),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBInstanceNotFoundFault {
+			return false
+		}
+	}
+	return true
+}
 
-//func dbParameterGroupExists() bool {
-//	_, err := rdssvc.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
-//		DBParameterGroupName: aws.String(rdsInstance.Name),
-//	})
-//	if err != nil {
-//		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
-//			return false
-//		}
-//	}
-//	return true
-//}
+func dbParameterGroupExists() bool {
+	_, err := rdssvc.DescribeDBParameterGroups(&rds.DescribeDBParameterGroupsInput{
+		DBParameterGroupName: aws.String(rdsInstance.Name),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == rds.ErrCodeDBParameterGroupNotFoundFault {
+			return false
+		}
+	}
+	return true
+}
 
-//func securityGroupExists() bool {
-//	describeSecurityGroupsOutput, err := ec2svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
-//		Filters: []*ec2.Filter{
-//			&ec2.Filter{
-//				Name:   aws.String("group-name"),
-//				Values: []*string{aws.String(rdsInstance.Name)},
-//			},
-//		},
-//	})
-//	if err != nil {
-//		return true
-//	}
-//
-//	if len(describeSecurityGroupsOutput.SecurityGroups) > 0 {
-//		return true
-//	}
-//	return false
-//}
+func securityGroupExists() bool {
+	describeSecurityGroupsOutput, err := ec2svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-name"),
+				Values: []*string{aws.String(rdsInstance.Name)},
+			},
+		},
+	})
+	if err != nil {
+		return true
+	}
+
+	if len(describeSecurityGroupsOutput.SecurityGroups) > 0 {
+		return true
+	}
+	return false
+}
 
 func getDBParameters() (map[string]string, error) {
 	output := map[string]string{}

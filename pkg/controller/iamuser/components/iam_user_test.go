@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"os"
 	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -152,6 +153,8 @@ var _ = Describe("iam_user aws Component", func() {
 	})
 
 	Describe("finalizer tests", func() {
+		os.Setenv("ENABLE_FINALIZERS", "true")
+
 		It("adds finalizer when there isn't one", func() {
 			mockIAM.finalizerTest = true
 			instance.ObjectMeta.Finalizers = []string{}
@@ -182,7 +185,7 @@ var _ = Describe("iam_user aws Component", func() {
 			err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user", Namespace: "default"}, fetchIAMUser)
 			Expect(err).ToNot(HaveOccurred())
 
-			//Expect(mockIAM.deleteUser).To(BeTrue())
+			Expect(mockIAM.deleteUser).To(BeTrue())
 		})
 
 		It("simulates user not existing during finalizer deletion", func() {

@@ -43,6 +43,7 @@ var randOwnerPrefix string
 
 var _ = Describe("s3bucket controller", func() {
 	var helpers *test_helpers.PerTestHelpers
+	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()

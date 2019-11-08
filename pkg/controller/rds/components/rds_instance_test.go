@@ -20,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -199,6 +200,7 @@ var _ = Describe("rds aws Component", func() {
 	})
 
 	It("test finalizer behavior during deletion", func() {
+		os.Setenv("ENABLE_FINALIZERS", "true")
 		instance.ObjectMeta.Finalizers = []string{"rdsinstance.database.finalizer"}
 		mockRDS.dbInstanceExists = true
 		currentTime := metav1.Now()
@@ -211,7 +213,7 @@ var _ = Describe("rds aws Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mockRDS.modifiedDB).To(BeFalse())
 		Expect(mockRDS.createdDB).To(BeFalse())
-		//Expect(mockRDS.deletedDBInstance).To(BeTrue())
+		Expect(mockRDS.deletedDBInstance).To(BeTrue())
 		Expect(fetchRDSInstance.ObjectMeta.Finalizers).To(HaveLen(0))
 	})
 })

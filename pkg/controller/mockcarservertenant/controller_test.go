@@ -37,6 +37,7 @@ var _ = Describe("mockcarservertenant controller", func() {
 	BeforeEach(func() {
 		os.Setenv("MOCKCARSERVER_URI", "http://localhost:9090")
 		os.Setenv("MOCKCARSERVER_AUTH", "1234567890")
+		os.Setenv("ENABLE_FINALIZERS", "true")
 		helpers = testHelpers.SetupTest()
 		instance = &summonv1beta1.MockCarServerTenant{
 			ObjectMeta: metav1.ObjectMeta{

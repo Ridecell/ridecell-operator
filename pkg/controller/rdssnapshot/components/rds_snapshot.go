@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -79,14 +80,15 @@ func (comp *RDSSnapshotComponent) Reconcile(ctx *components.ComponentContext) (c
 		}
 	} else {
 		if helpers.ContainsFinalizer(RDSSnapshotFinalizer, instance) {
-			result, err := comp.deleteDependencies(ctx)
-			if err != nil {
-				return result, err
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+				result, err := comp.deleteDependencies(ctx)
+				if err != nil {
+					return result, err
+				}
 			}
-
 			// All operations complete, remove finalizer
 			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(RDSSnapshotFinalizer, instance)
-			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "rds: failed to update object while removing finalizer")
 			}
