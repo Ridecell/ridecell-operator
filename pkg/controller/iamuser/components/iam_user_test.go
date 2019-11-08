@@ -153,7 +153,9 @@ var _ = Describe("iam_user aws Component", func() {
 	})
 
 	Describe("finalizer tests", func() {
-		os.Setenv("ENABLE_FINALIZERS", "true")
+		BeforeEach(func() {
+			os.Setenv("ENABLE_FINALIZERS", "true")
+		})
 
 		It("adds finalizer when there isn't one", func() {
 			mockIAM.finalizerTest = true

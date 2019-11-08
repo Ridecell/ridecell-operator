@@ -43,9 +43,9 @@ var randOwnerPrefix string
 
 var _ = Describe("s3bucket controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
+		os.Setenv("ENABLE_FINALIZERS", "true")
 		helpers = testHelpers.SetupTest()
 		if os.Getenv("AWS_TESTING_ACCOUNT_ID") == "" {
 			Skip("$AWS_TESTING_ACCOUNT_ID not set, skipping s3bucket integration tests")
