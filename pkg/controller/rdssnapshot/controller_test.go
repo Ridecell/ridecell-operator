@@ -45,9 +45,9 @@ var rdsInstanceID *string
 
 var _ = Describe("rdssnapshot controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
+		os.Setenv("ENABLE_FINALIZERS", "true")
 		if os.Getenv("AWS_TESTING_ACCOUNT_ID") == "" {
 			Skip("$AWS_TESTING_ACCOUNT_ID not set, skipping rdssnapshot integration tests")
 		}

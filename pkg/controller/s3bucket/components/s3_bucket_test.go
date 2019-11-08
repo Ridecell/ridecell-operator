@@ -53,9 +53,9 @@ type mockS3Client struct {
 var _ = Describe("s3bucket aws Component", func() {
 	comp := s3bucketcomponents.NewS3Bucket()
 	var mockS3 *mockS3Client
-	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
+		os.Setenv("ENABLE_FINALIZERS", "true")
 		comp = s3bucketcomponents.NewS3Bucket()
 		mockS3 = &mockS3Client{}
 		comp.InjectS3Factory(func(_ string) (s3iface.S3API, error) { return mockS3, nil })

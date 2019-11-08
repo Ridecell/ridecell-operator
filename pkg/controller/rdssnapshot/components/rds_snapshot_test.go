@@ -54,9 +54,9 @@ type mockRDSDBClient struct {
 var _ = Describe("rdssnapshot db Component", func() {
 	comp := rdssnapshotcomponents.NewRDSSnapshot()
 	var mockRDS *mockRDSDBClient
-	os.Setenv("ENABLE_FINALIZERS", "true")
 
 	BeforeEach(func() {
+		os.Setenv("ENABLE_FINALIZERS", "true")
 		comp = rdssnapshotcomponents.NewRDSSnapshot()
 		mockRDS = &mockRDSDBClient{}
 		comp.InjectRDSAPI(mockRDS)
