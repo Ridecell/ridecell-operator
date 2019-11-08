@@ -35,7 +35,13 @@ const logruleFinalizer = "finalizer.logrule.monitoring.ridecell.io"
 // AlertFolderid ID of alert folder in sumologic
 const AlertFolderid = "000000000083D019"
 
+var typeCheckRegexp *regexp.Regexp
+
 type logruleComponent struct {
+}
+
+func init() {
+	typeCheckRegexp = regexp.MustCompile(`\sby\s`)
 }
 
 func NewLogrule() *logruleComponent {
@@ -164,12 +170,11 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		scheduleType := "Custom"
 		// define thresholdType
 		thresholdType := "message"
-		r, _ := regexp.Compile(`\sby\s`)
 		if rule.ThresholdType == "group" || rule.ThresholdType == "message" {
 			thresholdType = rule.ThresholdType
 		} else {
 			// Dumb way to identify thresholdType message/group
-			matched := r.MatchString(rule.Query)
+			matched := typeCheckRegexp.MatchString(rule.Query)
 			if matched {
 				thresholdType = "group"
 			}
