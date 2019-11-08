@@ -30,24 +30,25 @@ import (
 
 var _ = Describe("Monitor Notification Component", func() {
 	comp := mcomponents.NewLogrule()
+	os.Setenv("SUMO_MOCK_URL", "http://localhost:8083")
+	os.Setenv("ALERTMANAGER_NAME", "dummy")
+	fake_sumologic.Run()
 	BeforeEach(func() {
-		os.Setenv("SUMO_MOCK_URL", "http://localhost:8083")
-		os.Setenv("ALERTMANAGER_NAME", "dummy")
-		fake_sumologic.Run()
 	})
 
 	It("Is reconcilable", func() {
 		instance.Spec.LogAlertRules = []monitoringv1beta1.LogAlertRule{
 			monitoringv1beta1.LogAlertRule{
-				Name:        "Look for bad things realtime",
-				Description: "looking for bad thing",
-				Query:       `_sourceCategory=microservices/prod/us/job-management/* ("cancel_job_if_vehicle_got_reserved_or_moved" AND "TASK_FAILED") OR ("cancel_single_job_vehicle_reserved_task" AND "TASK_FAILED") OR ("cancel_single_job_location_mismatch_task" AND "TASK_FAILED")`,
-				Condition:   "gt",
-				Threshold:   4,
-				Schedule:    "* * 0 0 0 0",
-				Range:       "-15m",
-				Severity:    "info",
-				Runbook:     "https://ridecell.quip.com/ajDsAmRnWFQE/Monitoring",
+				Name:          "Look for bad things realtime",
+				Description:   "looking for bad thing",
+				Query:         `_sourceCategory=microservices/prod/us/job-management/* ("cancel_job_if_vehicle_got_reserved_or_moved" AND "TASK_FAILED") OR ("cancel_single_job_vehicle_reserved_task" AND "TASK_FAILED") OR ("cancel_single_job_location_mismatch_task" AND "TASK_FAILED")`,
+				Condition:     "gt",
+				Threshold:     4,
+				Schedule:      "* * 0 0 0 0",
+				Range:         "-15m",
+				Severity:      "info",
+				Runbook:       "https://ridecell.quip.com/ajDsAmRnWFQE/Monitoring",
+				ThresholdType: "group",
 			},
 		}
 		instance.Spec.ServiceName = "dev-foo-service"

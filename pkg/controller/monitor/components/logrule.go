@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"regexp"
 
 	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
@@ -161,7 +162,17 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 	for _, rule := range instance.Spec.LogAlertRules {
 		//
 		scheduleType := "Custom"
-
+		// define thresholdType
+		thresholdType := "message"
+		if rule.ThresholdType == "group" || rule.ThresholdType == "message" {
+			thresholdType = rule.ThresholdType
+		} else {
+			// Dumb way to identify thresholdType message/group
+			matched, _ := regexp.MatchString(`\sby\s`, rule.Query)
+			if matched {
+				thresholdType = "group"
+			}
+		}
 		// Create payload for every search
 		payload := fmt.Sprintf(`[{
 			"status": "firing",
@@ -199,7 +210,7 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 				TimeZone: "Etc/UTC",
 				Threshold: sumologic.Threshold{
-					ThresholdType: "message",
+					ThresholdType: thresholdType,
 					Operator:      rule.Condition,
 					Count:         rule.Threshold,
 				},
