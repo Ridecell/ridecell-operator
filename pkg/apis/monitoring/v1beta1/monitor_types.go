@@ -92,4 +92,6 @@ type LogAlertRule struct {
 	Range       string `json:"range"`
 	Severity    string `json:"severity"`
 	Runbook     string `json:"runbook,omitempty"`
+	// +kubebuilder:validation:Enum=message,group
+	ThresholdType string `json:"thresholdType,omitempty"`
 }
