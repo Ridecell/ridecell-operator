@@ -30,10 +30,10 @@ import (
 
 var _ = Describe("Monitor Notification Component", func() {
 	comp := mcomponents.NewLogrule()
-	os.Setenv("SUMO_MOCK_URL", "http://localhost:8083")
-	os.Setenv("ALERTMANAGER_NAME", "dummy")
 	fake_sumologic.Run()
 	BeforeEach(func() {
+		os.Setenv("SUMO_MOCK_URL", "http://localhost:8083")
+		os.Setenv("ALERTMANAGER_NAME", "dummy")
 	})
 
 	It("Is reconcilable", func() {

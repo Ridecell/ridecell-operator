@@ -34,15 +34,13 @@ import (
 
 var _ = Describe("monitor controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-
-	os.Setenv("PG_ROUTING_KEY", "ALLISWELL")
-	os.Setenv("SUMO_MOCK_URL", "http://localhost:8083")
-	os.Setenv("PG_MOCK_URL", "http://localhost:8082")
 	fake_pagerduty.Run()
 	fake_sumologic.Run()
-
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
+		os.Setenv("PG_ROUTING_KEY", "ALLISWELL")
+		os.Setenv("SUMO_MOCK_URL", "http://localhost:8083")
+		os.Setenv("PG_MOCK_URL", "http://localhost:8082")
 	})
 
 	AfterEach(func() {

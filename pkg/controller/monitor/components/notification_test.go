@@ -34,10 +34,9 @@ import (
 
 var _ = Describe("Monitor Notification Component", func() {
 	comp := mcomponents.NewNotification()
-	os.Setenv("PG_MOCK_URL", "http://localhost:8082")
 	fake_pagerduty.Run()
-
 	BeforeEach(func() {
+		os.Setenv("PG_MOCK_URL", "http://localhost:8082")
 	})
 
 	It("Is reconcilable?", func() {
