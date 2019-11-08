@@ -164,11 +164,12 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		scheduleType := "Custom"
 		// define thresholdType
 		thresholdType := "message"
+		r, _ := regexp.Compile(`\sby\s`)
 		if rule.ThresholdType == "group" || rule.ThresholdType == "message" {
 			thresholdType = rule.ThresholdType
 		} else {
 			// Dumb way to identify thresholdType message/group
-			matched, _ := regexp.MatchString(`\sby\s`, rule.Query)
+			matched := r.MatchString(rule.Query)
 			if matched {
 				thresholdType = "group"
 			}
