@@ -119,6 +119,11 @@ type ReplicasSpec struct {
 	Static *int32 `json:"static,omitempty"`
 }
 
+// MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
+type MonitoringSpec struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
 // MetricsSpec defines what metrics should be enabled and exported
 type MetricsSpec struct {
 	// Enables metrics exporting for web pods
@@ -196,7 +201,7 @@ type SummonPlatformSpec struct {
 	Metrics MetricsSpec `json:"metrics,omitempty"`
 	// Enable monitoring
 	// +optional
-	Monitoring MonitorSpec `json:"monitoring,omitempty"`
+	Monitoring MonitoringSpec `json:"monitoring,omitempty"`
 	// Enable mock car server
 	// +optional
 	EnableMockCarServer bool `json:"enableMockCarServer,omitempty"`
@@ -297,9 +302,4 @@ type SummonPlatformList struct {
 
 func init() {
 	SchemeBuilder.Register(&SummonPlatform{}, &SummonPlatformList{})
-}
-
-// MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
-type MonitorSpec struct {
-	Enabled bool `json:"enabled,omitempty"`
 }
