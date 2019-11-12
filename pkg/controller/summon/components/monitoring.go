@@ -31,7 +31,9 @@ func NewMonitoring() *monitoringComponent {
 }
 
 func (_ *monitoringComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&rmonitor.Monitor{},
+	}
 }
 
 func (_ *monitoringComponent) IsReconcilable(_ *components.ComponentContext) bool {

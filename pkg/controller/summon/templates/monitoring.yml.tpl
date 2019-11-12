@@ -1,3 +1,4 @@
+{{ $vhost := .Instance.Spec.MigrationOverrides.RabbitMQVhost | default .Instance.Name }}
 apiVersion: monitoring.ridecell.io/v1beta1
 kind: Monitor
 metadata:
@@ -14,9 +15,9 @@ spec:
   servicename: {{ .Instance.Name }}
   notify:
     slack: [{{ .Instance.Spec.Notifications.SlackChannel | quote }}]
-    {{ if .Instance.Spec.Notifications.Pagerdutyteam -}}   
+    {{- if .Instance.Spec.Notifications.Pagerdutyteam }}   
     pagerdutyteam: {{ .Instance.Spec.Notifications.Pagerdutyteam | quote }}
-    {{ end -}}
+    {{- end }}
   metricAlertRules:
     - alert: Newrelic error {{ .Instance.Name }}
       expr: newrelic_application_error_rate{appname="{{ .Instance.Name }}-summon-platform"} >= 1
@@ -38,7 +39,7 @@ spec:
       expr: kube_pod_container_status_running{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}.*" ,pod!~"{{ .Instance.Name }}-migrations-.*"} == 0 
       for: 3m
       labels:
-        severity: critical
+        severity: info
         servicename: {{ .Instance.Name }}
       annotations:
         summary: "{{"{{"}} $labels.pod {{"}}"}} pod is not running."
@@ -46,7 +47,7 @@ spec:
       expr: kube_pod_status_ready{condition="true", namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}.*" ,pod!~"{{ .Instance.Name }}-migrations-.*"} == 0 
       for: 3m
       labels:
-        severity: critical
+        severity: info
         servicename: {{ .Instance.Name }}
       annotations:
         summary: "{{"{{"}} $labels.pod {{"}}"}} pod is not ins ready state."
@@ -59,18 +60,18 @@ spec:
       annotations:
         summary: "{{"{{"}} $labels.pod {{"}}"}}/{{"{{"}} $labels.container {{"}}"}} pod utilized {{"{{"}} $value {{"}}"}}%  memory"
     - alert: Too Many Messages In Queue
-      expr: rabbitmq_queue_messages_ready{queue="celery", vhost="{{ .Instance.Name }}"} > 100
+      expr: rabbitmq_queue_messages_ready{queue="celery", vhost="{{$vhost}}"} > 100
       for: 5m
       labels:
         severity: info
         servicename: {{ .Instance.Name }}
       annotations:
-        summary: "Too many messages in {{ .Instance.Name }}/celery queue"
+        summary: "Too many messages in {{ $vhost }}/celery queue"
     - alert: No Consumers
-      expr: rabbitmq_queue_consumers{vhost="{{ .Instance.Name }}"} == 0
+      expr: rabbitmq_queue_consumers{vhost="{{ $vhost }}"} == 0
       for: 5m
       labels:
         severity: info
         servicename: {{ .Instance.Name }}
       annotations:
-        summary: "No consumers for {{ .Instance.Name }}/celery queue. Check celery pods"
+        summary: "No consumers for {{ $vhost }}/celery queue. Check celery pods"

@@ -39,10 +39,11 @@ var _ = Describe("SummonPlatform monitoring Component", func() {
 
 		})
 
-		It("Is reconsining ", func() {
+		It("Is Reconciling? ", func() {
 			instance.Spec.Monitoring.Enabled = true
 			instance.Spec.Notifications.SlackChannel = "#test"
 			instance.Spec.Notifications.Pagerdutyteam = "myteam"
+			instance.Spec.MigrationOverrides.RabbitMQVhost = "oldone"
 			Expect(comp).To(ReconcileContext(ctx))
 
 			monitor := &rmonitor.Monitor{}
@@ -50,6 +51,8 @@ var _ = Describe("SummonPlatform monitoring Component", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(monitor.Spec.Notify.Slack[0]).To(Equal("#test"))
 			Expect(monitor.Spec.Notify.PagerdutyTeam).To(Equal("myteam"))
+			Expect(len(monitor.Spec.MetricAlertRules)).Should(BeNumerically(">=", 1))
+			Expect(monitor.Spec.MetricAlertRules[6].Expr).Should(ContainSubstring("oldone"))
 		})
 
 		It("Missing slack should Reconcile without err", func() {
