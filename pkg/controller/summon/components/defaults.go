@@ -144,6 +144,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	if instance.Spec.Environment == "uat" || instance.Spec.Environment == "prod" {
 		defVal("FIREBASE_APP", "ridecell")
+
+		// Enable monitoring for prod and UAT by default.
+		// EDIT DISABLED UNTIL IT WORKS.
+		// if instance.Spec.Monitoring.Enabled == nil {
+		// 	val := true
+		// 	instance.Spec.Monitoring.Enabled = &val
+		// }
 	}
 
 	// Fill in static default config values.
@@ -200,11 +207,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.EnableNewRelic != nil && *instance.Spec.EnableNewRelic {
 		val := true
 		instance.Spec.Config["ENABLE_NEW_RELIC"] = summonv1beta1.ConfigValue{Bool: &val}
-	}
-
-	// Enable monitoring for prod env
-	if instance.Spec.Environment == "prod" {
-		instance.Spec.Monitoring.Enabled = true
 	}
 
 	return components.Result{}, nil
