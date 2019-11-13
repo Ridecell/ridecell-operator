@@ -22,11 +22,8 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	rmonitor "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
@@ -43,8 +40,7 @@ var _ = Describe("SummonPlatform monitoring Component", func() {
 		})
 
 		It("Is Reconciling? ", func() {
-			val := true
-			instance.Spec.Monitoring.Enabled = &val
+			instance.Spec.Monitoring.Enabled = true
 			instance.Spec.Notifications.SlackChannel = "#test"
 			instance.Spec.Notifications.Pagerdutyteam = "myteam"
 			instance.Spec.MigrationOverrides.RabbitMQVhost = "oldone"
@@ -60,27 +56,12 @@ var _ = Describe("SummonPlatform monitoring Component", func() {
 		})
 
 		It("Missing slack should Reconcile without err", func() {
-			val := true
-			instance.Spec.Monitoring.Enabled = &val
+			instance.Spec.Monitoring.Enabled = true
 			Expect(comp).To(ReconcileContext(ctx))
 			// This will not create kind: monitor
 			monitor := &rmonitor.Monitor{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-monitoring", Namespace: "summon-dev"}, monitor)
 			Expect(err).To(HaveOccurred())
-		})
-
-		It("cleans up an existing Monitor object if monitoring is disabled", func() {
-			val := false
-			instance.Spec.Monitoring.Enabled = &val
-
-			monitor := &rmonitor.Monitor{ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-monitoring", Namespace: "summon-dev"}}
-			ctx.Client = fake.NewFakeClient(instance, monitor)
-
-			Expect(comp).To(ReconcileContext(ctx))
-
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-monitoring", Namespace: "summon-dev"}, monitor)
-			Expect(err).To(HaveOccurred())
-			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 		})
 
 	})

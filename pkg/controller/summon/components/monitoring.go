@@ -17,13 +17,11 @@ limitations under the License.
 package components
 
 import (
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	rmonitor "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/pkg/errors"
 )
 
 type monitoringComponent struct{}
@@ -44,17 +42,7 @@ func (_ *monitoringComponent) IsReconcilable(_ *components.ComponentContext) boo
 
 func (comp *monitoringComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if !(instance.Spec.Monitoring.Enabled != nil && *instance.Spec.Monitoring.Enabled) || len(instance.Spec.Notifications.SlackChannel) == 0 {
-		// Clean up any existing Monitor object.
-		obj, err := ctx.GetTemplate("monitoring.yml.tpl", nil)
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "monitoring: error rendering template")
-		}
-		err = ctx.Delete(ctx.Context, obj)
-		if err != nil && !kerrors.IsNotFound(err) {
-			return components.Result{}, errors.Wrapf(err, "monitoring: error deleting existing monitor object")
-		}
-
+	if !instance.Spec.Monitoring.Enabled || len(instance.Spec.Notifications.SlackChannel) == 0 {
 		return components.Result{}, nil
 	}
 

@@ -186,13 +186,11 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.Config["WEB_URL"].String).To(PointTo(Equal("https://xyz.ridecell.com")))
 	})
 
-	It("By default enable monitoring for prod Environment", func() {
+	It("By defult enable monitoring for prod Environment", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{}
 		instance.Namespace = "prod"
 		Expect(comp).To(ReconcileContext(ctx))
-		// TEMPORARILY FALSE UNTIL MONITORING IS FIXED
-		// Expect(instance.Spec.Monitoring.Enabled).To(PointTo(BeTrue()))
-		Expect(instance.Spec.Monitoring.Enabled).To(BeNil())
+		Expect(instance.Spec.Monitoring.Enabled).To(Equal(true))
 	})
 
 	Context("with a Redis migration override", func() {
