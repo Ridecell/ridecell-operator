@@ -15,6 +15,7 @@ metadata:
     kubernetes.io/ingress.class: traefik
     kubernetes.io/tls-acme: "true"
     certmanager.k8s.io/cluster-issuer: letsencrypt-prod
+{{ block "extraAnnotations" . }}{{ end }}
 spec:
   rules:
   - host: {{ .Instance.Spec.Hostname }}
