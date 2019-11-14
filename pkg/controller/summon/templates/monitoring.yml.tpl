@@ -27,14 +27,14 @@ spec:
         servicename: {{ .Instance.Name }}
       annotations:
         summary: Newrelic error % greater than 1 for {{ .Instance.Name }}
-    - alert: Uptime check failed
-      expr: probe_success{name="{{ .Instance.Name }}-web", job="kubernetes-ingress-probes-healthz"} == 0
+    - alert: uptime check failed for {{ .Instance.Name }}-web
+      expr: probe_success{name="{{ .Instance.Name }}-web"} == 0
       for: 5m
       labels:
         severity: critical
         servicename: {{ .Instance.Name }}
       annotations:
-        summary: prober not able to reach {{ .Instance.Spec.Config.WEB_URL.String }}/healthz
+        summary: prober not able to reach {{ .Instance.Name }}-web
     - alert: Pods are not running
       expr: kube_pod_container_status_running{namespace={{ .Instance.Namespace | quote }}, pod=~"{{ .Instance.Name }}.*" ,pod!~"{{ .Instance.Name }}-migrations-.*"} == 0 
       for: 3m
