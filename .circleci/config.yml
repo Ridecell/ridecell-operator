@@ -85,7 +85,7 @@ jobs:
     steps:
     - rc_setup
     - run: make generate
-    - run: golangci-lint run --fast
+    - run: golangci-lint run
     - run: make vet
 
   test:
