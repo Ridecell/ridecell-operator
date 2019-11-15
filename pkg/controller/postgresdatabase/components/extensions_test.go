@@ -44,14 +44,16 @@ var _ = Describe("PostgresDatabase Extensions Component", func() {
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 
-	It("creates two extensions", func() {
+	It("creates three extensions", func() {
 		instance.Spec.Extensions = map[string]string{
 			"postgis":          "",
 			"postgis_topology": "",
+			"pg_trgm": "",
 		}
 		Expect(comp).To(ReconcileContext(ctx))
 
 		ext := &dbv1beta1.PostgresExtension{}
+
 		err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-postgis", Namespace: "summon-dev"}, ext)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis"))
@@ -61,6 +63,11 @@ var _ = Describe("PostgresDatabase Extensions Component", func() {
 		err = ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-postgis-topology", Namespace: "summon-dev"}, ext)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis_topology"))
+
+
+		err = ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-pg-trgm", Namespace: "summon-dev"}, ext)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ext.Spec.ExtensionName).To(Equal("pg_trgm"))
 	})
 
 	It("sets the status to creating", func() {
