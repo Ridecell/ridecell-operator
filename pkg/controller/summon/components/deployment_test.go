@@ -262,7 +262,7 @@ var _ = Describe("deployment Component", func() {
 			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
 		})
 
-		It("does not pass --concurrency by default", func() {
+		It("passes eventlet/30 by default", func() {
 			configMap := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
 				Data:       map[string]string{"summon-platform.yml": "{}\n"},
@@ -281,7 +281,7 @@ var _ = Describe("deployment Component", func() {
 			target := &appsv1.Deployment{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "4", "--pool", "prefork"}))
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "30", "--pool", "eventlet"}))
 		})
 
 		It("passes concurrency when set", func() {
@@ -304,7 +304,7 @@ var _ = Describe("deployment Component", func() {
 			target := &appsv1.Deployment{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "10", "--pool", "prefork"}))
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "10", "--pool", "eventlet"}))
 		})
 
 		It("passes pool when set", func() {
@@ -327,7 +327,7 @@ var _ = Describe("deployment Component", func() {
 			target := &appsv1.Deployment{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "4", "--pool", "solo"}))
+			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "30", "--pool", "solo"}))
 		})
 	})
 

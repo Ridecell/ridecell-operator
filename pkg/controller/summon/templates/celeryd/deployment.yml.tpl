@@ -61,9 +61,9 @@ spec:
         - "-l"
         - info
         - "--concurrency"
-        - {{ .Instance.Spec.Celery.Concurrency | default 4 | quote }}
+        - {{ .Instance.Spec.Celery.Concurrency | default 30 | quote }}
         - "--pool"
-        - {{ .Instance.Spec.Celery.Pool | default "prefork" | quote }}
+        - {{ .Instance.Spec.Celery.Pool | default "eventlet" | quote }}
         ports:
         - containerPort: 8000
         resources:
