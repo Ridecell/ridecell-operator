@@ -360,6 +360,7 @@ var _ = Describe("deployment Component", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
 			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "summon_platform"}))
 		})
 
 		It("Web flag false on web deployment", func() {
@@ -373,6 +374,7 @@ var _ = Describe("deployment Component", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
 			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "twisted", "--log-format", "text", "web", "--listen", "tcp:8000", "--wsgi", "summon_platform.wsgi.application"}))
 		})
 
 		It("Web flag nil on web deployment", func() {
@@ -385,6 +387,7 @@ var _ = Describe("deployment Component", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
 			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "twisted", "--log-format", "text", "web", "--listen", "tcp:8000", "--wsgi", "summon_platform.wsgi.application"}))
 		})
 
 		It("Web flag true on static deployment", func() {

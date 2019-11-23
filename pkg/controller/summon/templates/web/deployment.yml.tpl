@@ -1,14 +1,14 @@
 {{ define "componentName" }}web{{ end }}
 {{ define "componentType" }}web{{ end }}
 {{ define "command" }}
-{{- if .Instance.Spec.Metrics.Web -}}
+{{- if (deref .Instance.Spec.Metrics.Web) -}}
 [python, -m, summon_platform]
 {{- else -}}
 [python, -m, twisted, --log-format, text, web, --listen, tcp:8000, --wsgi, summon_platform.wsgi.application]
 {{- end -}}
 {{ end }}
 {{ define "deploymentPorts" }}
-{{- if .Instance.Spec.Metrics.Web -}}
+{{- if (deref .Instance.Spec.Metrics.Web) -}}
 [{containerPort: 8000}, {containerPort: 9000}]
 {{- else -}}
 [{containerPort: 8000}]
