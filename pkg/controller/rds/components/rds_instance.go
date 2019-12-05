@@ -214,7 +214,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	// This does exclude instance size for now
 	databaseModifyInput := &rds.ModifyDBInstanceInput{
 		DBInstanceIdentifier: database.DBInstanceIdentifier,
-		ApplyImmediately:     aws.Bool(true)
+		ApplyImmediately:     aws.Bool(true),
 	}
 	
 	// If DB does not have a backup retention period of 7 days, set it to 7 days now
@@ -223,7 +223,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		databaseModifyInput := &rds.ModifyDBInstanceInput{
 			DBInstanceIdentifier: database.DBInstanceIdentifier,
 			BackupRetentionPeriod: aws.Int64(7),
-			ApplyImmediately:     aws.Bool(true)
+			ApplyImmediately:     aws.Bool(true),
 		}
 	}
 
