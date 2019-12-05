@@ -95,19 +95,6 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 		return components.Result{}, nil
 	}
 
-	// ElasticSearch Cluster config
-	esClusterConfig := &es.ElasticsearchClusterConfig{
-		DedicatedMasterEnabled: aws.Bool(false),
-		InstanceCount:          aws.Int64(instance.Spec.NoOfInstances),
-		InstanceType:           aws.String(instance.Spec.InstanceType),
-	}
-	// Modify ES config accroding to deployment type
-	if instance.Spec.DeploymentType == "Production" {
-		esClusterConfig.DedicatedMasterEnabled = aws.Bool(true)
-		esClusterConfig.DedicatedMasterType = aws.String(instance.Spec.InstanceType)
-		//esClusterConfig.DedicatedMasterCount = aws.Int64(3) // By default, the count is 3
-	}
-
 	var elasticsearchNotExist bool
 	// try to get ES instance
 	describeElasticsearchDomainOutput, err := comp.esAPI.DescribeElasticsearchDomain(&es.DescribeElasticsearchDomainInput{DomainName: aws.String(esDomainName)})
@@ -121,6 +108,25 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 	if elasticsearchNotExist {
 		// Domain access policy: It will allow all connections within the current VPC
 		accessPolicy := fmt.Sprintf("{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"es:*\",\"Resource\":\"arn:aws:es:us-west-2:439671274615:domain/%s/*\"}]}", esDomainName)
+
+		// ElasticSearch Cluster config
+		esClusterConfig := &es.ElasticsearchClusterConfig{
+			DedicatedMasterEnabled: aws.Bool(false),
+			InstanceCount:          aws.Int64(instance.Spec.NoOfInstances),
+			InstanceType:           aws.String(instance.Spec.InstanceType),
+		}
+		vpcOptions := &es.VPCOptions{
+			SecurityGroupIds: aws.StringSlice([]string{instance.Spec.SecurityGroupId}),
+			SubnetIds:        aws.StringSlice([]string{instance.Spec.SubnetIds[0]}),
+		}
+
+		// Modify ES config accroding to deployment type
+		if instance.Spec.DeploymentType == "Production" {
+			vpcOptions.SubnetIds = aws.StringSlice(instance.Spec.SubnetIds)
+			esClusterConfig.DedicatedMasterEnabled = aws.Bool(true)
+			esClusterConfig.DedicatedMasterType = aws.String(instance.Spec.InstanceType)
+			//esClusterConfig.DedicatedMasterCount = aws.Int64(3) // By default, the count is 3
+		}
 
 		// Create ES domain with given configs
 		createElasticsearchDomainOutput, err := comp.esAPI.CreateElasticsearchDomain(&es.CreateElasticsearchDomainInput{
@@ -142,10 +148,7 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 				Enabled: aws.Bool(true),
 			},
 			//SnapshotOptions: &es.SnapshotOptions{}, will be configured later
-			VPCOptions: &es.VPCOptions{
-				SecurityGroupIds: aws.StringSlice([]string{instance.Spec.SecurityGroupId}),
-				SubnetIds:        aws.StringSlice(instance.Spec.SubnetIds),
-			},
+			VPCOptions:     vpcOptions,
 			AccessPolicies: aws.String(accessPolicy),
 		})
 		if err != nil {
@@ -217,7 +220,7 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 		if dedicatedMater {
 			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterEnabled = aws.Bool(true)
 			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterType = aws.String(instance.Spec.InstanceType)
-			//esClusterConfig.DedicatedMasterCount = aws.Int64(3)
+			//updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterCount = aws.Int64(3)
 		} else {
 			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterEnabled = aws.Bool(false)
 		}

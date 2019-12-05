@@ -72,17 +72,15 @@ var _ = Describe("ElasticSearch controller", func() {
 				Namespace: helpers.Namespace,
 			},
 			Spec: awsv1beta1.ElasticSearchSpec{
-				SecurityGroupId: "sg-036cc3bcdd664a325", // for testing only
+				SecurityGroupId: "sg-05c9720669e4bec18", // do not change, for testing only
 			},
 		}
 	})
 
 	AfterEach(func() {
-		// Delete ES domain and see if it cleans up on its own
+		//Delete ES domain and see if it cleans up on its own
 		c := helpers.TestClient
 		c.Delete(esInstance)
-		Eventually(func() error { return esDomainExists() }, time.Second*10).ShouldNot(Succeed())
-
 		// Make sure the object is deleted
 		fetchESInstance := &awsv1beta1.ElasticSearch{}
 		Eventually(func() error {
@@ -97,7 +95,7 @@ var _ = Describe("ElasticSearch controller", func() {
 		c.Create(esInstance)
 
 		fetchESInstance := &awsv1beta1.ElasticSearch{}
-		c.EventuallyGet(helpers.Name("test"), fetchESInstance, c.EventuallyStatus("Ready"))
+		c.EventuallyGet(helpers.Name("test"), fetchESInstance, c.EventuallyStatus("Ready"), c.EventuallyTimeout(time.Minute*15))
 
 		Expect(fetchESInstance.ObjectMeta.Finalizers).To(HaveLen(1))
 		Expect(fetchESInstance.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
@@ -107,11 +105,11 @@ var _ = Describe("ElasticSearch controller", func() {
 		Expect(esDomainHasValidTag()).To(BeTrue())
 
 		// update deployment type
-		esInstance.Spec.DeploymentType = "Production"
+		fetchESInstance.Spec.DeploymentType = "Production"
 
-		c.Update(esInstance)
+		c.Update(fetchESInstance)
 		fetchESInstance = &awsv1beta1.ElasticSearch{}
-		c.EventuallyGet(helpers.Name("test"), fetchESInstance, c.EventuallyStatus("Ready"))
+		c.EventuallyGet(helpers.Name("test"), fetchESInstance, c.EventuallyStatus("Processing"))
 
 		// check for updated config
 		esDomainConfig, err = describeESDomain()
@@ -124,11 +122,6 @@ var _ = Describe("ElasticSearch controller", func() {
 
 func describeESDomain() (*es.DescribeElasticsearchDomainOutput, error) {
 	return essvc.DescribeElasticsearchDomain(&es.DescribeElasticsearchDomainInput{DomainName: aws.String(strings.ToLower(esInstance.Name))})
-}
-
-func esDomainExists() error {
-	_, err := describeESDomain()
-	return err
 }
 
 func esDomainHasValidTag() bool {
