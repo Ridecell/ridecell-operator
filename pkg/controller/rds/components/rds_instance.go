@@ -220,11 +220,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	// If DB does not have a backup retention period of 7 days, set it to 7 days now
 	if database.BackupRetentionPeriod != aws.Int64(7) {
 		needsUpdate = true
-		databaseModifyInput := &rds.ModifyDBInstanceInput{
-			DBInstanceIdentifier: database.DBInstanceIdentifier,
-			BackupRetentionPeriod: aws.Int64(7),
-			ApplyImmediately:     aws.Bool(true),
-		}
+		databaseModifyInput.BackupRetentionPeriod = aws.Int64(7)
 	}
 
 	// TODO: Things could get weird if allocated storage is increased by less than 10% as aws will automatically round up to the nearest 10% increase
