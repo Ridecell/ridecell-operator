@@ -57,12 +57,11 @@ var _ = Describe("elasticsearch aws Component", func() {
 		comp.InjectESAPI(mockES)
 		// Finalizer is added here to skip the return in reconcile after adding finalizer
 		instance.ObjectMeta.Finalizers = []string{"elasticsearch.finalizer"}
+		instance.Spec.SubnetIds = append(instance.Spec.SubnetIds, "subnet-12345")
 	})
 
-	Describe("IsReconcilable", func() {
-		It("returns true", func() {
-			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
-		})
+	It("Is Reconcilable", func() {
+		Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 	})
 
 	It("runs basic reconcile with no existing elasticsearch domain", func() {
