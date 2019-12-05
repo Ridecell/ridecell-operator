@@ -33,7 +33,6 @@ commands:
     - restore_cache:
         keys:
         - v2-vendor-{{ checksum "Gopkg.lock" }}
-        - v2-vendor
     - run: make dep
     - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
 
