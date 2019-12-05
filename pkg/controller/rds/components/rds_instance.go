@@ -145,6 +145,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 			StorageType:                aws.String("gp2"),
 			AllocatedStorage:           aws.Int64(instance.Spec.AllocatedStorage),
 			DBInstanceClass:            aws.String(instance.Spec.InstanceClass),
+			BackupRetentionPeriod:      aws.Int64(7)
 			PreferredMaintenanceWindow: aws.String(instance.Spec.MaintenanceWindow),
 			Engine:                     aws.String(instance.Spec.Engine),
 			EngineVersion:              aws.String(instance.Spec.EngineVersion),
@@ -215,6 +216,8 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 		DBInstanceIdentifier: database.DBInstanceIdentifier,
 		ApplyImmediately:     aws.Bool(true),
 	}
+	
+
 	// TODO: Things could get weird if allocated storage is increased by less than 10% as aws will automatically round up to the nearest 10% increase
 	// This is pretty unlikely to happen even at larger numbers.
 	if aws.Int64Value(database.AllocatedStorage) != instance.Spec.AllocatedStorage {
