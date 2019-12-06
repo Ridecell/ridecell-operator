@@ -135,7 +135,8 @@ var _ = Describe("rds aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
-		Expect(mockRDS.modifiedDB).To(BeFalse())
+		// PR #218 - Expect modified to be true because if backupRetentionPeriod wasn't set for existing db before, it will now.
+		Expect(mockRDS.modifiedDB).To(BeTrue())
 		Expect(mockRDS.createdDB).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 		Expect(mockRDS.addedTags).To(BeFalse())
@@ -152,7 +153,8 @@ var _ = Describe("rds aws Component", func() {
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
-		Expect(mockRDS.modifiedDB).To(BeFalse())
+		// PR #218 - Expect modified to be true because if backupRetentionPeriod wasn't set for existing db before, it will now.
+		Expect(mockRDS.modifiedDB).To(BeTrue())
 		Expect(mockRDS.createdDB).To(BeFalse())
 		Expect(mockRDS.addedTags).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
@@ -190,10 +192,10 @@ var _ = Describe("rds aws Component", func() {
 	It("has a database with no tags", func() {
 		mockRDS.dbInstanceExists = true
 		mockRDS.dbStatus = "available"
-
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
-		Expect(mockRDS.modifiedDB).To(BeFalse())
+		// PR #218 - Expect modified to be true because if backupRetentionPeriod wasn't set for db before, it will now.
+		Expect(mockRDS.modifiedDB).To(BeTrue())
 		Expect(mockRDS.createdDB).To(BeFalse())
 		Expect(mockRDS.addedTags).To(BeTrue())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
@@ -245,6 +247,7 @@ func (m *mockRDSDBClient) CreateDBInstance(input *rds.CreateDBInstanceInput) (*r
 		},
 		MasterUsername:   aws.String("test-user"),
 		DBInstanceStatus: aws.String("creating"),
+		BackupRetentionPeriod: aws.Int64(7),
 	}
 	m.createdDB = true
 	m.hasTags = true
