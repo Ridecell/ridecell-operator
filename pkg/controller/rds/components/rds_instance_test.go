@@ -125,7 +125,7 @@ var _ = Describe("rds aws Component", func() {
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 
-	It("has a database in available state", func() {
+	It("has a database in available state without backup retention of 7 days", func() {
 		instance.Status.Status = dbv1beta1.StatusReady
 		mockRDS.dbInstanceExists = true
 		mockRDS.hasTags = true
