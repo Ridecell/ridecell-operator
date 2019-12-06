@@ -218,7 +218,7 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	}
 	
 	// If DB does not have a backup retention period of 7 days, set it to 7 days now
-	if database.BackupRetentionPeriod != aws.Int64(7) {
+	if aws.Int64Value(database.BackupRetentionPeriod) != 7 {
 		needsUpdate = true
 		databaseModifyInput.BackupRetentionPeriod = aws.Int64(7)
 	}
