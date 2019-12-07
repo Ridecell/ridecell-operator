@@ -125,10 +125,11 @@ var _ = Describe("rds aws Component", func() {
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusCreating))
 	})
 
-	It("has a database in available state without backup retention of 7 days", func() {
+	It("has a database in available state", func() {
 		instance.Status.Status = dbv1beta1.StatusReady
 		mockRDS.dbInstanceExists = true
 		mockRDS.hasTags = true
+		mockRDS.has7dayBackup = true
 		mockRDS.dbStatus = "available"
 
 		dbMock.ExpectQuery("SELECT 1;").WillReturnRows(sqlmock.NewRows([]string{"test"}).AddRow(1)).RowsWillBeClosed()
@@ -136,25 +137,24 @@ var _ = Describe("rds aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
-		// PR #218 - Expect modified to be true because if backupRetentionPeriod wasn't set for existing db before, it will now.
-		Expect(mockRDS.modifiedDB).To(BeTrue())
+		Expect(mockRDS.modifiedDB).To(BeFalse())
 		Expect(mockRDS.createdDB).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 		Expect(mockRDS.addedTags).To(BeFalse())
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
 
-	It("has a database in available state with backup retention of 7 days", func() {
+	It("has a database in available state without backup retention of 7 days", func() {
 		instance.Status.Status = dbv1beta1.StatusReady
 		mockRDS.dbInstanceExists = true
 		mockRDS.hasTags = true
 		mockRDS.dbStatus = "available"
-		mockRDS.has7dayBackup = true
 		dbMock.ExpectQuery("SELECT 1;").WillReturnRows(sqlmock.NewRows([]string{"test"}).AddRow(1)).RowsWillBeClosed()
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.ObjectMeta.Finalizers[0]).To(Equal("rdsinstance.database.finalizer"))
-		Expect(mockRDS.modifiedDB).To(BeFalse())
+		//If backupRetentionPeriod wasn't set for existing db before, it will now.
+		Expect(mockRDS.modifiedDB).To(BeTrue())
 		Expect(mockRDS.createdDB).To(BeFalse())
 		Expect(mockRDS.deletedDBInstance).To(BeFalse())
 		Expect(mockRDS.addedTags).To(BeFalse())
