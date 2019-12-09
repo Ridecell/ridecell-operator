@@ -30,7 +30,7 @@ var testHelpers *test_helpers.TestHelpers
 
 func TestTemplates(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "elasticsearch controller Suite @aws")
+	ginkgo.RunSpecs(t, "elasticsearch controller Suite @aws @elasticsearch")
 }
 
 var _ = ginkgo.BeforeSuite(func() {
