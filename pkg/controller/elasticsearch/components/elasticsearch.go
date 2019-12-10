@@ -28,6 +28,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	es "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	esiface "github.com/aws/aws-sdk-go/service/elasticsearchservice/elasticsearchserviceiface"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -39,17 +41,20 @@ import (
 const elasticsearchFinalizer = "elasticsearch.finalizer"
 
 type elasticSearchComponent struct {
-	esAPI esiface.ElasticsearchServiceAPI
+	esAPI  esiface.ElasticsearchServiceAPI
+	iamAPI iamiface.IAMAPI
 }
 
 func NewElasticSearch() *elasticSearchComponent {
 	sess := session.Must(session.NewSession())
 	esService := es.New(sess)
-	return &elasticSearchComponent{esAPI: esService}
+	iamService := iam.New(sess)
+	return &elasticSearchComponent{esAPI: esService, iamAPI: iamService}
 }
 
-func (comp *elasticSearchComponent) InjectESAPI(esapi esiface.ElasticsearchServiceAPI) {
+func (comp *elasticSearchComponent) InjectESAPI(esapi esiface.ElasticsearchServiceAPI, iamapi iamiface.IAMAPI) {
 	comp.esAPI = esapi
+	comp.iamAPI = iamapi
 }
 
 func (_ *elasticSearchComponent) WatchTypes() []runtime.Object {
@@ -93,6 +98,17 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 		}
 		// If object is being deleted and has no finalizer just exit.
 		return components.Result{}, nil
+	}
+
+	//Create Service Role for ElasticSearch
+	_, err := comp.iamAPI.CreateServiceLinkedRole(&iam.CreateServiceLinkedRoleInput{
+		AWSServiceName: aws.String("es.amazonaws.com"),
+		Description:    aws.String("created through ridecell-operator"),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() != iam.ErrCodeInvalidInputException {
+			return components.Result{}, errors.Wrapf(err, "elasticsearch: unable to create service role for elasticsearch")
+		}
 	}
 
 	var elasticsearchNotExist bool

@@ -18,6 +18,7 @@ package elasticsearch_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ import (
 var sess *session.Session
 var essvc *es.ElasticsearchService
 var esInstance *awsv1beta1.ElasticSearch
+var randOwnerPrefix string
 
 var _ = Describe("ElasticSearch controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -50,6 +52,11 @@ var _ = Describe("ElasticSearch controller", func() {
 		}
 		if os.Getenv("AWS_TEST_ACCOUNT_PERMISSIONS_BOUNDARY_ARN") == "" {
 			Skip("$AWS_TEST_ACCOUNT_PERMISSIONS_BOUNDARY_ARN not set, skipping elasticsearch integration tests")
+		}
+
+		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
+		if randOwnerPrefix == "" {
+			panic("$RAND_OWNER_PREFIX not set, failing test")
 		}
 
 		var err error
@@ -68,7 +75,7 @@ var _ = Describe("ElasticSearch controller", func() {
 
 		esInstance = &awsv1beta1.ElasticSearch{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
+				Name:      fmt.Sprintf("test-%s", randOwnerPrefix),
 				Namespace: helpers.Namespace,
 			},
 			Spec: awsv1beta1.ElasticSearchSpec{
@@ -95,7 +102,7 @@ var _ = Describe("ElasticSearch controller", func() {
 		c.Create(esInstance)
 
 		fetchESInstance := &awsv1beta1.ElasticSearch{}
-		c.EventuallyGet(helpers.Name("test"), fetchESInstance, c.EventuallyStatus("Ready"), c.EventuallyTimeout(time.Minute*15))
+		c.EventuallyGet(helpers.Name(esInstance.Name), fetchESInstance, c.EventuallyStatus("Ready"), c.EventuallyTimeout(time.Minute*15))
 
 		Expect(fetchESInstance.ObjectMeta.Finalizers).To(HaveLen(1))
 		Expect(fetchESInstance.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
@@ -109,7 +116,7 @@ var _ = Describe("ElasticSearch controller", func() {
 
 		c.Update(fetchESInstance)
 		fetchESInstance = &awsv1beta1.ElasticSearch{}
-		c.EventuallyGet(helpers.Name("test"), fetchESInstance, c.EventuallyStatus("Processing"))
+		c.EventuallyGet(helpers.Name(esInstance.Name), fetchESInstance, c.EventuallyStatus("Processing"))
 
 		// check for updated config
 		esDomainConfig, err = describeESDomain()

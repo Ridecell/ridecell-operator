@@ -28,6 +28,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	es "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	esiface "github.com/aws/aws-sdk-go/service/elasticsearchservice/elasticsearchserviceiface"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -45,16 +47,22 @@ type mockESClient struct {
 	finalizerTest     bool
 }
 
+type mockIAMClient struct {
+	iamiface.IAMAPI
+}
+
 var _ = Describe("elasticsearch aws Component", func() {
 	os.Setenv("AWS_REGION", "us-west-2")
 	comp := escomponents.NewElasticSearch()
 	var mockES *mockESClient
+	var mockIAM *mockIAMClient
 
 	BeforeEach(func() {
 		//comp = escomponents.NewDefaults()
 		comp = escomponents.NewElasticSearch()
 		mockES = &mockESClient{}
-		comp.InjectESAPI(mockES)
+		mockIAM = &mockIAMClient{}
+		comp.InjectESAPI(mockES, mockIAM)
 		// Finalizer is added here to skip the return in reconcile after adding finalizer
 		instance.ObjectMeta.Finalizers = []string{"elasticsearch.finalizer"}
 		instance.Spec.SubnetIds = append(instance.Spec.SubnetIds, "subnet-12345")
@@ -120,6 +128,10 @@ var _ = Describe("elasticsearch aws Component", func() {
 })
 
 // Mock aws functions below
+func (m *mockIAMClient) CreateServiceLinkedRole(input *iam.CreateServiceLinkedRoleInput) (*iam.CreateServiceLinkedRoleOutput, error) {
+	return &iam.CreateServiceLinkedRoleOutput{}, nil
+}
+
 func (m *mockESClient) DescribeElasticsearchDomain(input *es.DescribeElasticsearchDomainInput) (*es.DescribeElasticsearchDomainOutput, error) {
 	if aws.StringValue(input.DomainName) != strings.ToLower(instance.Name) {
 		return nil, errors.New("awsmock_describeESdomain: given domain name does not match spec")
