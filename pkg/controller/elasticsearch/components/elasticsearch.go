@@ -100,6 +100,10 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 		return components.Result{}, nil
 	}
 
+	// Wait for security group component to complete
+	if instance.Spec.SecurityGroupId == "" {
+		return components.Result{Requeue: true}, nil
+	}
 	//Create Service Role for ElasticSearch
 	_, err := comp.iamAPI.CreateServiceLinkedRole(&iam.CreateServiceLinkedRoleInput{
 		AWSServiceName: aws.String("es.amazonaws.com"),

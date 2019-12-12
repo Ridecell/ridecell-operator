@@ -21,8 +21,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/pkg/errors"
@@ -34,19 +32,16 @@ import (
 
 type defaultsComponent struct {
 	rdsAPI rdsiface.RDSAPI
-	ec2API ec2iface.EC2API
 }
 
 func NewDefaults() *defaultsComponent {
 	sess := session.Must(session.NewSession())
 	rdsService := rds.New(sess)
-	ec2Service := ec2.New(sess)
-	return &defaultsComponent{rdsAPI: rdsService, ec2API: ec2Service}
+	return &defaultsComponent{rdsAPI: rdsService}
 }
 
-func (comp *defaultsComponent) InjectAPI(rdsapi rdsiface.RDSAPI, ec2api ec2iface.EC2API) {
+func (comp *defaultsComponent) InjectAPI(rdsapi rdsiface.RDSAPI) {
 	comp.rdsAPI = rdsapi
-	comp.ec2API = ec2api
 }
 
 func (_ *defaultsComponent) WatchTypes() []runtime.Object {
@@ -73,21 +68,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		subnetIdList = append(subnetIdList, aws.StringValue(subnet.SubnetIdentifier))
 	}
 	instance.Spec.SubnetIds = subnetIdList
-
-	if instance.Spec.SecurityGroupId == "" {
-		// Get Security group Id
-		describeSecurityGroupsOutput, err := comp.ec2API.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
-			Filters: []*ec2.Filter{&ec2.Filter{
-				Name:   aws.String("tag:Name"),
-				Values: []*string{aws.String(os.Getenv("AWS_SUBNET_GROUP_NAME"))},
-			},
-			},
-		})
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "elasticsearch: unable to describe security group")
-		}
-		instance.Spec.SecurityGroupId = aws.StringValue(describeSecurityGroupsOutput.SecurityGroups[0].GroupId)
-	}
 
 	if instance.Spec.DeploymentType == "" {
 		instance.Spec.DeploymentType = "Development"

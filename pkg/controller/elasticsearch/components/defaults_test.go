@@ -22,8 +22,6 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 	"github.com/pkg/errors"
@@ -36,24 +34,18 @@ type mockRDSClient struct {
 	rdsiface.RDSAPI
 }
 
-type mockEC2Client struct {
-	ec2iface.EC2API
-}
-
 var _ = Describe("ElasticSearch Defaults Component", func() {
 	os.Setenv("AWS_SUBNET_GROUP_NAME", "test-subnet")
 	os.Setenv("AWS_REGION", "us-west-2")
 	comp := escomponents.NewDefaults()
 	var mockRDS *mockRDSClient
-	var mockEC2 *mockEC2Client
 
 	BeforeEach(func() {
 		os.Setenv("AWS_SUBNET_GROUP_NAME", "test-subnet")
 		os.Setenv("AWS_REGION", "us-west-2")
 		comp = escomponents.NewDefaults()
 		mockRDS = &mockRDSClient{}
-		mockEC2 = &mockEC2Client{}
-		comp.InjectAPI(mockRDS, mockEC2)
+		comp.InjectAPI(mockRDS)
 	})
 
 	It("does nothing on a filled out object", func() {
@@ -69,7 +61,6 @@ var _ = Describe("ElasticSearch Defaults Component", func() {
 		Expect(instance.Spec.ElasticSearchVersion).To(Equal("5.0"))
 		Expect(instance.Spec.StoragePerNode).To(Equal(int64(20)))
 		Expect(instance.Spec.VPCID).To(Equal("vpc-1234567890"))
-		Expect(instance.Spec.SecurityGroupId).To(Equal("sg-1234567890"))
 		Expect(instance.Spec.SubnetIds[0]).To(Equal("subnet-12345"))
 	})
 
@@ -80,25 +71,10 @@ var _ = Describe("ElasticSearch Defaults Component", func() {
 		Expect(instance.Spec.ElasticSearchVersion).To(Equal("7.1"))
 		Expect(instance.Spec.StoragePerNode).To(Equal(int64(10)))
 		Expect(instance.Spec.VPCID).To(Equal("vpc-1234567890"))
-		Expect(instance.Spec.SecurityGroupId).To(Equal("sg-1234567890"))
 		Expect(instance.Spec.SubnetIds[0]).To(Equal("subnet-12345"))
 	})
 
 })
-
-func (m *mockEC2Client) DescribeSecurityGroups(input *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error) {
-	if aws.StringValue(input.Filters[0].Values[0]) != "test-subnet" {
-		return nil, errors.New("awsmock_describesecuritygroup: subnet group does not match spec")
-	}
-	securityGroup := &ec2.DescribeSecurityGroupsOutput{
-		SecurityGroups: []*ec2.SecurityGroup{
-			&ec2.SecurityGroup{
-				GroupId: aws.String("sg-1234567890"),
-			},
-		},
-	}
-	return securityGroup, nil
-}
 
 func (m *mockRDSClient) DescribeDBSubnetGroups(input *rds.DescribeDBSubnetGroupsInput) (*rds.DescribeDBSubnetGroupsOutput, error) {
 	if aws.StringValue(input.DBSubnetGroupName) != "test-subnet" {

@@ -29,6 +29,7 @@ import (
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("elasticsearch-controller", mgr, &awsv1beta1.ElasticSearch{}, nil, []components.Component{
 		elasticsearchcomponents.NewDefaults(),
+		elasticsearchcomponents.NewESSecurityGroup(),
 		elasticsearchcomponents.NewElasticSearch(),
 	})
 	return err

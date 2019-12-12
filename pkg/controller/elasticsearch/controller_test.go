@@ -78,9 +78,6 @@ var _ = Describe("ElasticSearch controller", func() {
 				Name:      fmt.Sprintf("test-%s", randOwnerPrefix),
 				Namespace: helpers.Namespace,
 			},
-			Spec: awsv1beta1.ElasticSearchSpec{
-				SecurityGroupId: "sg-05c9720669e4bec18", // do not change, for testing only
-			},
 		}
 	})
 
@@ -92,7 +89,7 @@ var _ = Describe("ElasticSearch controller", func() {
 		fetchESInstance := &awsv1beta1.ElasticSearch{}
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name(esInstance.Name), fetchESInstance)
-		}, time.Second*30).ShouldNot(Succeed())
+		}, time.Minute*5).ShouldNot(Succeed())
 
 		helpers.TeardownTest()
 	})
@@ -104,25 +101,22 @@ var _ = Describe("ElasticSearch controller", func() {
 		fetchESInstance := &awsv1beta1.ElasticSearch{}
 		c.EventuallyGet(helpers.Name(esInstance.Name), fetchESInstance, c.EventuallyStatus("Ready"), c.EventuallyTimeout(time.Minute*15))
 
-		Expect(fetchESInstance.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchESInstance.ObjectMeta.Finalizers).To(HaveLen(2))
 		Expect(fetchESInstance.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 		esDomainConfig, err := describeESDomain()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(aws.BoolValue(esDomainConfig.DomainStatus.ElasticsearchClusterConfig.DedicatedMasterEnabled)).To(BeFalse())
 		Expect(esDomainHasValidTag()).To(BeTrue())
-
 		// update deployment type
 		fetchESInstance.Spec.DeploymentType = "Production"
 
 		c.Update(fetchESInstance)
 		fetchESInstance = &awsv1beta1.ElasticSearch{}
 		c.EventuallyGet(helpers.Name(esInstance.Name), fetchESInstance, c.EventuallyStatus("Processing"))
-
 		// check for updated config
 		esDomainConfig, err = describeESDomain()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(aws.BoolValue(esDomainConfig.DomainStatus.ElasticsearchClusterConfig.DedicatedMasterEnabled)).To(BeTrue())
-
 	})
 
 })
