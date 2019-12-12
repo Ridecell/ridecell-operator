@@ -71,11 +71,11 @@ var _ = Describe("elasticsearch security group Component", func() {
 		mockEC2.securityGroupExists = true
 		Expect(mockEC2.authorizedSG).To(BeFalse())
 		Expect(mockEC2.createdTag).To(BeFalse())
-		Expect(instance.Spec.SecurityGroupId).To(Equal("abcdf-1293238923"))
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mockEC2.authorizedSG).To(BeTrue())
 		Expect(mockEC2.createdTag).To(BeTrue())
+		Expect(instance.Spec.SecurityGroupId).To(Equal("abcdf-1293238923"))
 
 	})
 

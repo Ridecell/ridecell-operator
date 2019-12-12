@@ -66,6 +66,7 @@ var _ = Describe("elasticsearch aws Component", func() {
 		// Finalizer is added here to skip the return in reconcile after adding finalizer
 		instance.ObjectMeta.Finalizers = []string{"elasticsearch.finalizer"}
 		instance.Spec.SubnetIds = append(instance.Spec.SubnetIds, "subnet-12345")
+		instance.Spec.SecurityGroupId = "sg-1234567890"
 	})
 
 	It("Is Reconcilable", func() {
