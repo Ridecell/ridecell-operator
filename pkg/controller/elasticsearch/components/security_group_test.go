@@ -128,7 +128,7 @@ var _ = Describe("elasticsearch security group Component", func() {
 
 // Mock aws functions below
 func (m *mockEC2SGClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error) {
-	if aws.StringValue(input.Filters[0].Values[0]) == os.Getenv("AWS_SUBNET_GROUP_NAME") {
+	if aws.StringValue(input.Filters[0].Values[0]) == "nodes.test-subnet" {
 		return &ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{&ec2.SecurityGroup{GroupId: aws.String("sg-1234567890")}}}, nil
 	}
 	if aws.StringValue(input.Filters[0].Values[0]) != "ridecell-operator-es-test-domain" {

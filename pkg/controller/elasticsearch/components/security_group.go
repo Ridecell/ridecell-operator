@@ -122,7 +122,7 @@ func (comp *esSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	sgOutput, err := comp.ec2API.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{&ec2.Filter{
 			Name:   aws.String("tag:Name"),
-			Values: []*string{aws.String(os.Getenv("AWS_SUBNET_GROUP_NAME"))},
+			Values: []*string{aws.String(fmt.Sprintf("nodes.%s", os.Getenv("AWS_SUBNET_GROUP_NAME")))},
 		},
 		},
 	})
