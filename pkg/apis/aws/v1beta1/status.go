@@ -45,3 +45,16 @@ func (iu *IAMUser) SetErrorStatus(errorMsg string) {
 	iu.Status.Status = StatusError
 	iu.Status.Message = errorMsg
 }
+
+func (es *ElasticSearch) GetStatus() components.Status {
+	return es.Status
+}
+
+func (es *ElasticSearch) SetStatus(status components.Status) {
+	es.Status = status.(ElasticSearchStatus)
+}
+
+func (es *ElasticSearch) SetErrorStatus(errorMsg string) {
+	es.Status.Status = StatusError
+	es.Status.Message = errorMsg
+}

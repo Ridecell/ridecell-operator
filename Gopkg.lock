@@ -126,10 +126,13 @@
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
+    "private/protocol/restjson",
     "private/protocol/restxml",
     "private/protocol/xml/xmlutil",
     "service/ec2",
     "service/ec2/ec2iface",
+    "service/elasticsearchservice",
+    "service/elasticsearchservice/elasticsearchserviceiface",
     "service/iam",
     "service/iam/iamiface",
     "service/kms",
@@ -141,8 +144,8 @@
     "service/sts",
   ]
   pruneopts = "T"
-  revision = "3afa899153ab972b5e6bf2552721b677e3fdaeb5"
-  version = "v1.16.20"
+  revision = "31767fe4cf2e7e969e2245ab694e21f85015e24b"
+  version = "v1.25.41"
 
 [[projects]]
   branch = "master"
@@ -2062,6 +2065,8 @@
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ec2/ec2iface",
+    "github.com/aws/aws-sdk-go/service/elasticsearchservice",
+    "github.com/aws/aws-sdk-go/service/elasticsearchservice/elasticsearchserviceiface",
     "github.com/aws/aws-sdk-go/service/iam",
     "github.com/aws/aws-sdk-go/service/iam/iamiface",
     "github.com/aws/aws-sdk-go/service/kms",

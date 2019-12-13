@@ -33,7 +33,6 @@ commands:
     - restore_cache:
         keys:
         - v2-vendor-{{ checksum "Gopkg.lock" }}
-        - v2-vendor
     - run: make dep
     - run: echo "export RAND_OWNER_PREFIX=x$(head -c 512 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)" >> $BASH_ENV
 
@@ -128,7 +127,7 @@ jobs:
     - *kube-apiserver
     - *kube-controller-manager
     environment:
-      GINKGO_ARGS: -focus @aws -skip '@(rds|snapshot)'
+      GINKGO_ARGS: -focus @aws -skip '@(rds|snapshot|elasticsearch)'
     steps:
     - rc_test:
         cover: aws
@@ -146,6 +145,21 @@ jobs:
     steps:
     - rc_test:
         cover: rds
+        aws: true
+        timeout: 30m
+
+  test_elasticsearch:
+    executor: rc_test
+    docker:
+    - image: circleci/golang:1
+    - *etcd
+    - *kube-apiserver
+    - *kube-controller-manager
+    environment:
+      GINKGO_ARGS: -focus @elasticsearch
+    steps:
+    - rc_test:
+        cover: elasticsearch
         aws: true
         timeout: 30m
 
@@ -265,6 +279,9 @@ workflows:
         requires:
         - test
     - test_rdssnapshot:
+        requires:
+        - test
+    - test_elasticsearch:
         requires:
         - test
     - test_rabbitmq:
