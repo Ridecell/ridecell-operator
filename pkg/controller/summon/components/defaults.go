@@ -102,7 +102,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	if instance.Spec.SQSQueue == "" {
 		switch instance.Spec.Environment {
-		case "prod", "uat":
+		case "prod":
 			switch instance.Spec.AwsRegion {
 			case "eu-central-1":
 				instance.Spec.SQSQueue = "eu-prod-data-pipeline"
@@ -110,6 +110,15 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 				instance.Spec.SQSQueue = "in-prod-data-pipeline"
 			default:
 				instance.Spec.SQSQueue = "prod-data-pipeline"
+			}
+		case "uat":
+			switch instance.Spec.AwsRegion {
+			case "eu-central-1":
+				instance.Spec.SQSQueue = "eu-uat-data-pipeline"
+			case "ap-south-1":
+				instance.Spec.SQSQueue = "in-uat-data-pipeline"
+			default:
+				instance.Spec.SQSQueue = "us-uat-data-pipeline"
 			}
 		case "qa":
 			instance.Spec.SQSQueue = "us-qa-data-pipeline"
