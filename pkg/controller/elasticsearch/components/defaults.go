@@ -90,7 +90,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	if instance.Spec.StoragePerNode == 0 {
-		instance.Spec.StoragePerNode = 10 // 10 GB
+		instance.Spec.StoragePerNode = 30 // 30 GB
 	}
 
 	if instance.Spec.SnapshotTime == "" {
