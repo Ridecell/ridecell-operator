@@ -95,6 +95,11 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("channelworker/podDisruptionBudget.yml.tpl"),
 
+		// Dispatch components.
+		summoncomponents.NewDeployment("dispatch/deployment.yml.tpl"),
+		summoncomponents.NewService("dispatch/service.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("dispatch/podDisruptionBudget.yml.tpl"),
+
 		// Set Monitoring
 		summoncomponents.NewMonitoring(),
 
