@@ -118,7 +118,7 @@ INSERT INTO common_staff (user_profile_id, is_active, manager, dispatcher, busin
     is_active=EXCLUDED.is_active,
     manager=EXCLUDED.manager,
     dispatcher=EXCLUDED.dispatcher,
-		business_admin=EXCLUDED.business_admin;
+    business_admin=EXCLUDED.business_admin;
 `
 
 	// Create the common_staff.
