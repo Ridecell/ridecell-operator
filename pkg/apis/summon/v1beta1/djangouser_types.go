@@ -24,15 +24,16 @@ import (
 
 // DjangoUserSpec defines the desired state of DjangoUser
 type DjangoUserSpec struct {
-	Email      string                       `json:"email"`
-	Database   dbv1beta1.PostgresConnection `json:"database"`
-	FirstName  string                       `json:"firstName,omitempty"`
-	LastName   string                       `json:"lastName,omitempty"`
-	Active     bool                         `json:"active"`
-	Manager    bool                         `json:"manager"`
-	Dispatcher bool                         `json:"dispatcher"`
-	Staff      bool                         `json:"staff"`
-	Superuser  bool                         `json:"superuser"`
+	Email         string                       `json:"email"`
+	Database      dbv1beta1.PostgresConnection `json:"database"`
+	FirstName     string                       `json:"firstName,omitempty"`
+	LastName      string                       `json:"lastName,omitempty"`
+	Active        bool                         `json:"active"`
+	Manager       bool                         `json:"manager"`
+	Dispatcher    bool                         `json:"dispatcher"`
+	Staff         bool                         `json:"staff"`
+	Superuser     bool                         `json:"superuser"`
+	BusinessAdmin bool                         `json:"businessAdmin"`
 }
 
 // DjangoUserStatus defines the observed state of DjangoUser

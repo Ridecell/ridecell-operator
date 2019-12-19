@@ -112,16 +112,17 @@ INSERT INTO common_userprofile (user_id, is_jumio_verified, created_at, updated_
 
 	// Medium ass SQL.
 	query = `
-INSERT INTO common_staff (user_profile_id, is_active, manager, dispatcher)
-  VALUES ($1, $2, $3, $4)
+INSERT INTO common_staff (user_profile_id, is_active, manager, dispatcher, business_admin)
+  VALUES ($1, $2, $3, $4, $5)
   ON CONFLICT (user_profile_id) DO UPDATE SET
     is_active=EXCLUDED.is_active,
     manager=EXCLUDED.manager,
-    dispatcher=EXCLUDED.dispatcher;
+    dispatcher=EXCLUDED.dispatcher,
+		business_admin=EXCLUDED.business_admin;
 `
 
 	// Create the common_staff.
-	_, err = db.Exec(query, profileId, instance.Spec.Active, instance.Spec.Manager, instance.Spec.Dispatcher)
+	_, err = db.Exec(query, profileId, instance.Spec.Active, instance.Spec.Manager, instance.Spec.Dispatcher, instance.Spec.BusinessAdmin)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "database: Error running common_staff query")
 	}
