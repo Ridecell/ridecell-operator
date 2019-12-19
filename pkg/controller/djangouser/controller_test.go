@@ -83,7 +83,7 @@ CREATE TABLE common_staff (
     dispatcher boolean NOT NULL,
     manager boolean NOT NULL,
     is_active boolean NOT NULL,
-    business_admin NOT NULL,
+    business_admin boolean NOT NULL,
     user_profile_id integer NOT NULL UNIQUE REFERENCES common_userprofile (id),
     created_at timestamp with time zone,
     updated_at timestamp with time zone
