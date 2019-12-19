@@ -145,6 +145,10 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 			vpcOptions.SubnetIds = aws.StringSlice(instance.Spec.SubnetIds)
 			esClusterConfig.DedicatedMasterEnabled = aws.Bool(true)
 			esClusterConfig.DedicatedMasterType = aws.String(instance.Spec.InstanceType)
+			esClusterConfig.ZoneAwarenessEnabled = aws.Bool(true)
+			esClusterConfig.ZoneAwarenessConfig = &es.ZoneAwarenessConfig{
+				AvailabilityZoneCount: aws.Int64(int64(len(instance.Spec.SubnetIds))),
+			}
 			//esClusterConfig.DedicatedMasterCount = aws.Int64(3) // By default, the count is 3
 		}
 
@@ -220,6 +224,7 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 	updateElasticsearchDomainConfigInput := &es.UpdateElasticsearchDomainConfigInput{
 		DomainName:                 aws.String(esDomainName),
 		ElasticsearchClusterConfig: &es.ElasticsearchClusterConfig{},
+		VPCOptions:                 &es.VPCOptions{},
 	}
 	// check for no of instances
 	if instance.Spec.NoOfInstances != aws.Int64Value(esDomainInstance.ElasticsearchClusterConfig.InstanceCount) {
@@ -229,6 +234,9 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 	// check for instance types
 	if instance.Spec.InstanceType != aws.StringValue(esDomainInstance.ElasticsearchClusterConfig.InstanceType) {
 		updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.InstanceType = aws.String(instance.Spec.InstanceType)
+		if aws.BoolValue(esDomainInstance.ElasticsearchClusterConfig.DedicatedMasterEnabled) {
+			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterType = aws.String(instance.Spec.InstanceType)
+		}
 		needsUpdate = true
 	}
 	// Deployment type changes
@@ -240,9 +248,16 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 		if dedicatedMater {
 			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterEnabled = aws.Bool(true)
 			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterType = aws.String(instance.Spec.InstanceType)
+			updateElasticsearchDomainConfigInput.VPCOptions.SubnetIds = aws.StringSlice(instance.Spec.SubnetIds)
+			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.ZoneAwarenessEnabled = aws.Bool(true)
+			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.ZoneAwarenessConfig = &es.ZoneAwarenessConfig{
+				AvailabilityZoneCount: aws.Int64(int64(len(instance.Spec.SubnetIds))),
+			}
 			//updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterCount = aws.Int64(3)
 		} else {
 			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.DedicatedMasterEnabled = aws.Bool(false)
+			updateElasticsearchDomainConfigInput.ElasticsearchClusterConfig.ZoneAwarenessEnabled = aws.Bool(false)
+			updateElasticsearchDomainConfigInput.VPCOptions.SubnetIds = aws.StringSlice([]string{instance.Spec.SubnetIds[0]})
 		}
 		needsUpdate = true
 	}

@@ -109,7 +109,7 @@ var _ = Describe("ElasticSearch controller", func() {
 		Expect(esDomainHasValidTag()).To(BeTrue())
 		// update deployment type
 		fetchESInstance.Spec.DeploymentType = "Production"
-
+		fetchESInstance.Spec.NoOfInstances = 2
 		c.Update(fetchESInstance)
 		fetchESInstance = &awsv1beta1.ElasticSearch{}
 		c.EventuallyGet(helpers.Name(esInstance.Name), fetchESInstance, c.EventuallyStatus("Processing"))

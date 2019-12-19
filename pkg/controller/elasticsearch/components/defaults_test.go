@@ -69,7 +69,7 @@ var _ = Describe("ElasticSearch Defaults Component", func() {
 		Expect(instance.Spec.DeploymentType).To(Equal("Development"))
 		Expect(instance.Spec.InstanceType).To(Equal("r5.large.elasticsearch"))
 		Expect(instance.Spec.ElasticSearchVersion).To(Equal("7.1"))
-		Expect(instance.Spec.StoragePerNode).To(Equal(int64(10)))
+		Expect(instance.Spec.StoragePerNode).To(Equal(int64(30)))
 		Expect(instance.Spec.VPCID).To(Equal("vpc-1234567890"))
 		Expect(instance.Spec.SubnetIds[0]).To(Equal("subnet-12345"))
 	})
