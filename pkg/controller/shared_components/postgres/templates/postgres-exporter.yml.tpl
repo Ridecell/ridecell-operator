@@ -20,7 +20,7 @@ spec:
     spec:
       initContainers:
       - name: copy-certs
-        image: us.gcr.io/ridecell-1/postgres-exporter-certs:1
+        image: us.gcr.io/ridecell-1/postgres-exporter-certs:2
         command:
         - sh
         - -c
