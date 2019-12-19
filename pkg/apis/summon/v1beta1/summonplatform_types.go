@@ -117,6 +117,9 @@ type ReplicasSpec struct {
 	// Number of caddy pods to run. Defaults to 1 for dev/qa, 2 for uat/prod.
 	// +optional
 	Static *int32 `json:"static,omitempty"`
+	// Number of dispatch pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no dispatch.version is set.
+	// +optional
+	Dispatch *int32 `json:"dispatch,omitempty"`
 }
 
 // MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
@@ -128,6 +131,12 @@ type MonitoringSpec struct {
 type MetricsSpec struct {
 	// Enables metrics exporting for web pods
 	Web *bool `json:"web,omitempty"`
+}
+
+// CompDispatchSpec defines settings for comp-dispatch.
+type CompDispatchSpec struct {
+	// Summon image version to deploy.
+	Version string `json:"version"`
 }
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
@@ -209,6 +218,9 @@ type SummonPlatformSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum=OTAKEYS,MENSA
 	MockTenantHardwareType string `json:"mockTenantHardwareType,omitempty"`
+	// Settings for comp-dispatch.
+	// +optional
+	Dispatch CompDispatchSpec `json:"dispatch,omitempty"`
 
 	// Backwards compat fields from before ReplicasSpec. Clean up once all instances are converted to the new config format.
 	WebReplicas           *int32 `json:"webReplicas,omitempty"`

@@ -29,6 +29,7 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -312,5 +313,41 @@ var _ = Describe("app_secrets Component", func() {
 		err = ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.saml", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fetchSecret.Data).To(HaveKeyWithValue("metadata.xml", []byte("<saml>isgreat</saml>")))
+	})
+
+	It("creates a comp-dispatch secret", func() {
+		inSecret.Data["GOOGLE_PLACES_API_KEY"] = []byte("asdf1234")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.comp-dispatch", Namespace: "summon-dev"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		data := map[string]interface{}{}
+		err = yaml.Unmarshal(fetchSecret.Data["dispatch.yml"], &data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data).To(HaveKeyWithValue("debug", false))
+		Expect(data).To(HaveKeyWithValue("database_url", "postgis://foo_dev:postgresPassword@summon-dev-database/foo_dev"))
+		Expect(data).To(HaveKeyWithValue("google_api_key", "asdf1234"))
+	})
+
+	It("sets comp-dispatch to debug if summon is DEBUG=True", func() {
+		v := true
+		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{
+			"DEBUG": summonv1beta1.ConfigValue{Bool: &v},
+		}
+		inSecret.Data["GOOGLE_PLACES_API_KEY"] = []byte("asdf1234")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.comp-dispatch", Namespace: "summon-dev"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		data := map[string]interface{}{}
+		err = yaml.Unmarshal(fetchSecret.Data["dispatch.yml"], &data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data).To(HaveKeyWithValue("debug", true))
 	})
 })

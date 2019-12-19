@@ -222,6 +222,17 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		appSecretsData["SAML_USE_LOCAL_METADATA"] = true
 	}
 
+	// Set up secrets for comp-dispatch.
+	dispatchSecretsData := map[string]interface{}{}
+	debug := false
+	debugConfig, ok := instance.Spec.Config["DEBUG"]
+	if ok && debugConfig.Bool != nil && *debugConfig.Bool {
+		debug = true
+	}
+	dispatchSecretsData["debug"] = debug
+	dispatchSecretsData["database_url"] = appSecretsData["DATABASE_URL"]
+	dispatchSecretsData["google_api_key"] = appSecretsData["GMAPS_CLIENT_KEY"]
+
 	// Serialize the app secrets YAML and put it in a secret.
 	yamlData, err := yaml.Marshal(appSecretsData)
 	if err != nil {
@@ -257,6 +268,23 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	})
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update SAML secret object")
+	}
+
+	// Create the comp-dispatch secret.
+	dispatchYamlData, err := yaml.Marshal(dispatchSecretsData)
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed for comp-dispatch")
+	}
+
+	_, _, err = ctx.CreateOrUpdate("secrets/dispatch.yml.tpl", nil, func(_, existingObj runtime.Object) error {
+		existing := existingObj.(*corev1.Secret)
+		existing.Data = map[string][]byte{
+			"dispatch.yml": dispatchYamlData,
+		}
+		return nil
+	})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update comp-dispatch secret object")
 	}
 
 	return components.Result{}, nil
