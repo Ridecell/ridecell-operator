@@ -134,7 +134,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		rows2 := sqlmock.NewRows([]string{"id"}).AddRow(1)
 		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "", "", false, false, false).WillReturnRows(rows)
 		dbMock.ExpectQuery("INSERT INTO common_userprofile").WithArgs(1).WillReturnRows(rows2)
-		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
 		Expect(comp).To(ReconcileContext(ctx))
@@ -163,7 +163,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		rows2 := sqlmock.NewRows([]string{"id"}).AddRow(1)
 		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "", "", true, true, false).WillReturnRows(rows)
 		dbMock.ExpectQuery("INSERT INTO common_userprofile").WithArgs(1).WillReturnRows(rows2)
-		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, true, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, true, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
 		Expect(comp).To(ReconcileContext(ctx))
@@ -192,7 +192,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		rows2 := sqlmock.NewRows([]string{"id"}).AddRow(1)
 		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "Alan", "Smithee", false, false, false).WillReturnRows(rows)
 		dbMock.ExpectQuery("INSERT INTO common_userprofile").WithArgs(1).WillReturnRows(rows2)
-		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
 		Expect(comp).To(ReconcileContext(ctx))
