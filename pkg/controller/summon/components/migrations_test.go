@@ -125,7 +125,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				job := &batchv1.Job{}
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate"))
+				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate -v3"))
 			})
 		})
 

@@ -32,9 +32,9 @@ spec:
         - sh
         - "-c"
         {{- if ne .Extra.presignedUrl "" }}
-        - python manage.py migrate && python manage.py loadflavor {{ .Extra.presignedUrl | squote }} --silent
+        - python manage.py migrate -v3 && python manage.py loadflavor {{ .Extra.presignedUrl | squote }} --silent
         {{- else }}
-        - python manage.py migrate
+        - python manage.py migrate -v3
         {{- end }}
         resources:
           requests:
