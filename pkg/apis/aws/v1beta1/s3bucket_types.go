@@ -39,6 +39,7 @@ type S3BucketStatus struct {
 // S3Bucket is the Schema for the S3Buckets API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="object status"
 type S3Bucket struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

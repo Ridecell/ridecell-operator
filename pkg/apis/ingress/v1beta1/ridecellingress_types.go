@@ -42,6 +42,7 @@ type RidecellIngressStatus struct {
 // RidecellIngress is the Schema for the ridecellingresses API
 // +kubebuilder:subresource:status
 // +k8s:openapi-gen=true
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="object status"
 type RidecellIngress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -42,6 +42,7 @@ type PostgresOperatorDatabaseStatus struct {
 // PostgresOperatorDatabase is the Schema for the PostgresOperatorDatabases API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="object status"
 type PostgresOperatorDatabase struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

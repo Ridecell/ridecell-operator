@@ -40,6 +40,7 @@ type GCPServiceAccountStatus struct {
 // GCPServiceAccount is the Schema for the GCPServiceAccounts API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="object status"
 type GCPServiceAccount struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

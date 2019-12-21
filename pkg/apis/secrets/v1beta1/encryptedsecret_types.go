@@ -35,6 +35,7 @@ type EncryptedSecretStatus struct {
 // EncryptedSecret is the Schema for the EncryptedSecret API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="object status"
 type EncryptedSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
