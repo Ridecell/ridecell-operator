@@ -451,6 +451,8 @@ func deleteElasticsearchIfExists(essvc *elasticsearchservice.ElasticsearchServic
 			if aerr.Code() != elasticsearchservice.ErrCodeResourceNotFoundException {
 				return err
 			}
+		} else {
+			return err
 		}
 	}
 	return nil
