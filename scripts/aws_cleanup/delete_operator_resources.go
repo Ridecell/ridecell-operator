@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -160,6 +162,12 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+	}
+
+	essvc := elasticsearchservice.New(sess)
+	err = deleteElasticsearchIfExists(essvc, namePrefix)
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -428,6 +436,24 @@ func deleteSnapshot(rdssvc *rds.RDS, snapshotIdentifier *string) error {
 	})
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func deleteElasticsearchIfExists(essvc *elasticsearchservice.ElasticsearchService, prefix string) error {
+	esDomainName := fmt.Sprintf("test-%s", prefix)
+	_, err := essvc.DeleteElasticsearchDomain(&elasticsearchservice.DeleteElasticsearchDomainInput{
+		DomainName: aws.String(strings.ToLower(esDomainName)),
+	})
+	if err != nil {
+		aerr, ok := err.(awserr.Error)
+		if ok {
+			if aerr.Code() != elasticsearchservice.ErrCodeResourceNotFoundException {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	return nil
 }
