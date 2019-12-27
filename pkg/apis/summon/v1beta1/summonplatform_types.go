@@ -140,8 +140,12 @@ type SummonPlatformSpec struct {
 	// Hostname aliases (for vanity purposes)
 	// +optional
 	Aliases []string `json:"aliases,omitempty"`
-	// Summon image version to deploy.
+	// Summon image version to deploy. If this isn't specified, AutoDeploy must be.
+	// +optional
 	Version string `json:"version"`
+	// Branch to watch for new images and auto-deploy.
+	// +optional
+	AutoDeploy string `json:"autoDeploy,omitempty"`
 	// Name of the secret to use for secret values.
 	Secrets []string `json:"secrets,omitempty"`
 	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.

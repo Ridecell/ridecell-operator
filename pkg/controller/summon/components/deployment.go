@@ -73,9 +73,20 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 
 	// If we're not in deploying state do nothing and exit early.
 	if instance.Status.Status != summonv1beta1.StatusDeploying {
+		fmt.Printf("DEBUG: Not in deploying state, won't reconcile deployments...\n")
 		return components.Result{}, nil
 	}
 
+	// Set error status to prevent further deployments until it is resolved.
+	fmt.Printf("DEBUG: In deployment, spec version seen as %s\n", instance.Spec.Version)
+	if instance.Spec.Version == "" && instance.Spec.AutoDeploy == "" {
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance.Status.Status = dbv1beta1.StatusError
+			instance.Status.Message = "Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."
+			return nil
+		}}, nil
+	}
+	
 	rawAppSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
 	if err != nil {

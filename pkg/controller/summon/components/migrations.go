@@ -65,14 +65,18 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Pull secret not ready yet.
 		return false
 	}
-	if instance.Status.BackupVersion != instance.Spec.Version {
-		return false
-	}
 	return true
 }
 
 func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// Originally a check done in IsReconcilable, but because of autodeploy setting Spec.Version during
+	// Reconcile stage, check has to be done here since it wouldn't be visible during IsReconcilable stages.
+	if instance.Status.BackupVersion != instance.Spec.Version {
+		return components.Result{}, nil
+	}
+
 	if instance.Spec.Version == instance.Status.MigrateVersion {
 		// Already migrated, update status and move on.
 		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil
@@ -119,9 +123,11 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 			return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: error creation migration job %s/%s, might have lost the race condition", job.Namespace, job.Name)
 		}
 		// Job is started, so we're done for now.
+		fmt.Printf("DEBUG: Migrations: job has started (%v)...\n", job)
 		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusMigrating)}, nil
 	} else if err != nil {
 		// Some other real error, bail.
+		fmt.Printf("DEBUG: Migrations: error in creating job: %v\n", err)
 		return components.Result{}, err
 	}
 
@@ -130,6 +136,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 	existingVersion, ok := existing.Labels["app.kubernetes.io/version"]
 	if !ok || existingVersion != instance.Spec.Version {
 		glog.Infof("[%s/%s] migrations: Found existing migration job with bad version %#v\n", instance.Namespace, instance.Name, existingVersion)
+		fmt.Printf("DEBUG: Migrations: Found existing job with bad version %#v...\n", existingVersion)
 		// This is from a bad (or broken if !ok) version, try to delete it and then run again.
 		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
 		return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: found existing migration job %s/%s with bad version %#v", instance.Namespace, instance.Name, existingVersion)
@@ -137,17 +144,21 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// Check if the job succeeded.
 	if existing.Status.Succeeded > 0 {
+		fmt.Printf("DEBUG: Migrations: job succeeded!\n")
 		// Success! Update the MigrateVersion (this will trigger a reconcile) and delete the job.
 		glog.V(2).Infof("[%s/%s] Deleting migration Job %s/%s\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
+		fmt.Printf("DEBUG: Migrations: delete successful job %v\n", existing)
 		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
 		if err != nil {
 			return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: error deleting successful migration job %s/%s", existing.Namespace, existing.Name)
 		}
 
 		glog.Infof("[%s/%s] migrations: Migration job succeeded, updating MigrateVersion from %s to %s\n", instance.Namespace, instance.Name, instance.Status.MigrateVersion, instance.Spec.Version)
+		fmt.Printf("DEBUG: Migrations: Updating MigrateVersion to %s...\n", instance.Spec.Version)
 		// Store migrate version in the closure to avoid concurrent edits to Spec.Version resulting in incorrectly advancing MigrateVersion.
 		migrateVersion := instance.Spec.Version
 		// Onward to deploying!
+		fmt.Printf("DEBUG: Migrations: Moving to PostMigrateWait...\n")
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)
 			instance.Status.Status = summonv1beta1.StatusPostMigrateWait

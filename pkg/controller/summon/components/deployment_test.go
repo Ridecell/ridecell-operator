@@ -416,4 +416,24 @@ var _ = Describe("deployment Component", func() {
 			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
 		})
 	})
+
+	Context("missing Spec.Version", func() {
+		BeforeEach(func() {
+			instance.Status.Status = summonv1beta1.StatusDeploying
+		})
+
+		It("does not deploy and updates error status", func() {
+			comp = summoncomponents.NewDeployment("web/deployment.yml.tpl")
+			instance.Spec.Version = ""
+			Expect(comp).To(ReconcileContext(ctx))
+
+			deployment := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, deployment)
+			// Don't expect deployment to exist
+			Expect(err).To(HaveOccurred())
+
+			Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusError))
+			Expect(instance.Status.Message).To(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
+		})
+	})
 })

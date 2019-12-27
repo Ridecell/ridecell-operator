@@ -17,19 +17,34 @@ limitations under the License.
 package summon
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
 )
+
+// Helps trigger summon instances Spec.Version updates (for autodeploy feature) when the image tag cache has been updated.
+var lastChecked time.Time
 
 // Add creates a new Summon Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("summon-platform-controller", mgr, &summonv1beta1.SummonPlatform{}, Templates, []components.Component{
+	c, err := components.NewReconciler("summon-platform-controller", mgr, &summonv1beta1.SummonPlatform{}, Templates, []components.Component{
 		// Set default values.
 		summoncomponents.NewDefaults(),
+
+		// Possibly have Spec.Version value replaced by autodeploy logic.
+		summoncomponents.NewAutoDeploy(),
 
 		// Top-level components.
 		summoncomponents.NewPullSecret("pullsecret/pullsecret.yml.tpl"),
@@ -109,5 +124,51 @@ func Add(mgr manager.Manager) error {
 		// Keep Notification at the end of this block
 		summoncomponents.NewNotification(),
 	})
+
+	if err != nil {
+		return err
+	}
+
+	gcrChannel := make(chan event.GenericEvent)
+
+	go watchForImages(gcrChannel, c.GetComponentClient())
+
+	err = c.Controller.Watch(
+		&source.Channel{Source: gcrChannel},
+		&handler.EnqueueRequestForObject{},
+	)
 	return err
+}
+
+// Watches docker image cache for updates and triggers reconciles for summon instances with autodeploy enabled.
+func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Client) {
+	for {
+		if lastChecked.IsZero() || gcr.LastCacheUpdate.After(lastChecked) {
+			fmt.Printf("DEBUG: Summon Controller: Tag Cache needs update! Triggering AutoDeploy Reconcile! Elapsed time is %s\n", time.Since(lastChecked))
+			summonInstances := &summonv1beta1.SummonPlatformList{}
+			// fmt.Printf("DEBUG: List of SummonInstances we are checking:\n %+v\n", summonInstances)
+			// Get list of existing SummonPlatforms.
+			err := k8sClient.List(context.TODO(), &client.ListOptions{}, summonInstances)
+			if err != nil {
+				// Make this do something useful or ignore it.
+				panic(err)
+			}
+
+			// Pick out each that have AutoDeploy enabled and trigger reconcile if cache was updated, but
+			// also only if instance isn't in the middle of some State
+			for _, summonInstance := range summonInstances.Items {
+				if summonInstance.Spec.AutoDeploy == "" ||
+					summonInstance.Status.Status != summonv1beta1.StatusReady &&
+						summonInstance.Status.Status != "" {
+					continue
+				}
+				fmt.Printf("DEBUG: Watcher triggered reconcile for %s\n", summonInstance.ObjectMeta.Name)
+				watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
+			}
+			// We checked all summonInstances for autodeploy. Update lastChecked.
+			lastChecked = time.Now()
+			fmt.Printf("DEBUG: Updated watchForImage lastChecked to %s\n", lastChecked)
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
 }
