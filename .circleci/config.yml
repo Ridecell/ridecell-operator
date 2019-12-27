@@ -204,7 +204,7 @@ jobs:
       - *etcd
       - *kube-apiserver
       - *kube-controller-manager
-      - image :registry:2
+      - image: registry:2
     environment:
       GINKGO_ARGS: -focus @autodeploy
       LOCAL_REGISTRY_URL: "http://localhost:5000"
