@@ -81,7 +81,7 @@ func addMockTags(tags []string) error {
 	return nil
 }
 
-var _ = FDescribe("Summon controller autodeploy", func() {
+var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 	var instance *summonv1beta1.SummonPlatform
 	var helpers *test_helpers.PerTestHelpers
 

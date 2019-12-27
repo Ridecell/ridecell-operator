@@ -39,7 +39,7 @@ func MockGetSummonTags() {
 	}
 }
 
-var _ = FDescribe("AutoDeploy Component", func() {
+var _ = FDescribe("SummonPlatform AutoDeploy Component", func() {
 	comp := summoncomponents.NewAutoDeploy()
 
 	BeforeEach(func() {
