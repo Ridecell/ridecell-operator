@@ -154,12 +154,13 @@ func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Clien
 				panic(err)
 			}
 
-			// Pick out each that have AutoDeploy enabled and trigger reconcile if cache was updated, but
-			// also only if instance isn't in the middle of some State
+			// Pick out each that have AutoDeploy enabled and trigger reconcile if cache was updated.
 			for _, summonInstance := range summonInstances.Items {
-				if summonInstance.Spec.AutoDeploy == "" ||
-					summonInstance.Status.Status != summonv1beta1.StatusReady &&
-						summonInstance.Status.Status != "" {
+				if summonInstance.Spec.AutoDeploy == "" {
+				    // but only if instance isn't in the middle of some State?
+					/* summonInstance.Status.Status != summonv1beta1.StatusReady &&
+						summonInstance.Status.Status != "" { */
+							fmt.Printf("DEBUG: %s Status is %s. Not triggering reconcile.\n", summonInstance.ObjectMeta.Name, summonInstance.Status.Status)
 					continue
 				}
 				fmt.Printf("DEBUG: Watcher triggered reconcile for %s\n", summonInstance.ObjectMeta.Name)

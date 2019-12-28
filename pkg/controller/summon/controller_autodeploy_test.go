@@ -302,7 +302,7 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
-		// Simulate tag cache update and allow sleep time < 5min cache refresh.
+		// Simulate new docker image upload and allow sleep time < 5min before cache refresh.
 		addMockTags([]string{"154575-cdf9c69-devops-feature-test"})
 		time.Sleep(time.Second * 15)
 
@@ -324,17 +324,19 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		updateDeployment("web")
 		*/
 
-		// Update LastCacheUpdate time, triggering watcher to recognizes cache tag was updated.
+		// Instead of actually waiting 5 minutes for gcr.CachedTags to get updated, and thus triggering
+		// watcher to queue up autodeploy reconcile, simulate an updated CacheTag by directly modifying it
+		// and updating LastCacheUpdate to now time.
+		gcr.CachedTags = append(gcr.CachedTags, "154575-cdf9c69-devops-feature-test")
 		gcr.LastCacheUpdate = time.Now()
 		fmt.Printf("DEBUG: CacheUpdate should TRIGGER autodeploy reconcile...\n")
-		// The watcher in summon controller should trigger an autodeploy reconcile
+
 		// Check that another migration Job was created and its the new version.
-		fmt.Printf("DEBUG: STATE OF SUMMON INSTANCE: %+v\n", instance)
-		job = &batchv1.Job{}
+		job = &batchv1.Job{}		
 		c.EventuallyGet(helpers.Name("foo-migrations"), job)
 		Eventually ( func () string {
 			return job.Spec.Template.Spec.Containers[0].Image
-		}, timeout).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+		}, time.Minute).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
