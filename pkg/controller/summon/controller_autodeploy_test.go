@@ -238,7 +238,7 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		fmt.Printf("DEBUG: Now tag list is %+v\n", tags)
 	})
 	*/
-	
+
 	It("deploys latest image of branch specified in autodeploy", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "TestTag"
@@ -282,7 +282,7 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		Eventually(instance.Status.Message).Should(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
 	})
 
-	FIt("watcher triggers autodeploy reconcile when tag cache updated", func() {
+	It("watcher triggers autodeploy reconcile when tag cache updated", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "devops-feature-test"
 		tags := []string{"154551-2634073-devops-feature-test", "154480-bc4c502-devops-feature-test"}
@@ -296,7 +296,7 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
 		c.Status().Update(job)
-		
+
 		// Expect the deployment to be created with the latest branch tag.
 		deployment := &appsv1.Deployment{}
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
@@ -312,29 +312,23 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
-		// Mark a deployment as ready.
-		/*updateDeployment := func(s string) {
-			deployment := &appsv1.Deployment{}
-			c.EventuallyGet(types.NamespacedName{Name: "foo-"+s, Namespace: helpers.Namespace}, deployment)
-			deployment.Status.Replicas = 1
-			deployment.Status.ReadyReplicas = 1
-			deployment.Status.AvailableReplicas = 1
-			c.Status().Update(deployment)
-		}
-		updateDeployment("web")
-		*/
-
-		// Instead of actually waiting 5 minutes for gcr.CachedTags to get updated, and thus triggering
-		// watcher to queue up autodeploy reconcile, simulate an updated CacheTag by directly modifying it
-		// and updating LastCacheUpdate to now time.
+		// Instead of actually waiting 5 minutes for gcr.CachedTags to get updated which triggers
+		// the watcher to queue up autodeploy reconcile, simulate an updated CacheTag by directly modifying it
+		// and update LastCacheUpdate to now time.
 		gcr.CachedTags = append(gcr.CachedTags, "154575-cdf9c69-devops-feature-test")
 		gcr.LastCacheUpdate = time.Now()
-		fmt.Printf("DEBUG: CacheUpdate should TRIGGER autodeploy reconcile...\n")
+
+		// Need to give operators a few second to delete old job before fetching newly
+		// created one.
+		waitTimer := time.Now().Add(time.Second * 3)
+
+		// Wait instead of sleep since we need goroutines to keep running
+		for time.Since(waitTimer) < 0 {
+		}
 
 		// Check that another migration Job was created and its the new version.
-		job = &batchv1.Job{}		
 		c.EventuallyGet(helpers.Name("foo-migrations"), job)
-		Eventually ( func () string {
+		Eventually(func() string {
 			return job.Spec.Template.Spec.Containers[0].Image
 		}, time.Minute).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
 
@@ -342,10 +336,14 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		job.Status.Succeeded = 1
 		c.Status().Update(job)
 
+		// Also need to wait a bit for deployment to get updated.
+		waitTimer = time.Now().Add(time.Second * 3)
+		for time.Since(waitTimer) < 0 {
+		}
+
 		// Expect another deployment to deploy with latest branch tag
-		deployment = &appsv1.Deployment{}
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
-		Eventually ( func () string {
+		Eventually(func() string {
 			return deployment.Spec.Template.Spec.Containers[0].Image
 		}, timeout).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
 	})
