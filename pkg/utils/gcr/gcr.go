@@ -80,7 +80,7 @@ func GetLatestImageOfBranch(branchTag string) (string, error) {
 
 		// Append $ so we do not match beyond the end of branchTag. This prevents
 		// situations where we have similar branch names like "fix-for-ticket1" and "fix-for-ticket2"
-		match, err := regexp.Match(branchTag+"$", []byte(image))
+		match, err := regexp.Match(regexp.QuoteMeta(branchTag)+"$", []byte(image))
 		if err != nil {
 			return "", errors.Wrapf(err, "regexp.Match(%s, []byte(%s)) in GetLatestImageOfBranch()", branchTag, image)
 		}

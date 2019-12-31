@@ -142,7 +142,7 @@ type SummonPlatformSpec struct {
 	Aliases []string `json:"aliases,omitempty"`
 	// Summon image version to deploy. If this isn't specified, AutoDeploy must be.
 	// +optional
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 	// Branch to watch for new images and auto-deploy.
 	// +optional
 	AutoDeploy string `json:"autoDeploy,omitempty"`

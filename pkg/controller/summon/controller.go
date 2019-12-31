@@ -161,6 +161,6 @@ func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Clien
 			// We checked all summonInstances for autodeploy. Update lastChecked.
 			lastChecked = time.Now()
 		}
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Second * 10)
 	}
 }
