@@ -25,10 +25,7 @@ import (
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
-	//"github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	"github.com/heroku/docker-registry-client/registry"
-	//"k8s.io/apimachinery/pkg/runtime"
-	//"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
@@ -61,8 +58,6 @@ func addMockTags(tags []string) error {
 		Logf: registry.Quiet,
 	}
 
-	repositories, err := summonHub.Repositories()
-	fmt.Printf("DEBUG: DOCKER: Repositories seen: %+v\n", repositories)
 	// Get the base manifest in our mock registry to create mock tags.
 	manifest, err := summonHub.ManifestV2("ridecell-1/summon", "basetag")
 
@@ -77,7 +72,7 @@ func addMockTags(tags []string) error {
 	return nil
 }
 
-var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
+var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 	var instance *summonv1beta1.SummonPlatform
 	var helpers *test_helpers.PerTestHelpers
 
@@ -120,11 +115,6 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 	})
 
 	AfterEach(func() {
-		// clean up test case tags from registry? Can't unless registry configured to allow this.
-		/*
-			digest, err := hub.ManifestDigest("heroku/cedar", "14")
-			err = hub.DeleteManifest("heroku/cedar", digest)
-		*/
 		if CurrentGinkgoTestDescription().Failed {
 			summons := &summonv1beta1.SummonPlatformList{}
 			err := helpers.Client.List(context.Background(), nil, summons)
@@ -217,24 +207,6 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		c.Status().Update(rmqVhost)
 	}
 
-	/* It("try to delete image", func() {
-		var key = os.Getenv("GOOGLE_SERVICE_ACCOUNT_KEY")
-		var transport = registry.WrapTransport(http.DefaultTransport, "http://localhost:500", "_json_key", key)
-		var summonHub = &registry.Registry{
-			URL: "http://localhost:5000",
-			Client: &http.Client{
-				Transport: transport,
-			},
-			Logf: registry.Quiet,
-		}
-		digest, err := summonHub.ManifestDigest("ridecell-1/summon", "154551-2634073-devops-feature-test")
-		err = summonHub.DeleteManifest("ridecell-1/summon", digest)
-		fmt.Printf("Any error deleting tag? %v\n", err)
-		tags, err := summonHub.Tags("ridecell-1/summon")
-		fmt.Printf("DEBUG: Now tag list is %+v\n", tags)
-	})
-	*/
-
 	It("deploys latest image of branch specified in autodeploy", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "TestTag"
@@ -278,11 +250,13 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
-		// Simulate new docker image upload and allow sleep time < 5min before cache refresh.
+		// Simulate new docker image upload and allow wait time < 5min before cache refresh.
 		addMockTags([]string{"154575-cdf9c69-devops-feature-test"})
-		time.Sleep(time.Second * 15)
+		waitTimer := time.Now().Add(time.Second * 15)
+		for time.Since(waitTimer) < 0 {
+		}
 
-		// There should have been no updates to main tag cache.
+		// There should have been no updates to main tag cache yet.
 		Expect(gcr.LastCacheUpdate).Should(BeTemporally("<", time.Now()))
 		// Re-fetch the deployment object and check that there was no change to Spec.Version used.
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
@@ -296,13 +270,13 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 
 		// Need to give operators a few second to delete old job before fetching newly
 		// created one.
-		waitTimer := time.Now().Add(time.Second * 3)
+		waitTimer = time.Now().Add(time.Second * 5)
 
-		// Wait instead of sleep since we need goroutines to keep running
+		// Wait instead of sleep since we need goroutines to keep running.
 		for time.Since(waitTimer) < 0 {
 		}
 
-		// Check that another migration Job was created and its the new version.
+		// Check that another migration Job was created and it's the new version.
 		c.EventuallyGet(helpers.Name("foo-migrations"), job)
 		Eventually(func() string {
 			return job.Spec.Template.Spec.Containers[0].Image
@@ -313,11 +287,11 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		c.Status().Update(job)
 
 		// Also need to wait a bit for deployment to get updated.
-		waitTimer = time.Now().Add(time.Second * 3)
+		waitTimer = time.Now().Add(time.Second * 5)
 		for time.Since(waitTimer) < 0 {
 		}
 
-		// Expect another deployment to deploy with latest branch tag
+		// Expect deployment to deploy with latest branch tag.
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
 		Eventually(func() string {
 			return deployment.Spec.Template.Spec.Containers[0].Image
@@ -337,7 +311,7 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		Expect(instance.Spec.Version).To(Equal(""))
 		Expect(instance.Spec.AutoDeploy).To(Equal(""))
 
-		//update instance to get latest status and check
+		// Update instance to get latest status and check.
 		c.Status().Update(instance)
 		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
 		Eventually(instance.Status.Message).Should(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
@@ -364,5 +338,25 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		c.Status().Update(instance)
 		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
 		Eventually(instance.Status.Message).Should(Equal("autodeploy: no matching branch image for devops-non-existent-branch"))
+	})
+
+	It("deploys Version specified if both Version and AutoDeploy specified", func() {
+		c := helpers.TestClient
+		instance.Spec.AutoDeploy = "TestTag"
+		instance.Spec.Version = "1.2.3"
+		setupDeployPrereqs("foo")
+
+		// Check that a migration Job was created.
+		job := &batchv1.Job{}
+		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+
+		// Mark the migrations as successful.
+		job.Status.Succeeded = 1
+		c.Status().Update(job)
+
+		// Expect the deployment to be created with the latest branch tag.
+		deployment := &appsv1.Deployment{}
+		c.EventuallyGet(helpers.Name("foo-web"), deployment)
+		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:1.2.3"))
 	})
 })

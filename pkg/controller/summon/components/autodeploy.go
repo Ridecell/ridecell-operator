@@ -17,7 +17,6 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,11 +51,13 @@ func (_ *AutoDeployComponent) WatchChannel() chan event.GenericEvent {
 
 func (_ *AutoDeployComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	if instance.Spec.AutoDeploy != "" && instance.Spec.Version != "" {
+		// Ideally, Version and AutoDeploy are exclusively set, but no good way to enforce it by setting
+		// errors and status since AutoDeploy needs to set Version to work. Instead, just don't reconcile
+		// Autodeploy and default to normal behavior.
+		return false
+	}
 	return instance.Spec.AutoDeploy != ""
-
-	/* if instance.Status.Status != "" && instance.Status.Status != summonv1beta1.StatusInitializing && instance.Status.Status != summonv1beta1.StatusDeploying {
-		return components.Result{}, nil
-	}*/
 }
 
 func (comp *AutoDeployComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
@@ -81,6 +82,5 @@ func (comp *AutoDeployComponent) Reconcile(ctx *components.ComponentContext) (co
 
 	// Set instance.Spec.Version to trigger and allow Deployment component to handle things
 	instance.Spec.Version = branchImage
-	fmt.Printf("DEBUG: AUTODEPLOY set version to %s (%s)\n", instance.Spec.Version, branchImage)
 	return components.Result{}, nil
 }

@@ -20,30 +20,29 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	//summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
 )
 
-// Will take suggestions on a better way to handle mock logic around registry hub and caching...
 var MockTags []string
 
-// Dont actually need parameter, but mock func definition required to match real func definition for injection.
 func MockGetSummonTags() {
 	elapsed := time.Since(gcr.LastCacheUpdate)
 	// Fetch tags if cache expired
 	if elapsed >= gcr.CacheExpiry {
-		// Instead of actually fetching tags, we use mock ones.
+		// Instead of actually fetching tags from docker registry, we use mock ones.
 		gcr.CachedTags = MockTags
 		gcr.LastCacheUpdate = time.Now()
 	}
 }
 
-var _ = FDescribe("SummonPlatform AutoDeploy Component", func() {
+var _ = Describe("SummonPlatform AutoDeploy Component", func() {
 	comp := summoncomponents.NewAutoDeploy()
 
 	BeforeEach(func() {
-		// Start each test case off with some test tags and reset cache timestamp to zero
+		// Version and AutoDeploy should be exclusive.
+		instance.Spec.Version = ""
+		// Start each test case off with some test tags and reset cache timestamp to zero.
 		MockTags = []string{"1-abc1234-test-branch", "2-def5678-test-branch", "1-abc1234-other-branch"}
 		gcr.LastCacheUpdate = time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
 
@@ -59,9 +58,15 @@ var _ = FDescribe("SummonPlatform AutoDeploy Component", func() {
 			instance.Spec.AutoDeploy = "test-branch"
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
+
+		It("returns false if Spec.Version is also set", func() {
+			instance.Spec.AutoDeploy = "test-branch"
+			instance.Spec.Version = "1.2.3"
+			Expect(comp.IsReconcilable(ctx)).To(BeFalse())
+		})
 	})
 
-	It("sets the image version to the latest tag in the tag cache matching the branch name", func() {
+	It("sets the image version to the latest tag seen in tag cache for the given branch", func() {
 		instance.Spec.AutoDeploy = "test-branch"
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Version).To(Equal("2-def5678-test-branch"))
@@ -70,7 +75,7 @@ var _ = FDescribe("SummonPlatform AutoDeploy Component", func() {
 		Expect(instance.Spec.Version).To(Equal("1-abc1234-other-branch"))
 	})
 
-	// tag cache update is handled by tagFetcher function which tracks time, and tagFetcher is triggered by Reconciler
+	// tag cache update occurs in tagFetcher function which tracks time. tagFetcher is triggered by Reconciler.
 	It("uses the latest image from the updated tag cache", func() {
 		instance.Spec.AutoDeploy = "test-branch"
 		// set LastCacheUpdate time to 5 mins in the past confirm cache update occurs
@@ -82,17 +87,10 @@ var _ = FDescribe("SummonPlatform AutoDeploy Component", func() {
 		Expect(instance.Spec.Version).To(Equal("3-ghi9101112-test-branch"))
 	})
 
-	It("leaves Spec.Version as is if no matching image found", func() {
+	It("leaves Spec.Version alone if no matching image found", func() {
 		instance.Spec.AutoDeploy = "nonexistent-branch"
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("autodeploy: no matching branch image for nonexistent-branch"))
-		Expect(instance.Spec.Version).To(Equal("1.2.3"))
-	})
-
-	It("overrides Spec.Version with latest match found", func() {
-		instance.Spec.AutoDeploy = "test-branch"
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		Expect(instance.Spec.Version).To(Equal("2-def5678-test-branch"))
+		Expect(instance.Spec.Version).To(Equal(""))
 	})
 })
