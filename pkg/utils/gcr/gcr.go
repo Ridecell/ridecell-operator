@@ -1,7 +1,6 @@
 package gcr
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"regexp"
