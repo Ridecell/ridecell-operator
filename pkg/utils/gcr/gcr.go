@@ -46,7 +46,6 @@ func GetSummonTags() {
 			glog.Infof("Could not retrieve tags from gcr: %s", err)
 			return
 		}
-		fmt.Printf("DEBUG: Got tags from gcr: %+v\n", tags)
 		CachedTags = tags
 		LastCacheUpdate = time.Now()
 	}

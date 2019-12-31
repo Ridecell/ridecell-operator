@@ -22,16 +22,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type deploymentComponent struct {
@@ -73,12 +73,10 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 
 	// If we're not in deploying state do nothing and exit early.
 	if instance.Status.Status != summonv1beta1.StatusDeploying {
-		fmt.Printf("DEBUG: Not in deploying state, won't reconcile deployments...\n")
 		return components.Result{}, nil
 	}
 
 	// Set error status to prevent further deployments until it is resolved.
-	fmt.Printf("DEBUG: In deployment, spec version seen as %s\n", instance.Spec.Version)
 	if instance.Spec.Version == "" && instance.Spec.AutoDeploy == "" {
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance.Status.Status = dbv1beta1.StatusError
@@ -86,7 +84,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 			return nil
 		}}, nil
 	}
-	
+
 	rawAppSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
 	if err != nil {

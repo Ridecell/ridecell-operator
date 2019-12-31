@@ -18,16 +18,15 @@ package summon
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
@@ -144,10 +143,8 @@ func Add(mgr manager.Manager) error {
 func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 	for {
 		if lastChecked.IsZero() || gcr.LastCacheUpdate.After(lastChecked) {
-			fmt.Printf("DEBUG: Summon Controller: Tag Cache needs update! Triggering AutoDeploy Reconcile! Elapsed time is %s\n", time.Since(lastChecked))
-			summonInstances := &summonv1beta1.SummonPlatformList{}
-			// fmt.Printf("DEBUG: List of SummonInstances we are checking:\n %+v\n", summonInstances)
 			// Get list of existing SummonPlatforms.
+			summonInstances := &summonv1beta1.SummonPlatformList{}
 			err := k8sClient.List(context.TODO(), &client.ListOptions{}, summonInstances)
 			if err != nil {
 				// Make this do something useful or ignore it.
@@ -157,18 +154,12 @@ func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Clien
 			// Pick out each that have AutoDeploy enabled and trigger reconcile if cache was updated.
 			for _, summonInstance := range summonInstances.Items {
 				if summonInstance.Spec.AutoDeploy == "" {
-				    // but only if instance isn't in the middle of some State?
-					/* summonInstance.Status.Status != summonv1beta1.StatusReady &&
-						summonInstance.Status.Status != "" { */
-							fmt.Printf("DEBUG: %s Status is %s. Not triggering reconcile.\n", summonInstance.ObjectMeta.Name, summonInstance.Status.Status)
 					continue
 				}
-				fmt.Printf("DEBUG: Watcher triggered reconcile for %s\n", summonInstance.ObjectMeta.Name)
 				watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
 			}
 			// We checked all summonInstances for autodeploy. Update lastChecked.
 			lastChecked = time.Now()
-			fmt.Printf("DEBUG: Updated watchForImage lastChecked to %s\n", lastChecked)
 		}
 		time.Sleep(time.Millisecond * 100)
 	}

@@ -24,21 +24,20 @@ import (
 	"os"
 	"time"
 
-	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/heroku/docker-registry-client/registry"
-
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
-	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
 )
 
 func addMockTags(tags []string) error {
