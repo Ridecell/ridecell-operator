@@ -20,20 +20,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 )
 
 var _ = Describe("deployment Component", func() {
@@ -414,26 +413,6 @@ var _ = Describe("deployment Component", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
 			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
-		})
-	})
-
-	Context("missing Spec.Version", func() {
-		BeforeEach(func() {
-			instance.Status.Status = summonv1beta1.StatusDeploying
-		})
-
-		It("does not deploy and updates error status", func() {
-			comp = summoncomponents.NewDeployment("web/deployment.yml.tpl")
-			instance.Spec.Version = ""
-			Expect(comp).To(ReconcileContext(ctx))
-
-			deployment := &appsv1.Deployment{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: instance.Namespace}, deployment)
-			// Don't expect deployment to exist
-			Expect(err).To(HaveOccurred())
-
-			Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusError))
-			Expect(instance.Status.Message).To(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
 		})
 	})
 })

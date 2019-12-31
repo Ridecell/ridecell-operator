@@ -23,15 +23,15 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 type deploymentComponent struct {
@@ -74,15 +74,6 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 	// If we're not in deploying state do nothing and exit early.
 	if instance.Status.Status != summonv1beta1.StatusDeploying {
 		return components.Result{}, nil
-	}
-
-	// Set error status to prevent further deployments until it is resolved.
-	if instance.Spec.Version == "" && instance.Spec.AutoDeploy == "" {
-		return components.Result{StatusModifier: func(obj runtime.Object) error {
-			instance.Status.Status = dbv1beta1.StatusError
-			instance.Status.Message = "Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."
-			return nil
-		}}, nil
 	}
 
 	rawAppSecret := &corev1.Secret{}

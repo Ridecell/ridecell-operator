@@ -27,6 +27,8 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
+// Note: After autodeploy feature changes, defaults expects either Version or AutoDeploy to be set
+// to reconcile.
 var _ = Describe("SummonPlatform Defaults Component", func() {
 	var comp components.Component
 
@@ -37,6 +39,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Hostname:    "foo.example.com",
+			Version:     "1.2.3",
 			Environment: "dev",
 			Replicas: summonv1beta1.ReplicasSpec{
 				Web:           intp(2),
@@ -56,7 +59,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("sets a default hostname", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo-dev.ridecell.us"))
@@ -65,14 +68,14 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("sets a default prod hostname", func() {
 		instance.ObjectMeta.Name = "foo-prod"
 		instance.ObjectMeta.Namespace = "summon-prod"
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo-prod.ridecell.com"))
 	})
 
 	It("sets a default pull secret", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.PullSecret).To(Equal("pull-secret"))
@@ -91,6 +94,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 	It("sets a default qa replicas", func() {
 		instance.Namespace = "summon-qa"
+		instance.Spec.Version = "1.2.3"
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(1)))
 		Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(1)))
@@ -102,6 +106,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 	It("sets a default uat replicas", func() {
 		instance.Namespace = "summon-uat"
+		instance.Spec.Version = "1.2.3"
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(1)))
@@ -113,6 +118,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 	It("sets a default prod replicas", func() {
 		instance.Namespace = "summon-prod"
+		instance.Spec.Version = "1.2.3"
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(4)))
 		Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(4)))
@@ -124,6 +130,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 	It("allows 0 web replicas", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
+			Version: "1.2.3",
 			Replicas: summonv1beta1.ReplicasSpec{
 				Web: intp(0),
 			},
@@ -136,6 +143,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	Context("with legacy replicas settings", func() {
 		It("allows 2 web replicas", func() {
 			instance.Spec = summonv1beta1.SummonPlatformSpec{
+				Version:     "1.2.3",
 				WebReplicas: intp(2),
 			}
 
@@ -154,6 +162,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 		It("allows legacy NoCelerybeat", func() {
 			instance.Spec = summonv1beta1.SummonPlatformSpec{
+				Version:      "1.2.3",
 				NoCelerybeat: true,
 			}
 
@@ -163,7 +172,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("Sets a default environment with summon prefix", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 		instance.Namespace = "summon-dev"
 
 		Expect(comp).To(ReconcileContext(ctx))
@@ -171,7 +180,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("Sets a default environment without the summon prefix", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 		instance.Namespace = "dev"
 
 		Expect(comp).To(ReconcileContext(ctx))
@@ -179,7 +188,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("Set WEB_URL as the first value in aliases", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 		instance.Spec.Aliases = []string{"xyz.ridecell.com", "abc.ridecell.com"}
 
 		Expect(comp).To(ReconcileContext(ctx))
@@ -187,7 +196,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("By default enable monitoring for prod Environment", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 		instance.Namespace = "prod"
 		Expect(comp).To(ReconcileContext(ctx))
 		// TEMPORARILY FALSE UNTIL MONITORING IS FIXED
@@ -227,5 +236,30 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		}
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Config["FIREBASE_APP"].String).To(PointTo(Equal("foo")))
+	})
+
+	Context("missing Spec.Version", func() {
+		It("errors about requiring Spec.Version or Spec.Autodeploy being set", func() {
+			instance.Spec.Version = ""
+			_, err := comp.Reconcile(ctx)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("proceeds to setting defaults if Spec.Autodeploy is set", func() {
+			instance.Spec = summonv1beta1.SummonPlatformSpec{
+				AutoDeploy: "test-branch",
+			}
+			instance.Namespace = "summon-dev"
+
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(instance.Spec.Hostname).To(Equal("foo-dev.ridecell.us"))
+			Expect(instance.Spec.PullSecret).To(Equal("pull-secret"))
+			Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(1)))
+			Expect(instance.Spec.Replicas.Celeryd).To(PointTo(BeEquivalentTo(1)))
+			Expect(instance.Spec.Replicas.Daphne).To(PointTo(BeEquivalentTo(1)))
+			Expect(instance.Spec.Replicas.ChannelWorker).To(PointTo(BeEquivalentTo(1)))
+			Expect(instance.Spec.Replicas.Static).To(PointTo(BeEquivalentTo(1)))
+			Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
+		})
 	})
 })
