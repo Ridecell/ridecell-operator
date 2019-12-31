@@ -31,6 +31,7 @@ func GetSummonTags() {
 		if registry_url == "" {
 			registry_url = "https://us.gcr.io"
 		}
+
 		var transport = registry.WrapTransport(http.DefaultTransport, registry_url, "_json_key", key)
 		var summonHub = &registry.Registry{
 			URL: registry_url,
@@ -86,7 +87,7 @@ func GetLatestImageOfBranch(branchTag string) (string, error) {
 			return "", errors.Wrapf(err, "regexp.Match(%s, []byte(%s)) in GetLatestImageOfBranch()", branchTag, image)
 		}
 
-		if match == true {
+		if match {
 			// Expects docker image to follow format <circleci buildnum>-<git hash>-<branchname>
 			buildNumStr := strings.Split(image, "-")[0]
 			buildNum, err := strconv.Atoi(buildNumStr)

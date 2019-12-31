@@ -66,7 +66,10 @@ func addMockTags(tags []string) error {
 	}
 
 	for _, tag := range tags {
-		summonHub.PutManifest("ridecell-1/summon", tag, manifest)
+		err := summonHub.PutManifest("ridecell-1/summon", tag, manifest)
+		if err != nil {
+			fmt.Printf("ERROR adding %s to registry: %s", tag, err)
+		}
 	}
 
 	return nil
@@ -78,10 +81,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 
 	// Start the registry with some default image tags
 	MockTags := []string{"1-abc1234-test-branch", "2-def5678-test-branch", "1-abc1234-other-branch"}
-	err := addMockTags(MockTags)
-	if err != nil {
-		fmt.Printf("ERROR: Unable to addMockTags %s\n", err)
-	}
+	_ = addMockTags(MockTags)
 
 	BeforeEach(func() {
 		registry_url := os.Getenv("LOCAL_REGISTRY_URL")
@@ -211,7 +211,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "TestTag"
 		tags := []string{"11-95ac60f-TestTag", "15-ab0f6c1-TestTag", "16-de0a8fb-TestTag2"}
-		addMockTags(tags)
+		_ = addMockTags(tags)
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
@@ -234,7 +234,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "devops-feature-test"
 		tags := []string{"154551-2634073-devops-feature-test", "154480-bc4c502-devops-feature-test"}
-		addMockTags(tags)
+		_ = addMockTags(tags)
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
@@ -251,7 +251,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
 		// Simulate new docker image upload and allow wait time < 5min before cache refresh.
-		addMockTags([]string{"154575-cdf9c69-devops-feature-test"})
+		_ = addMockTags([]string{"154575-cdf9c69-devops-feature-test"})
 		waitTimer := time.Now().Add(time.Second * 15)
 		for time.Since(waitTimer) < 0 {
 		}
