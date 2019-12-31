@@ -59,33 +59,6 @@ var _ = FDescribe("SummonPlatform AutoDeploy Component", func() {
 			instance.Spec.AutoDeploy = "test-branch"
 			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
 		})
-
-		/*
-		It("returns true if autoDeploy is set and version is unset", func() {
-			instance.Spec.AutoDeploy = "test-branch"
-			instance.Spec.Version = ""
-			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
-		})
-
-		It("returns false if autoDeploy and version are both set", func() {
-			instance.Spec.AutoDeploy = "test-branch"
-			Expect(comp.IsReconcilable(ctx)).To(BeTrue())	
-		})
-		*/
-
-		/*
-		It("returns true if status is Ready", func() {
-			instance.Spec.AutoDeploy = "test-branch"
-			instance.Status.Status = summonv1beta1.StatusReady
-			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
-		})
-
-		It("returns true if status is unset", func() {
-			instance.Spec.AutoDeploy = "test-branch"
-			Expect(comp.IsReconcilable(ctx)).To(BeTrue())
-		})
-		*/
-
 	})
 
 	It("sets the image version to the latest tag in the tag cache matching the branch name", func() {
@@ -114,5 +87,12 @@ var _ = FDescribe("SummonPlatform AutoDeploy Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("autodeploy: no matching branch image for nonexistent-branch"))
 		Expect(instance.Spec.Version).To(Equal("1.2.3"))
+	})
+
+	It("overrides Spec.Version with latest match found", func() {
+		instance.Spec.AutoDeploy = "test-branch"
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(Not(HaveOccurred()))
+		Expect(instance.Spec.Version).To(Equal("2-def5678-test-branch"))
 	})
 })

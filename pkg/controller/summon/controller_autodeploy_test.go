@@ -65,17 +65,13 @@ func addMockTags(tags []string) error {
 	fmt.Printf("DEBUG: DOCKER: Repositories seen: %+v\n", repositories)
 	// Get the base manifest in our mock registry to create mock tags.
 	manifest, err := summonHub.ManifestV2("ridecell-1/summon", "basetag")
-	//fmt.Printf("DEBUG: DOCKER: Got manifest %+v\n", manifest)
+
 	if err != nil {
-		fmt.Printf("DEBUG: DOCKER: %v\n", err)
 		return err
 	}
 
 	for _, tag := range tags {
-		err := summonHub.PutManifest("ridecell-1/summon", tag, manifest)
-		if err != nil {
-			fmt.Printf("DEBUG: Trouble pushing mock tag. %v\n", err)
-		}
+		summonHub.PutManifest("ridecell-1/summon", tag, manifest)
 	}
 
 	return nil
@@ -262,27 +258,7 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		Expect(instance.Spec.Version).To(Equal(""))
 	})
 
-	It("does not deploy if neither spec version or autodeploy is specified", func() {
-		c := helpers.TestClient
-		setupDeployPrereqs("foo")
-
-		// Don't expect migrations to occur.
-		job := &batchv1.Job{}
-		Eventually(func() error {
-			return helpers.Client.Get(context.TODO(), helpers.Name("foo-migrations"), job)
-		}, timeout).ShouldNot(Succeed())
-
-		Expect(instance.Spec.Version).To(Equal(""))
-		Expect(instance.Spec.AutoDeploy).To(Equal(""))
-
-		//update instance to get latest status and check
-		c.Status().Update(instance)
-		fmt.Printf("Instance Status: %s\n", instance.Status.Status)
-		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
-		Eventually(instance.Status.Message).Should(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
-	})
-
-	It("watcher triggers autodeploy reconcile when tag cache updated", func() {
+	It("triggers autodeploy reconcile when tag cache updated (via watcher)", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "devops-feature-test"
 		tags := []string{"154551-2634073-devops-feature-test", "154480-bc4c502-devops-feature-test"}
@@ -346,5 +322,47 @@ var _ = FDescribe("Summon controller autodeploy @autodeploy", func() {
 		Eventually(func() string {
 			return deployment.Spec.Template.Spec.Containers[0].Image
 		}, timeout).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+	})
+
+	It("does not deploy if neither spec version or autodeploy is specified", func() {
+		c := helpers.TestClient
+		setupDeployPrereqs("foo")
+
+		// Don't expect migrations to occur.
+		job := &batchv1.Job{}
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), helpers.Name("foo-migrations"), job)
+		}, timeout).ShouldNot(Succeed())
+
+		Expect(instance.Spec.Version).To(Equal(""))
+		Expect(instance.Spec.AutoDeploy).To(Equal(""))
+
+		//update instance to get latest status and check
+		c.Status().Update(instance)
+		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
+		Eventually(instance.Status.Message).Should(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
+	})
+
+	It("errors if no docker image found for branch", func() {
+		c := helpers.TestClient
+		// Create the SummonPlatform.
+		instance.Name = "foo"
+		instance.Spec.AutoDeploy = "devops-non-existent-branch"
+		instance.ResourceVersion = ""
+		c.Create(instance)
+
+		// PullSecret won't be created because AutoDeploy runs into error.
+		pullsecret := &secretsv1beta1.PullSecret{}
+
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), helpers.Name("foo-pullsecret"), pullsecret)
+		}, timeout).ShouldNot(Succeed())
+
+		Expect(instance.Spec.Version).To(Equal(""))
+
+		//update instance to get latest status and check
+		c.Status().Update(instance)
+		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
+		Eventually(instance.Status.Message).Should(Equal("autodeploy: no matching branch image for devops-non-existent-branch"))
 	})
 })
