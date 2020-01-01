@@ -297,23 +297,16 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		}, timeout).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
 	})
 
-	It("does not deploy if neither spec version or autodeploy is specified", func() {
+	It("sets error status and message if Spec.Version and Spec.AutoDeploy not specified", func() {
 		c := helpers.TestClient
-		setupDeployPrereqs("foo")
-
-		// Don't expect migrations to occur.
-		job := &batchv1.Job{}
-		Eventually(func() error {
-			return helpers.Client.Get(context.TODO(), helpers.Name("foo-migrations"), job)
-		}, timeout).ShouldNot(Succeed())
-
-		Expect(instance.Spec.Version).To(Equal(""))
-		Expect(instance.Spec.AutoDeploy).To(Equal(""))
-
-		// Update instance to get latest status and check.
+		c.Create(instance)
 		c.Status().Update(instance)
-		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
-		Eventually(instance.Status.Message).Should(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
+
+		summonplatform := &summonv1beta1.SummonPlatform{}
+		c.EventuallyGet(helpers.Name("foo"), summonplatform, c.EventuallyStatus(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Status).To(Equal(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Message).To(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
+
 	})
 
 	It("errors if no docker image found for branch", func() {
