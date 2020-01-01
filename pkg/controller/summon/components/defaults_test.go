@@ -140,7 +140,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(0)))
 	})
 
-	Context("with legacy replicas settings", func() {
+	FContext("with legacy replicas settings", func() {
 		It("allows 2 web replicas", func() {
 			instance.Spec = summonv1beta1.SummonPlatformSpec{
 				Version:     "1.2.3",
@@ -153,6 +153,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 		It("allows 0 web replicas", func() {
 			instance.Spec = summonv1beta1.SummonPlatformSpec{
+				Version:     "1.2.3",
 				WebReplicas: intp(0),
 			}
 

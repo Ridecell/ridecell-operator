@@ -490,4 +490,19 @@ var _ = Describe("Summon controller", func() {
 		// Check the status again. Should be Deploying.
 		assertStatus(summonv1beta1.StatusReady)
 	})
+
+	It("sets error status and message if Spec.Version and Spec.AutoDeploy not specified", func() {
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
+		}
+		c := helpers.TestClient
+		c.Create(instance)
+		c.Status().Update(instance)
+
+		summonplatform := &summonv1beta1.SummonPlatform{}
+		c.EventuallyGet(helpers.Name("foo"), summonplatform, c.EventuallyStatus(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Status).To(Equal(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Message).To(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
+
+	})
 })
