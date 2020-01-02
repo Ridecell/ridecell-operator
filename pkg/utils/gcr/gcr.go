@@ -19,37 +19,6 @@ const CacheExpiry time.Duration = time.Minute * 5
 var LastCacheUpdate time.Time
 var CachedTags []string
 
-func GetSummonTags() {
-	elapsed := time.Since(LastCacheUpdate)
-	// Fetch tags if cache expired.
-	if elapsed >= CacheExpiry {
-		// Setup hub connection
-		var key = os.Getenv("GOOGLE_SERVICE_ACCOUNT_KEY")
-		var registry_url = os.Getenv("LOCAL_REGISTRY_URL")
-		// If we don't have a test registry, use the real one.
-		if registry_url == "" {
-			registry_url = "https://us.gcr.io"
-		}
-
-		var transport = registry.WrapTransport(http.DefaultTransport, registry_url, "_json_key", key)
-		var summonHub = &registry.Registry{
-			URL: registry_url,
-			Client: &http.Client{
-				Transport: transport,
-			},
-			Logf: registry.Quiet,
-		}
-
-		tags, err := summonHub.Tags("ridecell-1/summon")
-		if err != nil {
-			glog.Infof("Could not retrieve tags from gcr: %s", err)
-			return
-		}
-		CachedTags = tags
-		LastCacheUpdate = time.Now()
-	}
-}
-
 func SanitizeBranchName(branch string) (string, error) {
 	// Since the circleci build number probably won't go over 7 digits, truncate branch name to 48 chars to
 	// match against docker image tag. Preceeding 16 chars left for [circlecibuild#]-[7 digit commit hash]-
@@ -76,6 +45,35 @@ func SanitizeBranchName(branch string) (string, error) {
 func GetLatestImageOfBranch(branchTag string) (string, error) {
 	var latestImage string
 	latestBuild := 0
+	elapsed := time.Since(LastCacheUpdate)
+
+	// Fetch tags if cache expired.
+	if elapsed >= CacheExpiry {
+		// Setup hub connection
+		var key = os.Getenv("GOOGLE_SERVICE_ACCOUNT_KEY")
+		var registry_url = os.Getenv("LOCAL_REGISTRY_URL")
+		// If we don't have a test registry, use the real one.
+		if registry_url == "" {
+			registry_url = "https://us.gcr.io"
+		}
+
+		var transport = registry.WrapTransport(http.DefaultTransport, registry_url, "_json_key", key)
+		var summonHub = &registry.Registry{
+			URL: registry_url,
+			Client: &http.Client{
+				Transport: transport,
+			},
+			Logf: registry.Quiet,
+		}
+
+		tags, err := summonHub.Tags("ridecell-1/summon")
+		if err != nil {
+			return "", errors.Wrapf(err, "Could not retrieve tags from registry: ")
+		}
+		CachedTags = tags
+		LastCacheUpdate = time.Now()
+	}
+
 	for _, image := range CachedTags {
 
 		// Append $ so we do not match beyond the end of branchTag. This prevents

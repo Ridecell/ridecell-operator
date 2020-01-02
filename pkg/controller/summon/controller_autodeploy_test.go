@@ -206,6 +206,27 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		c.Status().Update(rmqVhost)
 	}
 
+	Context("gcr utility component", func() {
+		It("periodically updates the tag cache (per CacheExpiry)", func() {
+			instance.Spec.AutoDeploy = "test-branch"
+			setupDeployPrereqs("foo")
+
+			// basetag comes from initial registry setup
+			tagState := append(MockTags, "basetag")
+			Expect(gcr.CachedTags).To(ConsistOf(tagState))
+			newtags := []string{"gcr-update-test"}
+			_ = addMockTags(newtags)
+
+			// set LastCacheUpdate time to 5 mins in the past instead of waiting to mock cacheExpiry period
+			// and confirm cache update occurs.
+			gcr.LastCacheUpdate = time.Now().Add(time.Minute * -5)
+
+			// Still need to give gcr utility a little time to update Cachetag
+			time.Sleep(time.Second * 2)
+			Expect(gcr.CachedTags).To(ContainElement("gcr-update-test"))
+		})
+	})
+
 	It("deploys latest image of branch specified in autodeploy", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "TestTag"

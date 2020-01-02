@@ -14,26 +14,49 @@ limitations under the License.
 package components_test
 
 import (
-	"time"
+	"regexp"
+	"strconv"
+	"strings"
 
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
+// Mocktags represents the state of gcr util's Cache Tag
 var MockTags []string
 
-func MockGetSummonTags() {
-	elapsed := time.Since(gcr.LastCacheUpdate)
-	// Fetch tags if cache expired
-	if elapsed >= gcr.CacheExpiry {
-		// Instead of actually fetching tags from docker registry, we use mock ones.
-		gcr.CachedTags = MockTags
-		gcr.LastCacheUpdate = time.Now()
+// Fetches the latest tag from mocked cache tag, skiping internal cache time checks
+// (i.e. gcr util's CacheExpiry and LastCacheUpdate).
+func MockGetLatestImageOfBranch(bRegex string) (string, error) {
+	var latestImage string
+	latestBuild := 0
+
+	for _, image := range MockTags {
+		match, err := regexp.Match(regexp.QuoteMeta(bRegex)+"$", []byte(image))
+		if err != nil {
+			return "", errors.Wrapf(err, "regexp.Match(%s, []byte(%s)) in GetLatestImageOfBranch()", bRegex, image)
+		}
+
+		if match {
+			// Expects docker image to follow format <circleci buildnum>-<git hash>-<branchname>
+			buildNumStr := strings.Split(image, "-")[0]
+			buildNum, err := strconv.Atoi(buildNumStr)
+			if err != nil {
+				// skip glog since we're mocking function.
+				continue
+			}
+			// Check for largest buildNumStr instead of running a sort, since we're doing O(n) anyway.
+			if buildNum > latestBuild {
+				latestBuild = buildNum
+				latestImage = image
+			}
+		}
 	}
+	return latestImage, nil
 }
 
 var _ = Describe("SummonPlatform AutoDeploy Component", func() {
@@ -44,9 +67,7 @@ var _ = Describe("SummonPlatform AutoDeploy Component", func() {
 		instance.Spec.Version = ""
 		// Start each test case off with some test tags and reset cache timestamp to zero.
 		MockTags = []string{"1-abc1234-test-branch", "2-def5678-test-branch", "1-abc1234-other-branch"}
-		gcr.LastCacheUpdate = time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
-
-		comp.InjectMockTagFetcher(MockGetSummonTags)
+		comp.InjectMockTagFetcher(MockGetLatestImageOfBranch)
 	})
 
 	Describe("isReconcilable", func() {
@@ -75,15 +96,12 @@ var _ = Describe("SummonPlatform AutoDeploy Component", func() {
 		Expect(instance.Spec.Version).To(Equal("1-abc1234-other-branch"))
 	})
 
-	// tag cache update occurs in tagFetcher function which tracks time. tagFetcher is triggered by Reconciler.
+	// Tag cache expires, so it gets updated.
 	It("uses the latest image from the updated tag cache", func() {
 		instance.Spec.AutoDeploy = "test-branch"
-		// set LastCacheUpdate time to 5 mins in the past confirm cache update occurs
-		gcr.LastCacheUpdate = time.Now().Add(time.Minute * -5)
 		// Mock updated tag cache values
 		MockTags = []string{"1-abc1234-test-branch", "2-def5678-test-branch", "3-ghi9101112-test-branch", "1-abc1234-other-branch", "2-def5678-other-branch"}
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(gcr.CachedTags).To(Equal(MockTags))
 		Expect(instance.Spec.Version).To(Equal("3-ghi9101112-test-branch"))
 	})
 

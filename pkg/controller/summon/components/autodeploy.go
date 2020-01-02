@@ -17,26 +17,26 @@ limitations under the License.
 package components
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
 )
 
 type AutoDeployComponent struct {
-	tagFetcher func()
+	tagFetcher func(string) (string, error)
 }
 
 func NewAutoDeploy() *AutoDeployComponent {
 	return &AutoDeployComponent{
-		tagFetcher: gcr.GetSummonTags,
+		tagFetcher: gcr.GetLatestImageOfBranch,
 	}
 }
 
-func (c *AutoDeployComponent) InjectMockTagFetcher(tagFetcherFunc func()) {
+func (c *AutoDeployComponent) InjectMockTagFetcher(tagFetcherFunc func(string) (string, error)) {
 	c.tagFetcher = tagFetcherFunc
 }
 
@@ -69,8 +69,7 @@ func (comp *AutoDeployComponent) Reconcile(ctx *components.ComponentContext) (co
 	}
 
 	// Fetch tags from gcr. This triggers cache check and possibly updates tags before assigning version for deployment.
-	comp.tagFetcher()
-	branchImage, err := gcr.GetLatestImageOfBranch(branchRegex)
+	branchImage, err := comp.tagFetcher(branchRegex)
 
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "Failed to find docker image tag for AutoDeploy: %s", instance.Spec.AutoDeploy)
