@@ -227,7 +227,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 			gcr.LastCacheUpdate = time.Now().Add(time.Minute * -5)
 
 			// Still need to give gcr utility a little time to update Cachetag
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * 5)
 			Expect(gcr.CachedTags).To(ContainElement("gcr-update-test"))
 		})
 	})
