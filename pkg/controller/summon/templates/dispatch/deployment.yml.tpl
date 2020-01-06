@@ -49,7 +49,7 @@ spec:
       - name: pull-secret
       containers:
       - name: default
-        image: us.gcr.io/ridecell-1/comp-dispatch:{{ .Instance.Spec.Dispatch.Version }}
+        image: "us.gcr.io/ridecell-1/comp-dispatch:{{ .Instance.Spec.Dispatch.Version }}"
         ports:
         - containerPort: 8000
         resources:
