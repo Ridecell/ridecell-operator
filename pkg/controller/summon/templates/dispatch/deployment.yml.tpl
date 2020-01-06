@@ -98,4 +98,3 @@ spec:
           secret:
             secretName: {{ .Instance.Name }}.gcp-credentials
         {{ end }}
-{{ end }}
