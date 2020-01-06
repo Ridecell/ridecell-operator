@@ -278,7 +278,7 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 		replicas.CeleryBeat = intp(1)
 	}
 	if replicas.Dispatch == nil {
-		replicas.CeleryBeat = defaultsForEnv(1, 1, 2, 2)
+		replicas.Dispatch = defaultsForEnv(1, 1, 2, 2)
 	}
 
 	// If no comp-dispatch version is set, override dispatch replicas to 0.
