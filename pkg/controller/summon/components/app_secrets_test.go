@@ -316,12 +316,12 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("creates a comp-dispatch secret", func() {
-		inSecret.Data["GOOGLE_PLACES_API_KEY"] = []byte("asdf1234")
+		inSecret.Data["GMAPS_CLIENT_KEY"] = []byte("asdf1234")
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.comp-dispatch", Namespace: "summon-dev"}, fetchSecret)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.dispatch", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		data := map[string]interface{}{}
@@ -337,12 +337,12 @@ var _ = Describe("app_secrets Component", func() {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{
 			"DEBUG": summonv1beta1.ConfigValue{Bool: &v},
 		}
-		inSecret.Data["GOOGLE_PLACES_API_KEY"] = []byte("asdf1234")
+		inSecret.Data["GMAPS_CLIENT_KEY"] = []byte("asdf1234")
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.comp-dispatch", Namespace: "summon-dev"}, fetchSecret)
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.dispatch", Namespace: "summon-dev"}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		data := map[string]interface{}{}
