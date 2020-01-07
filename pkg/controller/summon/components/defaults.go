@@ -191,6 +191,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 	defVal("DATA_PIPELINE_SQS_QUEUE_NAME", "%s", instance.Spec.SQSQueue)
+	defVal("DISPATCH_BASE_URL", "http://%s-dispatch/", instance.Name)
 
 	// Translate our aws region into a usable region
 	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
@@ -275,6 +276,14 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	}
 	if replicas.CeleryBeat == nil {
 		replicas.CeleryBeat = intp(1)
+	}
+	if replicas.Dispatch == nil {
+		replicas.Dispatch = defaultsForEnv(1, 1, 2, 2)
+	}
+
+	// If no comp-dispatch version is set, override dispatch replicas to 0.
+	if instance.Spec.Dispatch.Version == "" {
+		replicas.Dispatch = intp(0)
 	}
 
 	// Quick error check.
