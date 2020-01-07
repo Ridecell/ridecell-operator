@@ -60,8 +60,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.Staff = true
 		instance.Spec.Manager = true
 		instance.Spec.Dispatcher = true
+		instance.Spec.BusinessAdmin = true
 	}
-	if instance.Spec.Staff || instance.Spec.Manager || instance.Spec.Dispatcher {
+	if instance.Spec.Staff || instance.Spec.Manager || instance.Spec.Dispatcher || instance.Spec.BusinessAdmin {
 		// You are active if you have perms. This might be wrong if we want to disable user but leave their perms?
 		instance.Spec.Active = true
 	}
