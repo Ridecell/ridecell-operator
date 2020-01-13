@@ -48,7 +48,15 @@ spec:
       - name: default
         image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
         imagePullPolicy: Always
-        command: [python, "-m", celery, "-A", summon_platform, beat, "-l", info, "--schedule", /schedule/beat, --pidfile=]
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # If beat exits with a non-0 status code, delete the state file in case it is corrupted.
+          if ! python -m celery -A summon_platform beat -l info --schedule /schedule/beat --pidfile=; then
+            echo rm /schedule/beat
+            rm /schedule/beat
+          fi
         resources:
           requests:
             memory: 512M
