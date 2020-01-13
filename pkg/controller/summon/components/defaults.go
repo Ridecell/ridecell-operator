@@ -178,11 +178,17 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("WEB_URL", "https://%s", webURL)
 
 	if instance.Spec.MigrationOverrides.RedisHostname != "" {
-		defVal("ASGI_URL", "redis://%s/1", instance.Spec.MigrationOverrides.RedisHostname)
+		defVal("ASGI_URL", "redis://%s/0", instance.Spec.MigrationOverrides.RedisHostname)
 		defVal("CACHE_URL", "redis://%s/1", instance.Spec.MigrationOverrides.RedisHostname)
+		// These config's should be removed when all tenants are migrated to python3
+		defVal("ASGI_URL_V2", "redis://%s/2", instance.Spec.MigrationOverrides.RedisHostname)
+		defVal("CACHE_URL_V2", "redis://%s/3", instance.Spec.MigrationOverrides.RedisHostname)
 	} else {
 		defVal("ASGI_URL", "redis://%s-redis/0", instance.Name)
 		defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
+		// These config's should be removed when all tenants are migrated to python3
+		defVal("ASGI_URL_V2", "redis://%s-redis/2", instance.Name)
+		defVal("CACHE_URL_V2", "redis://%s-redis/3", instance.Name)
 	}
 
 	defVal("FIREBASE_ROOT_NODE", "%s", instance.Name)

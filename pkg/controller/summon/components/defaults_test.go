@@ -202,8 +202,10 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 		It("sets the redis ", func() {
 			Expect(comp).To(ReconcileContext(ctx))
-			Expect(instance.Spec.Config["ASGI_URL"].String).To(PointTo(Equal("redis://awsredis/1")))
+			Expect(instance.Spec.Config["ASGI_URL"].String).To(PointTo(Equal("redis://awsredis/0")))
 			Expect(instance.Spec.Config["CACHE_URL"].String).To(PointTo(Equal("redis://awsredis/1")))
+			Expect(instance.Spec.Config["ASGI_URL_V2"].String).To(PointTo(Equal("redis://awsredis/2")))
+			Expect(instance.Spec.Config["CACHE_URL_V3"].String).To(PointTo(Equal("redis://awsredis/3")))
 		})
 	})
 
