@@ -54,8 +54,8 @@ spec:
         - |
           # If beat exits with a non-0 status code, delete the state file in case it is corrupted.
           if ! python -m celery -A summon_platform beat -l info --schedule /schedule/beat --pidfile=; then
-            echo rm /schedule/beat
-            rm /schedule/beat
+            echo rm /schedule/beat.db
+            rm /schedule/beat.db
           fi
         resources:
           requests:
