@@ -43,8 +43,12 @@ import (
 
 var fileMode string
 
+// Temporary flag to allow standing up a database prior to migration
+var disableDatabase bool
+
 func init() {
 	flag.StringVar(&fileMode, "mode", "secret", "switch between secret and config")
+	flag.BoolVar(&disableDatabase, "no-db", false, "disable overwriting database config & secrets")
 }
 
 func main() {
@@ -105,11 +109,14 @@ func Run(c client.Client) error {
 	}
 
 	if fileMode == "secret" {
-		err = UpdateRabbitSecret(ctx, env, serviceName, c, data)
-		if err != nil {
-			return err
+		// disableDatabase is a temporary flag until all databases are migrated
+		if !disableDatabase {
+			err = UpdatePostgresSecret(ctx, env, serviceName, c, data)
+			if err != nil {
+				return err
+			}
 		}
-		err = UpdatePostgresSecret(ctx, env, serviceName, c, data)
+		err = UpdateRabbitSecret(ctx, env, serviceName, c, data)
 		if err != nil {
 			return err
 		}
@@ -118,9 +125,12 @@ func Run(c client.Client) error {
 			return err
 		}
 	} else {
-		err = UpdatePostgresConfig(ctx, env, serviceName, c, data)
-		if err != nil {
-			return err
+		// disableDatabase is a temporary flag until all databases are migrated
+		if !disableDatabase {
+			err = UpdatePostgresConfig(ctx, env, serviceName, c, data)
+			if err != nil {
+				return err
+			}
 		}
 		err = UpdateIamuserConfig(ctx, env, serviceName, c, data)
 		if err != nil {
