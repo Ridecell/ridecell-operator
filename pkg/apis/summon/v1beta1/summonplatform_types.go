@@ -221,14 +221,6 @@ type SummonPlatformSpec struct {
 	// Settings for comp-dispatch.
 	// +optional
 	Dispatch CompDispatchSpec `json:"dispatch,omitempty"`
-
-	// Backwards compat fields from before ReplicasSpec. Clean up once all instances are converted to the new config format.
-	WebReplicas           *int32 `json:"webReplicas,omitempty"`
-	DaphneReplicas        *int32 `json:"daphneReplicas,omitempty"`
-	WorkerReplicas        *int32 `json:"workerReplicas,omitempty"`
-	ChannelWorkerReplicas *int32 `json:"channelWorkerReplicas,omitempty"`
-	StaticReplicas        *int32 `json:"staticReplicas,omitempty"`
-	NoCelerybeat          bool   `json:"noCelerybeat,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

@@ -238,26 +238,6 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 		}
 	}
 
-	// Copy over the legacy values since those take priority over defaults. This is pulled out to make it easier to remove later.
-	if replicas.Web == nil && instance.Spec.WebReplicas != nil {
-		replicas.Web = instance.Spec.WebReplicas
-	}
-	if replicas.Daphne == nil && instance.Spec.DaphneReplicas != nil {
-		replicas.Daphne = instance.Spec.DaphneReplicas
-	}
-	if replicas.ChannelWorker == nil && instance.Spec.ChannelWorkerReplicas != nil {
-		replicas.ChannelWorker = instance.Spec.ChannelWorkerReplicas
-	}
-	if replicas.Celeryd == nil && instance.Spec.WorkerReplicas != nil {
-		replicas.Celeryd = instance.Spec.WorkerReplicas
-	}
-	if replicas.Static == nil && instance.Spec.StaticReplicas != nil {
-		replicas.Static = instance.Spec.StaticReplicas
-	}
-	if replicas.CeleryBeat == nil && instance.Spec.NoCelerybeat {
-		replicas.CeleryBeat = intp(0)
-	}
-
 	// Fill in defaults based on environment.
 	if replicas.Web == nil {
 		replicas.Web = defaultsForEnv(1, 1, 2, 4)
