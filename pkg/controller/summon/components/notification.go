@@ -219,7 +219,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 // Send an error notification if needed.
 func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatform, errorMessage string) (components.Result, error) {
 	// Check if this is a duplicate message.
-	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+	dupCacheKey := fmt.Sprintf("%s/%s/%s", instance.Namespace, instance.Name, instance.Spec.Version)
 	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
 	dupCacheValue := fmt.Sprintf("ERROR %s", errorMessage)
 	if ok && lastdupCacheValue == dupCacheValue {

@@ -197,6 +197,26 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(post2.In2.Fallback).To(Equal("foo.ridecell.us has error: You have no chance to survive"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
+
+		It("sends two error notifications for two identical errors on different versions", func() {
+			instance.Spec.Version = "v1"
+			instance.Status.Message = "I thought what i'd do was i'd pretend"
+			instance.Status.Status = summonv1beta1.StatusError
+			Expect(comp).To(ReconcileContext(ctx))
+			instance.Spec.Version = "v2"
+			instance.Status.Message = "I thought what i'd do was i'd pretend"
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: I thought what i'd do was i'd pretend"))
+			post2 := mockedSlackClient.PostMessageCalls()[1]
+			Expect(post2.In1).To(Equal("#test-channel"))
+			Expect(post2.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post2.In2.Fallback).To(Equal("foo.ridecell.us has error: I thought what i'd do was i'd pretend"))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
+		})
 	})
 
 	Describe("ReconcileError", func() {
