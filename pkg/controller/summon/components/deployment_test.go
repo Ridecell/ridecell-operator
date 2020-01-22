@@ -125,7 +125,7 @@ var _ = Describe("deployment Component", func() {
 
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
-		instance.Spec.StaticReplicas = &numReplicas
+		instance.Spec.Replicas.Static = &numReplicas
 
 		// Create our first hashes
 		configMap := &corev1.ConfigMap{
@@ -169,7 +169,7 @@ var _ = Describe("deployment Component", func() {
 
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
-		instance.Spec.StaticReplicas = &numReplicas
+		instance.Spec.Replicas.Static = &numReplicas
 
 		// Create our first hashes
 		configMap := &corev1.ConfigMap{
@@ -247,7 +247,8 @@ var _ = Describe("deployment Component", func() {
 			},
 		}
 
-		instance.Spec.NoCelerybeat = true
+		celerybeatReplicas := int32(0)
+		instance.Spec.Replicas.CeleryBeat = &celerybeatReplicas
 
 		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 		Expect(comp).To(ReconcileContext(ctx))
