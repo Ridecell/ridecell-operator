@@ -18,7 +18,6 @@ package components_test
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -56,7 +55,6 @@ var _ = Describe("rdssnapshot db Component", func() {
 	var mockRDS *mockRDSDBClient
 
 	BeforeEach(func() {
-		os.Setenv("ENABLE_FINALIZERS", "true")
 		comp = rdssnapshotcomponents.NewRDSSnapshot()
 		mockRDS = &mockRDSDBClient{}
 		comp.InjectRDSAPI(mockRDS)

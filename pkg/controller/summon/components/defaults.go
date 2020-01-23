@@ -119,9 +119,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		case "uat":
 			switch instance.Spec.AwsRegion {
 			case "eu-central-1":
-				instance.Spec.SQSQueue = "eu-uat-data-pipeline"
+				instance.Spec.SQSQueue = "eu-prod-data-pipeline"
 			case "ap-south-1":
-				instance.Spec.SQSQueue = "in-uat-data-pipeline"
+				instance.Spec.SQSQueue = "in-prod-data-pipeline"
 			default:
 				instance.Spec.SQSQueue = "us-uat-data-pipeline"
 			}
@@ -196,6 +196,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 	defVal("DATA_PIPELINE_SQS_QUEUE_NAME", "%s", instance.Spec.SQSQueue)
+	defVal("DISPATCH_BASE_URL", "http://%s-dispatch:8000/", instance.Name)
 
 	// Translate our aws region into a usable region
 	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
@@ -242,26 +243,6 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 		}
 	}
 
-	// Copy over the legacy values since those take priority over defaults. This is pulled out to make it easier to remove later.
-	if replicas.Web == nil && instance.Spec.WebReplicas != nil {
-		replicas.Web = instance.Spec.WebReplicas
-	}
-	if replicas.Daphne == nil && instance.Spec.DaphneReplicas != nil {
-		replicas.Daphne = instance.Spec.DaphneReplicas
-	}
-	if replicas.ChannelWorker == nil && instance.Spec.ChannelWorkerReplicas != nil {
-		replicas.ChannelWorker = instance.Spec.ChannelWorkerReplicas
-	}
-	if replicas.Celeryd == nil && instance.Spec.WorkerReplicas != nil {
-		replicas.Celeryd = instance.Spec.WorkerReplicas
-	}
-	if replicas.Static == nil && instance.Spec.StaticReplicas != nil {
-		replicas.Static = instance.Spec.StaticReplicas
-	}
-	if replicas.CeleryBeat == nil && instance.Spec.NoCelerybeat {
-		replicas.CeleryBeat = intp(0)
-	}
-
 	// Fill in defaults based on environment.
 	if replicas.Web == nil {
 		replicas.Web = defaultsForEnv(1, 1, 2, 4)
@@ -280,6 +261,14 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	}
 	if replicas.CeleryBeat == nil {
 		replicas.CeleryBeat = intp(1)
+	}
+	if replicas.Dispatch == nil {
+		replicas.Dispatch = defaultsForEnv(1, 1, 2, 2)
+	}
+
+	// If no comp-dispatch version is set, override dispatch replicas to 0.
+	if instance.Spec.Dispatch.Version == "" {
+		replicas.Dispatch = intp(0)
 	}
 
 	// Quick error check.

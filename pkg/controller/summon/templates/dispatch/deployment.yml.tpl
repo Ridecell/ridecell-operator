@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Instance.Name }}-celeryd
+  name: {{ .Instance.Name }}-dispatch
   namespace: {{ .Instance.Namespace }}
   labels:
-    app.kubernetes.io/name: celeryd
-    app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+    app.kubernetes.io/name: dispatch
+    app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
     app.kubernetes.io/version: {{ .Instance.Spec.Version }}
-    app.kubernetes.io/component: worker
+    app.kubernetes.io/component: dispatch
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
     metrics-enabled: "false"
 spec:
-  replicas: {{ .Instance.Spec.Replicas.Celeryd | default 0 }}
+  replicas: {{ .Instance.Spec.Replicas.Dispatch }}
   selector:
     matchLabels:
-      app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+      app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: celeryd
-        app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+        app.kubernetes.io/name: dispatch
+        app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
         app.kubernetes.io/version: {{ .Instance.Spec.Version }}
-        app.kubernetes.io/component: worker
+        app.kubernetes.io/component: dispatch
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
         metrics-enabled: "false"
@@ -38,41 +38,27 @@ spec:
               topologyKey: failure-domain.beta.kubernetes.io/zone
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
           - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
       imagePullSecrets:
       - name: pull-secret
       containers:
       - name: default
-        image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
-        imagePullPolicy: Always
-        command:
-        - python
-        - "-m"
-        - celery
-        - "-A"
-        - summon_platform
-        - worker
-        - "-l"
-        - info
-        - "--concurrency"
-        - {{ .Instance.Spec.Celery.Concurrency | default 30 | quote }}
-        - "--pool"
-        - {{ .Instance.Spec.Celery.Pool | default "eventlet" | quote }}
+        image: "us.gcr.io/ridecell-1/comp-dispatch:{{ .Instance.Spec.Dispatch.Version }}"
         ports:
         - containerPort: 8000
         resources:
           requests:
             memory: 512M
             cpu: 500m
-          limits:
-            memory: 3G
-            cpu: 1000m
+        # Not setting a limit until we work out baseline resource usage and load test it a bit.
+        #   limits:
+        #     memory: 1G
         env:
         - name: SUMMON_COMPONENT
           valueFrom:
@@ -87,15 +73,9 @@ spec:
         - name: NEW_RELIC_APP_NAME
           value: {{ .Instance.Name }}-summon-platform
         {{ end }}
-        {{ if .Instance.Spec.GCPProject }}
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: /var/run/secrets/gcp-service-account/google_service_account.json
-        {{ end }}
         volumeMounts:
-        - name: config-volume
+        - name: dispatch-config
           mountPath: /etc/config
-        - name: app-secrets
-          mountPath: /etc/secrets
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           mountPath: /home/ubuntu/summon-platform
@@ -104,23 +84,10 @@ spec:
         - name: gcp-service-account
           mountPath: /var/run/secrets/gcp-service-account
         {{ end }}
-        #livenessProbe:
-        #  exec:
-        #    command:
-        #    - bash
-        #    - -c
-        #    - python -m celery -A summon_platform inspect ping --timeout 60 -d celery@$HOSTNAME
-        #  initialDelaySeconds: 300
-        #  periodSeconds: 60
-        #  failureThreshold: 5
-        #  timeoutSeconds: 100
       volumes:
-        - name: config-volume
-          configMap:
-            name: {{ .Instance.Name }}-config
-        - name: app-secrets
+        - name: dispatch-config
           secret:
-            secretName: {{ .Instance.Name }}.app-secrets
+            secretName: {{ .Instance.Name }}.dispatch
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           secret:

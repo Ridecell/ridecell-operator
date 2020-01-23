@@ -140,38 +140,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(0)))
 	})
 
-	Context("with legacy replicas settings", func() {
-		It("allows 2 web replicas", func() {
-			instance.Spec = summonv1beta1.SummonPlatformSpec{
-				Version:     "1.2.3",
-				WebReplicas: intp(2),
-			}
-
-			Expect(comp).To(ReconcileContext(ctx))
-			Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(2)))
-		})
-
-		It("allows 0 web replicas", func() {
-			instance.Spec = summonv1beta1.SummonPlatformSpec{
-				Version:     "1.2.3",
-				WebReplicas: intp(0),
-			}
-
-			Expect(comp).To(ReconcileContext(ctx))
-			Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(0)))
-		})
-
-		It("allows legacy NoCelerybeat", func() {
-			instance.Spec = summonv1beta1.SummonPlatformSpec{
-				Version:      "1.2.3",
-				NoCelerybeat: true,
-			}
-
-			Expect(comp).To(ReconcileContext(ctx))
-			Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(0)))
-		})
-	})
-
 	It("Sets a default environment with summon prefix", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{Version: "1.2.3"}
 		instance.Namespace = "summon-dev"
