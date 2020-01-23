@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -230,7 +231,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		debug = true
 	}
 	dispatchSecretsData["debug"] = debug
-	dispatchSecretsData["database_url"] = appSecretsData["DATABASE_URL"]
+	dispatchSecretsData["database_url"] = strings.Replace(appSecretsData["DATABASE_URL"].(string), "postgis://", "postgres://", 1)
 	dispatchSecretsData["google_api_key"] = appSecretsData["GMAPS_CLIENT_KEY"]
 
 	// Serialize the app secrets YAML and put it in a secret.

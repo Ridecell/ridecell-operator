@@ -328,7 +328,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(fetchSecret.Data["dispatch.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data).To(HaveKeyWithValue("debug", false))
-		Expect(data).To(HaveKeyWithValue("database_url", "postgis://foo_dev:postgresPassword@summon-dev-database/foo_dev"))
+		Expect(data).To(HaveKeyWithValue("database_url", "postgres://foo_dev:postgresPassword@summon-dev-database/foo_dev"))
 		Expect(data).To(HaveKeyWithValue("google_api_key", "asdf1234"))
 	})
 
