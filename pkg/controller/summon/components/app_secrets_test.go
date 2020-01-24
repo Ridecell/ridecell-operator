@@ -327,9 +327,9 @@ var _ = Describe("app_secrets Component", func() {
 		data := map[string]interface{}{}
 		err = yaml.Unmarshal(fetchSecret.Data["dispatch.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(data).To(HaveKeyWithValue("debug", false))
-		Expect(data).To(HaveKeyWithValue("database_url", "postgres://foo_dev:postgresPassword@summon-dev-database/foo_dev"))
-		Expect(data).To(HaveKeyWithValue("google_api_key", "asdf1234"))
+		Expect(data).To(HaveKeyWithValue("Debug", false))
+		Expect(data).To(HaveKeyWithValue("DatabaseURL", "postgres://foo_dev:postgresPassword@summon-dev-database/foo_dev"))
+		Expect(data).To(HaveKeyWithValue("GoogleApiKey", "asdf1234"))
 	})
 
 	It("sets comp-dispatch to debug if summon is DEBUG=True", func() {
@@ -348,6 +348,6 @@ var _ = Describe("app_secrets Component", func() {
 		data := map[string]interface{}{}
 		err = yaml.Unmarshal(fetchSecret.Data["dispatch.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(data).To(HaveKeyWithValue("debug", true))
+		Expect(data).To(HaveKeyWithValue("Debug", true))
 	})
 })
