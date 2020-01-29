@@ -20,20 +20,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 )
 
 var _ = Describe("deployment Component", func() {

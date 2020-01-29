@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -30,13 +29,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 )
 
 const flavorBucket = "ridecell-flavors"
@@ -65,14 +65,18 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Pull secret not ready yet.
 		return false
 	}
-	if instance.Status.BackupVersion != instance.Spec.Version {
-		return false
-	}
 	return true
 }
 
 func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// Originally a check done in IsReconcilable, but because of autodeploy setting Spec.Version during
+	// Reconcile stage, check has to be done here to see if Spec.Version value was set by autodeploy.
+	if instance.Status.BackupVersion != instance.Spec.Version {
+		return components.Result{}, nil
+	}
+
 	if instance.Spec.Version == instance.Status.MigrateVersion {
 		// Already migrated, update status and move on.
 		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil

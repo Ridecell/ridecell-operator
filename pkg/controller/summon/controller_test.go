@@ -70,6 +70,9 @@ var _ = Describe("Summon controller", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				Version: "1.2.3",
+			},
 		}
 		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 

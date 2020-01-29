@@ -195,6 +195,29 @@ jobs:
     - rc_test:
         cover: rabbitmq
 
+  test_autodeploy:
+    executor: rc_test
+    docker:
+    # can't simply spin up a docker registry that we can build and push images to for these reasons:
+    # https://circleci.com/docs/2.0/building-docker-images/#accessing-services
+      - image: circleci/golang:1
+      - *etcd
+      - *kube-apiserver
+      - *kube-controller-manager
+      - image: registry:2
+    environment:
+      GINKGO_ARGS: -focus @autodeploy
+      LOCAL_REGISTRY_URL: "http://localhost:5000"
+    steps:
+    - checkout
+    - run: |
+        curl -o ./skopeo https://ridecell-skopeo.s3-us-west-2.amazonaws.com/skopeo-linux-amd64
+        chmod +x ./skopeo
+        ./skopeo --version
+    - run: ./skopeo --insecure-policy copy --dest-tls-verify=false docker://busybox:latest  docker://localhost:5000/ridecell-1/summon:basetag
+    - rc_test:
+        cover: autodeploy
+
   test_other:
     executor: rc_test
     docker:
@@ -204,7 +227,7 @@ jobs:
     - *kube-controller-manager
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     environment:
-      GINKGO_ARGS: -skip '@(postgres|aws|rds|snapshot|rabbitmq|unit)'
+      GINKGO_ARGS: -skip '@(postgres|aws|rds|snapshot|rabbitmq|autodeploy|unit)'
     steps:
     - rc_test:
         cover: other
@@ -287,6 +310,9 @@ workflows:
     - test_rabbitmq:
         requires:
         - test
+    - test_autodeploy:
+        requires:
+        - test
     - test_other:
         requires:
         - test
@@ -308,6 +334,7 @@ workflows:
         - test_postgres
         - test_aws
         - test_rabbitmq
+        - test_autodeploy
         - test_other
         - crds
         # Does not require test_rds to allow for a little more parallelism, shaves 5m off the whole process.

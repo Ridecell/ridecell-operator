@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/pkg/errors"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/pkg/errors"
 )
 
 const defaultFernetKeysLifespan = "8760h"
@@ -53,6 +53,11 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// Set error status to prevent further deployments until it is resolved.
+	if instance.Spec.Version == "" && instance.Spec.AutoDeploy == "" {
+		return components.Result{}, errors.New("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment.")
+	}
 
 	// Helper method to set a string value if not already set.
 	defVal := func(key, valueTemplate string, args ...interface{}) {

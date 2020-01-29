@@ -22,16 +22,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 type deploymentComponent struct {
