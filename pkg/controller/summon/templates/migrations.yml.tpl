@@ -34,7 +34,7 @@ spec:
         {{- if ne .Extra.presignedUrl "" }}
         - python manage.py migrate -v3 && python manage.py loadflavor {{ .Extra.presignedUrl | squote }} --silent
         {{- else }}
-        - python manage.py migrate -v3
+        - {{ if and (not .Instance.Spec.NoCore1540Fixup) (ne .Instance.Status.MigrateVersion "") }}if [ -f common/management/commands/core_1540_pre_migrate.py ]; then python manage.py core_1540_pre_migrate; fi && {{ end }}python manage.py migrate -v3
         {{- end }}
         resources:
           requests:

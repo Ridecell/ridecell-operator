@@ -225,6 +225,10 @@ type SummonPlatformSpec struct {
 	// Settings for comp-dispatch.
 	// +optional
 	Dispatch CompDispatchSpec `json:"dispatch,omitempty"`
+	// Feature flag to disable the CORE-1540 fixup in case it goes AWOL.
+	// To be removed when support for the 1540 fixup is removed in summon.
+	// +optional
+	NoCore1540Fixup bool `json:"noCore1540Fixup,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications
