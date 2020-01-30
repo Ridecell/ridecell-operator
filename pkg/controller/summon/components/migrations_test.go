@@ -265,5 +265,28 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
+
+		Context("with a MigrateVersion", func() {
+			BeforeEach(func() {
+				instance.Status.MigrateVersion = "1234-abcd-master"
+			})
+
+			It("tries to run the CORE-1540 fixup", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				job := &batchv1.Job{}
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("if [ -f common/management/commands/core_1540_pre_migrate.py ]; then python manage.py core_1540_pre_migrate; fi && python manage.py migrate -v3"))
+			})
+
+			It("honors the NoCore1540Fixup flag", func() {
+				instance.Spec.NoCore1540Fixup = true
+				Expect(comp).To(ReconcileContext(ctx))
+				job := &batchv1.Job{}
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate -v3"))
+			})
+		})
 	})
 })
