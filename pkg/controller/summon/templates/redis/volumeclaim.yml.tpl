@@ -13,6 +13,6 @@ spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-			# If this value changes you will need to update defaults.go
+      # If this value changes you will need to update defaults.go
       storage: 10Gi
   storageClassName: gp2
