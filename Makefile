@@ -68,6 +68,8 @@ docker-push:
 tools:
 	if ! type dep >/dev/null; then go get github.com/golang/dep/cmd/dep; fi
 	go get -u github.com/onsi/ginkgo/ginkgo github.com/modocache/gover github.com/mattn/goveralls github.com/matryer/moq github.com/gobuffalo/packr/v2/packr2
+    # Envy 1.9 dropped support for non-go.mod stuff. So pin it until we can fix things.
+	( cd ../../gobuffalo/envy && git checkout v1.8.1 ) && go install github.com/gobuffalo/packr/v2/packr2
 
 # Install dependencies
 dep: tools
