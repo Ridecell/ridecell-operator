@@ -38,10 +38,10 @@ spec:
         {{- end }}
         resources:
           requests:
-            memory: 1G
+            memory: 1.5G
             cpu: 500m
           limits:
-            memory: 2G
+            memory: 2.5G
         {{ if .Instance.Spec.EnableNewRelic }}
         env:
         - name: NEW_RELIC_LICENSE_KEY
