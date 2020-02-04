@@ -334,9 +334,10 @@ workflows:
         - test_postgres
         - test_aws
         - test_rabbitmq
-        - test_autodeploy
         - test_other
         - crds
+        # test_autodeploy being removed until the flakey tests are fixed
+        #- test_autodeploy
         # Does not require test_rds to allow for a little more parallelism, shaves 5m off the whole process.
     # - deploy:
     #     requires:
