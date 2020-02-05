@@ -19,11 +19,11 @@ package components
 import (
 	"fmt"
 
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 )
 
 type statusComponent struct{}
@@ -50,6 +50,9 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 			return nil
 		}
 		if status.SharedUsers.Periscope != dbv1beta1.StatusGranted && status.SharedUsers.Periscope != dbv1beta1.StatusSkipped {
+			return nil
+		}
+		if status.SharedUsers.Reporting != dbv1beta1.StatusGranted && status.SharedUsers.Reporting != dbv1beta1.StatusSkipped {
 			return nil
 		}
 		if status.DatabaseStatus != dbv1beta1.StatusReady {

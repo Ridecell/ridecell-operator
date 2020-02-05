@@ -17,10 +17,10 @@ limitations under the License.
 package postgresdatabase
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	pdcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase/components"
 	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/shared_components/postgres"
 )
@@ -35,6 +35,7 @@ func Add(mgr manager.Manager) error {
 		pdcomponents.NewUser(),
 		pdcomponents.NewDatabase(),
 		pdcomponents.NewPeriscopeUser(),
+		pdcomponents.NewReportingUser(),
 		pdcomponents.NewExtensions(),
 		pdcomponents.NewStatus(),
 	})

@@ -45,8 +45,26 @@ var _ = Describe("PostgresDatabase controller", func() {
 	var instance *dbv1beta1.PostgresDatabase
 	var conn *dbv1beta1.PostgresConnection
 	var dbconfig *dbv1beta1.DbConfig
-	// periscope.postgres-user-password secret with dummy pw needed for cross namespace shared mode test case.
-	var periscope_secret *corev1.Secret
+
+	validateUserReadOnlyPermissions := func(ctx *components.ComponentContext, user *dbv1beta1.PostgresUser, pgdb *dbv1beta1.PostgresDatabase, dbName string) {
+		// Connect as given user into the desired database.
+		userconn := user.Status.Connection.DeepCopy()
+		userconn.Database = pgdb.Status.Connection.Database
+
+		db, err := postgres.Open(ctx, userconn)
+		Expect(err).ToNot(HaveOccurred())
+
+		// User should not be able to insert values!
+		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, dbName)
+		Expect(err).To(HaveOccurred())
+
+		// User should be able to read from table.
+		row := db.QueryRow(`SELECT id FROM testing WHERE str = $1`, dbName)
+		var rowId int
+		err = row.Scan(&rowId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rowId).To(Equal(1))
+	}
 
 	BeforeEach(func() {
 		// Check for required environment variables.
@@ -134,6 +152,10 @@ var _ = Describe("PostgresDatabase controller", func() {
 		puser := &dbv1beta1.PostgresUser{}
 		c.EventuallyGet(helpers.Name(randomName+"-dev-periscope"), puser, c.EventuallyStatus(dbv1beta1.StatusReady))
 
+		// Expect reporting postgresuser to be created.
+		ruser := &dbv1beta1.PostgresUser{}
+		c.EventuallyGet(helpers.Name(randomName+"-dev-periscope"), ruser, c.EventuallyStatus(dbv1beta1.StatusReady))
+
 		// Try to connect.
 		ctx := components.NewTestContext(instance, nil)
 		ctx.Client = helpers.Client
@@ -151,22 +173,11 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		// Connect as periscope user into the desired database.
-		puserconn := puser.Status.Connection.DeepCopy()
-		puserconn.Database = instance.Status.Connection.Database
-
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
+		// Validate periscope user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, puser, instance, randomName)
+		
+		// Validate reporting user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, ruser, instance, randomName)
 	})
 
 	It("creates a database on a shared RDS config", func() {
@@ -198,6 +209,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 		puser := &dbv1beta1.PostgresUser{}
 		c.EventuallyGet(helpers.Name(helpers.Namespace+"-periscope"), puser, c.EventuallyStatus(dbv1beta1.StatusReady))
 
+		ruser := &dbv1beta1.PostgresUser{}
+		c.EventuallyGet(helpers.Name(helpers.Namespace+"-reporting"), ruser, c.EventuallyStatus(dbv1beta1.StatusReady))
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
 
@@ -218,25 +231,16 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		puserconn := puser.Status.Connection.DeepCopy()
-		puserconn.Database = instance.Status.Connection.Database
+		// Validate periscope user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, puser, instance, randomName)
 
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
+		// Validate reporting user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, ruser, instance, randomName)
 	})
 
-	// Since this is a mock local db, can't really test periscope connection, but might as well test that NoCreatePeriscopeUser logic works.
-	It("creates a database on an exclusive Local config without Periscope (NoCreatePeriscopeUser flag)", func() {
+	// Since this is a mock local db, can't really test dbuser connection, but might as well test that NoCreatePeriscopeUser 
+	// and NoCreateReportingUser logic works.
+	It("creates a database on an exclusive Local config without Periscope and Reporting (NoCreate*User flag)", func() {
 		c := helpers.TestClient
 
 		// Inject a mock database.
@@ -257,6 +261,7 @@ var _ = Describe("PostgresDatabase controller", func() {
 		dbconfig.Spec.Postgres.Mode = "Exclusive"
 		dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 		dbconfig.Spec.NoCreatePeriscopeUser = true
+		dbconfig.Spec.NoCreateReportingUser = true
 		c.Create(dbconfig)
 
 		// Create our database.
@@ -285,13 +290,17 @@ var _ = Describe("PostgresDatabase controller", func() {
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
 
-		// Check that no periscope user exists and SharedUser Status for PostgresDatabase is skipped.
+		// Check that no periscope or reporting user exists and SharedUser Status for PostgresDatabase is skipped.
 		ctx := components.NewTestContext(instance, nil)
-		puser := &dbv1beta1.PostgresUser{}
-		err := ctx.Get(ctx.Context, helpers.Name(randomName+"-periscope"), puser)
+		user := &dbv1beta1.PostgresUser{}
+		err := ctx.Get(ctx.Context, helpers.Name(randomName+"-periscope"), user)
+		Expect(err).To(HaveOccurred())
+		err = ctx.Get(ctx.Context, helpers.Name(randomName+"-reporting"), user)
 		Expect(err).To(HaveOccurred())
 		Expect(instance.Status.SharedUsers.Periscope).To(Equal("Skipped"))
+		Expect(instance.Status.SharedUsers.Reporting).To(Equal("Skipped"))
 		// When dbconfig mode is exclusive, we don't update it's postgres status, so not checking dbconfig's periscope status.
+		
 	})
 
 	// This test case creates a PostgresDatabase object in helpers.Namespace, but references a DbConfig (and its corresponding RDS instance)
@@ -303,7 +312,8 @@ var _ = Describe("PostgresDatabase controller", func() {
 	It("supports cross namespace use for shared mode", func() {
 		c := helpers.TestClient
 
-		periscope_secret = &corev1.Secret{
+		// Workaround: copy postgreuser secrets in current namespace
+		periscope_secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: randomName + "-periscope.postgres-user-password", Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"password": []byte("foo"),
@@ -311,6 +321,15 @@ var _ = Describe("PostgresDatabase controller", func() {
 		}
 		c.Create(periscope_secret)
 
+		reporting_secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: randomName + "-reporting.postgres-user-password", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"password": []byte("foo"),
+			},
+		}
+		c.Create(reporting_secret)
+
+		// Create user secrets under dbconfig namespace
 		newSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "pgpass-crossnamespace", Namespace: helpers.OperatorNamespace},
 			Data: map[string][]byte{
@@ -357,6 +376,9 @@ var _ = Describe("PostgresDatabase controller", func() {
 		puser := &dbv1beta1.PostgresUser{}
 		c.EventuallyGet(types.NamespacedName{Name: randomName + "-periscope", Namespace: helpers.OperatorNamespace}, puser)
 
+		ruser := &dbv1beta1.PostgresUser{}
+		c.EventuallyGet(types.NamespacedName{Name: randomName + "-reporting", Namespace: helpers.OperatorNamespace}, ruser)
+
 		// Try to connect.
 		ctx := components.NewTestContext(instance, nil)
 		ctx.Client = helpers.Client
@@ -374,23 +396,11 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		// Connect as periscope user into the desired database (where periscope.postgres-user-password exists under
-		// DBConfig's namespace).
-		puserconn := puser.Status.Connection.DeepCopy()
-		puserconn.Database = instance.Status.Connection.Database
+		// Validate periscope user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, puser, instance, randomName)
 
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
+		// Validate reporting user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, ruser, instance, randomName)
 	})
 
 	It("supports cross namespace use for exclusive mode", func() {
@@ -438,6 +448,10 @@ var _ = Describe("PostgresDatabase controller", func() {
 		puser := &dbv1beta1.PostgresUser{}
 		c.EventuallyGet(helpers.Name(randomName+"-dev-periscope"), puser, c.EventuallyStatus(dbv1beta1.StatusReady))
 
+		// Expect reporting postgresuser to be created.
+		ruser := &dbv1beta1.PostgresUser{}
+		c.EventuallyGet(helpers.Name(randomName+"-dev-periscope"), ruser, c.EventuallyStatus(dbv1beta1.StatusReady))
+
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
 
@@ -458,25 +472,14 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		// Connect as periscope user into desired database.
-		puserconn := puser.Status.Connection.DeepCopy()
-		puserconn.Database = instance.Status.Connection.Database
+		// Validate periscope user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, puser, instance, randomName)
 
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
+		// Validate reporting user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, ruser, instance, randomName)
 	})
 
-	It("creates two databases on a shared RDS config, but only one periscope postgresuser object", func() {
+	It("creates two databases on a shared RDS config, but only one periscope and one reporting postgresuser object", func() {
 		c := helpers.TestClient
 
 		// Set up the DbConfig.
@@ -514,8 +517,13 @@ var _ = Describe("PostgresDatabase controller", func() {
 		puser := &dbv1beta1.PostgresUser{}
 		c.EventuallyGet(helpers.Name(helpers.Namespace+"-periscope"), puser, c.EventuallyStatus(dbv1beta1.StatusReady))
 
+		ruser := &dbv1beta1.PostgresUser{}
+		c.EventuallyGet(helpers.Name(helpers.Namespace+"-reporting"), ruser, c.EventuallyStatus(dbv1beta1.StatusReady))
+
 		ctx := components.NewTestContext(instance, nil)
 		err := ctx.Get(ctx.Context, helpers.Name(randomName+"-dev-periscope"), puser)
+		Expect(err).To(HaveOccurred())
+		err = ctx.Get(ctx.Context, helpers.Name(randomName+"-dev-reporting"), ruser)
 		Expect(err).To(HaveOccurred())
 
 		// Try to connect.
@@ -535,23 +543,12 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		// Connect as periscope user into the desired database.
-		puserconn := puser.Status.Connection.DeepCopy()
-		puserconn.Database = instance.Status.Connection.Database
+		// Validate periscope user has read-only permissions to instance1
+		validateUserReadOnlyPermissions(ctx, puser, instance, randomName)
 
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
-
+		// Validate reporting user has read-only permissions to instance1
+		validateUserReadOnlyPermissions(ctx, ruser, instance, randomName)
+		
 		// Repeat for instance2.
 		ctx = components.NewTestContext(instance2, nil)
 		err = ctx.Get(ctx.Context, helpers.Name(randomName+"-dev2-periscope"), puser)
@@ -573,24 +570,14 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		// Same periscope user has access to instance2 db.
-		puserconn.Database = instance2.Status.Connection.Database
+		// Validate periscope user has read-only permissions to instance2
+		validateUserReadOnlyPermissions(ctx, puser, instance2, randomName+"2")
 
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName+"2")
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
+		// Validate reporting user has read-only permissions to instance2
+		validateUserReadOnlyPermissions(ctx, ruser, instance2, randomName+"2")
 	})
 
-	It("creates two database on an exclusive RDS config, each having its own periscope postgresuser object", func() {
+	It("creates two database on an exclusive RDS config, each having its own periscope and reporting postgresuser object", func() {
 		c := helpers.TestClient
 
 		// Set up the DbConfig.
@@ -633,6 +620,13 @@ var _ = Describe("PostgresDatabase controller", func() {
 		c.EventuallyGet(helpers.Name(randomName+"-dev2-periscope"), puser2, c.EventuallyStatus(dbv1beta1.StatusReady))
 		Expect(puser).ToNot(Equal(puser2))
 
+		// Expect two reporting postgresusers to be created.
+		ruser := &dbv1beta1.PostgresUser{}
+		ruser2 := &dbv1beta1.PostgresUser{}
+		c.EventuallyGet(helpers.Name(randomName+"-dev-reporting"), ruser, c.EventuallyStatus(dbv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name(randomName+"-dev2-reporting"), ruser2, c.EventuallyStatus(dbv1beta1.StatusReady))
+		Expect(puser).ToNot(Equal(ruser2))
+
 		// Check the output connection.
 		Expect(instance.Status.Connection.Database).ToNot(Equal("postgres"))
 
@@ -653,22 +647,11 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		// Connect as periscope user into the desired database.
-		puserconn := puser.Status.Connection.DeepCopy()
-		puserconn.Database = instance.Status.Connection.Database
+		// Validate periscope user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, puser, instance, randomName)
 
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
+		// Validate reporting user has read-only permissions
+		validateUserReadOnlyPermissions(ctx, ruser, instance, randomName)
 
 		// Repeat for instance2.
 		// Try to connect.
@@ -687,37 +670,15 @@ var _ = Describe("PostgresDatabase controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rowId).To(Equal(1))
 
-		// Connect as periscope user into the desired database.
-		puserconn = puser2.Status.Connection.DeepCopy()
-		puserconn.Database = instance2.Status.Connection.Database
+		// Validate periscope user2 has read-only permissions to instance2
+		validateUserReadOnlyPermissions(ctx, puser2, instance2, randomName+"2")
 
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
+		// Validate reporting user2 has read-only permissions to instance2
+		validateUserReadOnlyPermissions(ctx, ruser2, instance2, randomName+"2")
 
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName+"2")
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
-
-		// Same periscope user has access to instance db.
-		puserconn.Database = instance.Status.Connection.Database
-
-		db, err = postgres.Open(ctx, puserconn)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Periscope user should not be able to insert values!
-		_, err = db.Exec(`INSERT INTO testing (str) VALUES ($1)`, randomName)
-		Expect(err).To(HaveOccurred())
-
-		// Periscope user should be able to read from table.
-		row = db.QueryRow(`SELECT id FROM testing WHERE str = $1`, randomName)
-		err = row.Scan(&rowId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(rowId).To(Equal(1))
+		// puser and ruser should only be able to access instance1 db (since it has its own RDS)
+		// and puser2 and ruser2 should only be able access instance2 db. Not testing since
+		// test environment only capable of hosting one database cluster (RDS), not two, to actually
+		// test there's no mix up of user access and permissions.
 	})
 })

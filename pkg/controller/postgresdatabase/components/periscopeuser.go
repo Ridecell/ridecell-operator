@@ -42,7 +42,7 @@ func (_ *periscopeUserComponent) WatchTypes() []runtime.Object {
 
 func (_ *periscopeUserComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*dbv1beta1.PostgresDatabase)
-	// Reconcilable so long as database and periscope user is ready.
+	// Reconcilable so long as database and periscope user is ready. If permissions already granted, don't waste time reconciling.
 	return (instance.Status.DatabaseStatus == dbv1beta1.StatusReady && (instance.Status.SharedUsers.Periscope == dbv1beta1.StatusReady || instance.Status.SharedUsers.Periscope == dbv1beta1.StatusGranted))
 }
 

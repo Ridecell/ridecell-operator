@@ -54,6 +54,7 @@ type RabbitmqStatusConnection struct {
 // Status information about cluster-level shared utility Postgres users.
 type SharedUsersStatus struct {
 	Periscope string `json:"periscope"`
+	Reporting string `json:"reporting"`
 }
 
 // MigrationOverridesSpec defines value overrides used when migrating Ansible-based Summon instances into Kubernetes/ridecell-operator.
