@@ -163,7 +163,7 @@ func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Clien
 				if summonInstance.Spec.AutoDeploy == "" {
 					continue
 				}
-				glog.Infof("[autodeploy] Trigger reconcile for summon instance %s", summonInstance.ObjectMeta.Name)
+				glog.Infof("[autodeploy] Send event to channel to trigger reconcile for summon instance %s", summonInstance.ObjectMeta.Name)
 				watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
 			}
 			// We checked all summonInstances for autodeploy. Update lastChecked.
