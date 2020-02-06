@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"github.com/golang/glog"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -148,6 +149,7 @@ func Add(mgr manager.Manager) error {
 func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 	for {
 		if lastChecked.IsZero() || gcr.LastCacheUpdate.After(lastChecked) {
+			glog.Infof("[autodeploy] watchForImage lastCheck time is %s. LastCacheUpdate was %s. Checking Summon instances that need to autodeploy.", lastChecked, gcr.LastCacheUpdate)
 			// Get list of existing SummonPlatforms.
 			summonInstances := &summonv1beta1.SummonPlatformList{}
 			err := k8sClient.List(context.TODO(), &client.ListOptions{}, summonInstances)
@@ -161,6 +163,7 @@ func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Clien
 				if summonInstance.Spec.AutoDeploy == "" {
 					continue
 				}
+				glog.Infof("[autodeploy] Trigger reconcile for summon instance %s", summonInstance.ObjectMeta.Name)
 				watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
 			}
 			// We checked all summonInstances for autodeploy. Update lastChecked.
