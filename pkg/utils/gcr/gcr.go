@@ -65,7 +65,7 @@ func GetLatestImageOfBranch(branchTag string) (string, error) {
 			},
 			Logf: registry.Quiet,
 		}
-
+		glog.Infof("[autodeploy] LastCacheUpdate time was %s. Fetching for new tags.", LastCacheUpdate)
 		tags, err := summonHub.Tags("ridecell-1/summon")
 		if err != nil {
 			return "", errors.Wrapf(err, "Could not retrieve tags from registry: ")
@@ -98,5 +98,6 @@ func GetLatestImageOfBranch(branchTag string) (string, error) {
 			}
 		}
 	}
+	glog.Infof("[autodeploy] Latest image for %s is %s", branchTag, latestImage)
 	return latestImage, nil
 }
