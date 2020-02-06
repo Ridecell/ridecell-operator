@@ -42,11 +42,9 @@ func SanitizeBranchName(branch string) (string, error) {
 	return sanitized_branch_tag, nil
 }
 
-func GetLatestImageOfBranch(branchTag string) (string, error) {
-	var latestImage string
-	latestBuild := 0
+func GetSummonTags() {
 	elapsed := time.Since(LastCacheUpdate)
-
+	
 	// Fetch tags if cache expired.
 	if elapsed >= CacheExpiry {
 		// Setup hub connection
@@ -68,11 +66,19 @@ func GetLatestImageOfBranch(branchTag string) (string, error) {
 		glog.Infof("[autodeploy] LastCacheUpdate time was %s. Fetching for new tags.", LastCacheUpdate)
 		tags, err := summonHub.Tags("ridecell-1/summon")
 		if err != nil {
-			return "", errors.Wrapf(err, "Could not retrieve tags from registry: ")
+			glog.Error("Could not retrieve tags from registry: ", err.Error())
 		}
 		CachedTags = tags
 		LastCacheUpdate = time.Now()
 	}
+}
+
+func GetLatestImageOfBranch(branchTag string) (string, error) {
+	var latestImage string
+	latestBuild := 0
+
+	// Update cache tags if cache is expiring.
+	GetSummonTags()
 
 	for _, image := range CachedTags {
 
