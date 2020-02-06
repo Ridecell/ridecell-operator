@@ -148,6 +148,12 @@ func Add(mgr manager.Manager) error {
 // Watches docker image cache for updates and triggers reconciles for summon instances with autodeploy enabled.
 func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 	for {
+		// Initiate CacheTag update if it expired.
+		gcr.GetSummonTags()
+
+		// 1. lastChecked.IsZero() condition to handle RO startup
+		// 2. gcr.LastCacheUpdate.After(lastChecked) to trigger reconciles on summon instances if tag cache was recently updated
+		// in response to some other summon instance reconciling. 
 		if lastChecked.IsZero() || gcr.LastCacheUpdate.After(lastChecked) {
 			glog.Infof("[autodeploy] watchForImage lastCheck time is %s. LastCacheUpdate was %s. Checking Summon instances that need to autodeploy.", lastChecked, gcr.LastCacheUpdate)
 			// Get list of existing SummonPlatforms.
