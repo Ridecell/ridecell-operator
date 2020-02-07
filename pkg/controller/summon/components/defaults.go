@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -57,6 +57,16 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// Set error status to prevent further deployments until it is resolved.
 	if instance.Spec.Version == "" && instance.Spec.AutoDeploy == "" {
 		return components.Result{}, errors.New("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment.")
+	}
+
+	// If the persistentVolumeClaim for redis changes this integer should as well.
+	if instance.Spec.Redis.RAM > 10 {
+		return components.Result{}, errors.New("redis memory limit cannot surpass available disk space")
+	}
+
+	// Set redis defaults
+	if instance.Spec.Redis.RAM == 0 {
+		instance.Spec.Redis.RAM = 1
 	}
 
 	// Helper method to set a string value if not already set.

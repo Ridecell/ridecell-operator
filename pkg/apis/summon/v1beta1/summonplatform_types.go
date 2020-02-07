@@ -66,6 +66,13 @@ type CelerySpec struct {
 	Pool string `json:"pool,omitempty"`
 }
 
+// RedisSpec defines resource configuration for redis deployment.
+type RedisSpec struct {
+	// Setting for tuning redis memory request/limit in GB.
+	// +optional
+	RAM int `json:"ram,omitempty"`
+}
+
 // MIVSpec defines the configuration of the Manual Identiy Verification bucket feature.
 type MIVSpec struct {
 	// The optional name of an existing S3 bucket to use. If set, this code does not create its own bucket.
@@ -203,6 +210,9 @@ type SummonPlatformSpec struct {
 	// Celery settings.
 	// +optional
 	Celery CelerySpec `json:"celery,omitempty"`
+	// Redis resource settings.
+	// +optional
+	Redis RedisSpec `json:"redis,omitempty"`
 	// Pod replica settings.
 	// +optional
 	Replicas ReplicasSpec `json:"replicas,omitempty"`
