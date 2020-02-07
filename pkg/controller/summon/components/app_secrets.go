@@ -232,7 +232,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 	dispatchSecretsData["Debug"] = debug
 	dispatchSecretsData["DatabaseURL"] = strings.Replace(appSecretsData["DATABASE_URL"].(string), "postgis://", "postgres://", 1)
-	dispatchSecretsData["GoogleApiKey"] = appSecretsData["GMAPS_CLIENT_KEY"]
+	dispatchSecretsData["GoogleApiKey"] = appSecretsData["GOOGLE_MAPS_BACKEND_API_KEY"]
 
 	// Serialize the app secrets YAML and put it in a secret.
 	yamlData, err := yaml.Marshal(appSecretsData)
