@@ -316,7 +316,7 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("creates a comp-dispatch secret", func() {
-		inSecret.Data["GMAPS_CLIENT_KEY"] = []byte("asdf1234")
+		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -337,7 +337,7 @@ var _ = Describe("app_secrets Component", func() {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{
 			"DEBUG": summonv1beta1.ConfigValue{Bool: &v},
 		}
-		inSecret.Data["GMAPS_CLIENT_KEY"] = []byte("asdf1234")
+		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
