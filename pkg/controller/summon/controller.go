@@ -33,9 +33,6 @@ import (
 	gcr "github.com/Ridecell/ridecell-operator/pkg/utils/gcr"
 )
 
-// Helps trigger summon instances Spec.Version updates (for autodeploy feature) when the image tag cache has been updated.
-var lastChecked time.Time
-
 // Add creates a new Summon Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -148,33 +145,26 @@ func Add(mgr manager.Manager) error {
 // Watches docker image cache for updates and triggers reconciles for summon instances with autodeploy enabled.
 func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 	for {
-		// Initiate CacheTag update if it expired.
-		gcr.GetSummonTags()
-
-		// 1. lastChecked.IsZero() condition to handle RO startup
-		// 2. gcr.LastCacheUpdate.After(lastChecked) to trigger reconciles on summon instances if tag cache was recently updated
-		// in response to some other summon instance reconciling. 
-		if lastChecked.IsZero() || gcr.LastCacheUpdate.After(lastChecked) {
-			glog.Infof("[autodeploy] watchForImage lastCheck time is %s. LastCacheUpdate was %s. Checking Summon instances that need to autodeploy.", lastChecked, gcr.LastCacheUpdate)
-			// Get list of existing SummonPlatforms.
-			summonInstances := &summonv1beta1.SummonPlatformList{}
-			err := k8sClient.List(context.TODO(), &client.ListOptions{}, summonInstances)
-			if err != nil {
-				// Make this do something useful or ignore it.
-				panic(err)
-			}
-
-			// Pick out each that have AutoDeploy enabled and trigger reconcile if cache was updated.
-			for _, summonInstance := range summonInstances.Items {
-				if summonInstance.Spec.AutoDeploy == "" {
-					continue
-				}
-				glog.Infof("[autodeploy] Send event to channel to trigger reconcile for summon instance %s", summonInstance.ObjectMeta.Name)
-				watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
-			}
-			// We checked all summonInstances for autodeploy. Update lastChecked.
-			lastChecked = time.Now()
+		// Sleep at beginning to allow r-o startup and manage autodeploy reconciles for summonplatform using autodeploy. 
+		time.Sleep(gcr.CacheExpiry)
+		
+		// Get list of existing SummonPlatforms.
+		summonInstances := &summonv1beta1.SummonPlatformList{}
+		err := k8sClient.List(context.TODO(), &client.ListOptions{}, summonInstances)
+		if err != nil {
+			// Make this do something useful or ignore it.
+			panic(err)
 		}
-		time.Sleep(time.Second * 10)
+
+		// Pick out each that have AutoDeploy enabled and trigger reconcile if cache was updated.
+		for _, summonInstance := range summonInstances.Items {
+			if summonInstance.Spec.AutoDeploy == "" {
+				continue
+			}
+			if glog.V(5) {
+				glog.Infof("[autodeploy] Send event to channel to trigger reconcile for summon instance %s", summonInstance.ObjectMeta.Name)
+			}
+			watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
+		}
 	}
 }
