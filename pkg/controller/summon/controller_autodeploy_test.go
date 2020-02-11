@@ -326,13 +326,24 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 	It("sets error status and message if Spec.Version and Spec.AutoDeploy not specified", func() {
 		c := helpers.TestClient
 		c.Create(instance)
-		c.Status().Update(instance)
 
 		summonplatform := &summonv1beta1.SummonPlatform{}
 		c.EventuallyGet(helpers.Name("foo"), summonplatform, c.EventuallyStatus(summonv1beta1.StatusError))
 		Expect(summonplatform.Status.Status).To(Equal(summonv1beta1.StatusError))
 		Expect(summonplatform.Status.Message).To(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
 
+	})
+
+	It("sets error status and message if Spec.Version and Spec.AutoDeploy both specified", func() {
+		c := helpers.TestClient
+		instance.Spec.Version = "1.2.3"
+		instance.Spec.AutoDeploy = "test-branch"
+		c.Create(instance)
+
+		summonplatform := &summonv1beta1.SummonPlatform{}
+		c.EventuallyGet(helpers.Name("foo"), summonplatform, c.EventuallyStatus(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Status).To(Equal(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Message).To(Equal("Spec.Version and Spec.AutoDeploy are both set. Must specify only one."))
 	})
 
 	It("errors if no docker image found for branch", func() {
@@ -356,25 +367,5 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		c.Status().Update(instance)
 		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
 		Eventually(instance.Status.Message).Should(Equal("autodeploy: no matching branch image for devops-non-existent-branch"))
-	})
-
-	It("deploys Version specified if both Version and AutoDeploy specified", func() {
-		c := helpers.TestClient
-		instance.Spec.AutoDeploy = "TestTag"
-		instance.Spec.Version = "1.2.3"
-		setupDeployPrereqs("foo")
-
-		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
-
-		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
-
-		// Expect the deployment to be created with the latest branch tag.
-		deployment := &appsv1.Deployment{}
-		c.EventuallyGet(helpers.Name("foo-web"), deployment)
-		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:1.2.3"))
 	})
 })

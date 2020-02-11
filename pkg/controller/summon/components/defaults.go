@@ -59,6 +59,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.New("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment.")
 	}
 
+	if instance.Spec.Version != "" && instance.Spec.AutoDeploy != "" {
+		return components.Result{}, errors.New("Spec.Version and Spec.AutoDeploy are both set. Must specify only one.")
+	}
+
 	// If the persistentVolumeClaim for redis changes this integer should as well.
 	if instance.Spec.Redis.RAM > 10 {
 		return components.Result{}, errors.New("redis memory limit cannot surpass available disk space")
