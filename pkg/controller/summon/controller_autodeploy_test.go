@@ -70,7 +70,6 @@ func addMockTags(tags []string) error {
 			fmt.Printf("ERROR adding %s to registry: %s", tag, err)
 		}
 	}
-
 	return nil
 }
 
@@ -255,7 +254,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		Expect(instance.Spec.Version).To(Equal(""))
 	})
 
-	It("triggers autodeploy reconcile when tag cache updated (via watcher)", func() {
+	It("triggers autodeploy reconcile when channel gets event (via summonplatform-controller watcher)", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "devops-feature-test"
 		tags := []string{"154551-2634073-devops-feature-test", "154480-bc4c502-devops-feature-test"}
@@ -283,44 +282,48 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 
 		// There should have been no updates to main tag cache yet.
 		Expect(gcr.LastCacheUpdate).Should(BeTemporally("<", time.Now()))
+
 		// Re-fetch the deployment object and check that there was no change to Spec.Version used.
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
-		// Instead of actually waiting 5 minutes for gcr.CachedTags to get updated which triggers
-		// the watcher to queue up autodeploy reconcile, simulate an updated CacheTag by directly modifying it
-		// and update LastCacheUpdate to now time.
-		gcr.CachedTags = append(gcr.CachedTags, "154575-cdf9c69-devops-feature-test")
-		gcr.LastCacheUpdate = time.Now()
-
-		// Need to give operators a few second to delete old job before fetching newly
-		// created one.
-		waitTimer = time.Now().Add(time.Second * 5)
-
-		// Wait instead of sleep since we need goroutines to keep running.
-		for time.Since(waitTimer) < 0 {
-		}
+		// Must wait the 5mins for watcher to periodically send events to channel. This should trigger autodeploy reconcile
+		// where CacheTag gets updated with the new tag. Thus, we wait and confirm that the cacheTag gets updated.
+		Eventually(func() bool {
+			for _, tag := range gcr.CachedTags {
+				if tag == "154575-cdf9c69-devops-feature-test" {
+					return true
+				}
+			}
+			return false
+		}, time.Minute*6).Should(BeTrue())
 
 		// Check that another migration Job was created and it's the new version.
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
-		Eventually(func() string {
-			return job.Spec.Template.Spec.Containers[0].Image
-		}, time.Minute).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+		// Try for a minute to get the migration job for the new version.
+		tryTimer := time.Now().Add(time.Minute)
+		jobImage := job.Spec.Template.Spec.Containers[0].Image
+		for time.Since(tryTimer) < 0 && jobImage != "us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test" {
+			c.EventuallyGet(helpers.Name("foo-migrations"), job)
+			// update variable to match fetched job.
+			jobImage = job.Spec.Template.Spec.Containers[0].Image
+		}
+
+		Expect(jobImage).To(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
 		c.Status().Update(job)
 
-		// Also need to wait a bit for deployment to get updated.
-		waitTimer = time.Now().Add(time.Second * 5)
-		for time.Since(waitTimer) < 0 {
+		// Check autodeploy reconcile resulted in deploying to latest image of branch.
+		tryTimer = time.Now().Add(time.Minute)
+		deployImage := deployment.Spec.Template.Spec.Containers[0].Image
+		for time.Since(tryTimer) < 0 && deployImage != "us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test" {
+			c.EventuallyGet(helpers.Name("foo-web"), deployment)
+			// update variable to match fetched deployment.
+			deployImage = deployment.Spec.Template.Spec.Containers[0].Image
 		}
 
-		// Expect deployment to deploy with latest branch tag.
-		c.EventuallyGet(helpers.Name("foo-web"), deployment)
-		Eventually(func() string {
-			return deployment.Spec.Template.Spec.Containers[0].Image
-		}, timeout).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+		Expect(deployImage).To(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
 	})
 
 	It("sets error status and message if Spec.Version and Spec.AutoDeploy not specified", func() {

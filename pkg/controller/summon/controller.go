@@ -18,6 +18,7 @@ package summon
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -146,7 +147,9 @@ func Add(mgr manager.Manager) error {
 func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Client) {
 	for {
 		// Sleep at beginning to allow r-o startup and manage autodeploy reconciles for summonplatform using autodeploy.
-		time.Sleep(gcr.CacheExpiry)
+		// Based on test runs, triggering reconcile happens ~1sec sooner than when cache expires. Better to offset
+		// the timing so when reconcile is triggered, Tag Cache is also going to get updated.
+		time.Sleep(gcr.CacheExpiry + time.Second*2)
 
 		// Get list of existing SummonPlatforms.
 		summonInstances := &summonv1beta1.SummonPlatformList{}
