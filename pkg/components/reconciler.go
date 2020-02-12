@@ -146,6 +146,7 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// Check for annotation that blocks reconciles, exit early if found
 	instance := ctx.Top.(metav1.Object)
 	annotations := instance.GetAnnotations()
+	fmt.Printf("&&&&& annotations %#v\n", annotations)
 	reconcileBlocked, ok := annotations["ridecell.io/skip-reconcile"]
 	if ok && reconcileBlocked == "true" {
 		return reconcile.Result{}, nil
@@ -214,7 +215,6 @@ func (r *reconcilerResults) mergeResult(componentResult Result, component Compon
 
 func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reconcilerResults, error) {
 	instance := ctx.Top.(metav1.Object)
-
 	ready := []Component{}
 	for _, component := range cr.components {
 		glog.V(10).Infof("[%s/%s] reconcileComponents: Checking if %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
@@ -223,7 +223,6 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reco
 			ready = append(ready, component)
 		}
 	}
-
 	res := &reconcilerResults{ctx: ctx}
 	for _, component := range ready {
 		// fmt.Printf("### Reconciling %#v\n", component)
