@@ -148,7 +148,7 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	annotations := instance.GetAnnotations()
 	reconcileBlocked, ok := annotations["ridecell.io/skip-reconcile"]
 	if ok && reconcileBlocked == "true" {
-		glog.V(2).Infof("[%s][%s] Reconcile: ridecell.io/skip-reconcile found, skipping\n", request.NamespacedName, ctx.Top.GetObjectKind().GroupVersionKind().Kind)
+		glog.Infof("[%s] %s: Skipping Reconcile\n", request.NamespacedName, cr.name)
 		return reconcile.Result{}, nil
 	}
 
