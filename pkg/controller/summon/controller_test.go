@@ -518,6 +518,6 @@ var _ = Describe("Summon controller", func() {
 
 		Consistently(func() error {
 			return c.Get(context.TODO(), helpers.Name("annotest-web"), service)
-		}, timeout).ShouldNot(Succeed())
+		}, time.Second*10).ShouldNot(Succeed())
 	})
 })
