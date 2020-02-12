@@ -314,9 +314,6 @@ workflows:
         - test_rdssnapshot
         - test_rabbitmq
         - test_other
-    - crds:
-        requires:
-        - test
     - build:
         requires:
         - test
