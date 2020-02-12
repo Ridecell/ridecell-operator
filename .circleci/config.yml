@@ -241,16 +241,6 @@ jobs:
     - run: gover
     - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
-  crds:
-    executor: rc_test
-    steps:
-    - rc_setup
-    - run: make manifests
-    - persist_to_workspace:
-        root: config
-        paths:
-        - crds
-
   build:
     docker:
     - image: us.gcr.io/ridecell-public/docker-gcloud:2018-09-17
@@ -259,7 +249,6 @@ jobs:
     - setup_remote_docker
     - attach_workspace:
         at: workspace
-    - run: cp -r workspace/crds/* config/crds/
     - run: docker build -t us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH} .
     - run: echo ${GCP_SERVICE_ACCOUNT} > gcp-key.json
     - run: gcloud auth activate-service-account --key-file gcp-key.json
@@ -325,9 +314,6 @@ workflows:
         - test_rdssnapshot
         - test_rabbitmq
         - test_other
-    - crds:
-        requires:
-        - test
     - build:
         requires:
         - test
@@ -335,7 +321,6 @@ workflows:
         - test_aws
         - test_rabbitmq
         - test_other
-        - crds
         # test_autodeploy being removed until the flakey tests are fixed
         #- test_autodeploy
         # Does not require test_rds to allow for a little more parallelism, shaves 5m off the whole process.
