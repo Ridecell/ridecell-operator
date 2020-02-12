@@ -18,7 +18,6 @@ package summon
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/golang/glog"
