@@ -493,4 +493,31 @@ var _ = Describe("Summon controller", func() {
 		// Check the status again. Should be Deploying.
 		assertStatus(summonv1beta1.StatusReady)
 	})
+
+	FIt("block all action with skip-reconcile annotation", func() {
+		c := helpers.Client
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "annotest",
+				Namespace: helpers.Namespace,
+				//Annotations: map[string]string{
+				//	"ridecell.io/skip-reconcile": "true",
+				//},
+			},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				Version: "1.2.3",
+			},
+		}
+
+		// Create the SummonPlatform object and expect the Reconcile to be created.
+		err := c.Create(context.TODO(), instance)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check whether a service obj is created
+		service := &corev1.Service{}
+
+		Consistently(func() error {
+			return c.Get(context.TODO(), helpers.Name("annotest-pullsecret"), service)
+		}, timeout).ShouldNot(Succeed())
+	})
 })
