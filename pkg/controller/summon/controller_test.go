@@ -517,7 +517,7 @@ var _ = Describe("Summon controller", func() {
 		service := &corev1.Service{}
 
 		Consistently(func() error {
-			return c.Get(context.TODO(), helpers.Name("annotest-pullsecret"), service)
+			return c.Get(context.TODO(), helpers.Name("annotest-web"), service)
 		}, timeout).ShouldNot(Succeed())
 	})
 })
