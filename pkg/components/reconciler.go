@@ -143,6 +143,14 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// diffing because the status subresource might not always be available.
 	cleanTop := ctx.Top.DeepCopyObject()
 
+	// Check for annotation that blocks reconciles, exit early if found
+	instance := ctx.Top.(metav1.Object)
+	annotations := instance.GetAnnotations()
+	reconcileBlocked, ok := annotations["ridecell.io/skip-reconcile"]
+	if ok && reconcileBlocked == "true" {
+		return reconcile.Result{}, nil
+	}
+
 	// Reconcile all the components.
 	// start := time.Now()
 	result, err := cr.reconcileComponents(ctx)
@@ -207,14 +215,6 @@ func (r *reconcilerResults) mergeResult(componentResult Result, component Compon
 func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reconcilerResults, error) {
 	instance := ctx.Top.(metav1.Object)
 
-	res := &reconcilerResults{ctx: ctx}
-
-	// Check for annotation that blocks reconciles, exit early if found
-	reconcileBlocked, ok := instance.GetAnnotations()["ridecell.io/skip-reconcile"]
-	if ok && reconcileBlocked == "true" {
-		return res, nil
-	}
-
 	ready := []Component{}
 	for _, component := range cr.components {
 		glog.V(10).Infof("[%s/%s] reconcileComponents: Checking if %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
@@ -224,6 +224,7 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reco
 		}
 	}
 
+	res := &reconcilerResults{ctx: ctx}
 	for _, component := range ready {
 		// fmt.Printf("### Reconciling %#v\n", component)
 		// start := time.Now()
