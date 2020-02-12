@@ -146,7 +146,6 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// Check for annotation that blocks reconciles, exit early if found
 	instance := ctx.Top.(metav1.Object)
 	annotations := instance.GetAnnotations()
-	fmt.Printf("&&&&& annotations %#v\n", annotations)
 	reconcileBlocked, ok := annotations["ridecell.io/skip-reconcile"]
 	if ok && reconcileBlocked == "true" {
 		return reconcile.Result{}, nil
