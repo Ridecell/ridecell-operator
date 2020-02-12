@@ -494,15 +494,15 @@ var _ = Describe("Summon controller", func() {
 		assertStatus(summonv1beta1.StatusReady)
 	})
 
-	FIt("block all action with skip-reconcile annotation", func() {
+	It("block all action with skip-reconcile annotation", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "annotest",
 				Namespace: helpers.Namespace,
-				//Annotations: map[string]string{
-				//	"ridecell.io/skip-reconcile": "true",
-				//},
+				Annotations: map[string]string{
+					"ridecell.io/skip-reconcile": "true",
+				},
 			},
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1.2.3",
