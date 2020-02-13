@@ -31,6 +31,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
@@ -287,43 +288,21 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
-		// Must wait the 5mins for watcher to periodically send events to channel. This should trigger autodeploy reconcile
-		// where CacheTag gets updated with the new tag. Thus, we wait and confirm that the cacheTag gets updated.
-		Eventually(func() bool {
-			for _, tag := range gcr.CachedTags {
-				if tag == "154575-cdf9c69-devops-feature-test" {
-					return true
-				}
-			}
-			return false
-		}, time.Minute*6).Should(BeTrue())
-
-		// Check that another migration Job was created and it's the new version.
-		// Try for a minute to get the migration job for the new version.
-		tryTimer := time.Now().Add(time.Minute)
-		jobImage := job.Spec.Template.Spec.Containers[0].Image
-		for time.Since(tryTimer) < 0 && jobImage != "us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test" {
-			c.EventuallyGet(helpers.Name("foo-migrations"), job)
-			// update variable to match fetched job.
-			jobImage = job.Spec.Template.Spec.Containers[0].Image
-		}
-
-		Expect(jobImage).To(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+		// Confirm cache tag gets updated. (Results from controller sending event and triggering autodeploy reconcile)
+		c.EventuallyGet(helpers.Name("foo-migrations"), job, c.EventuallyValue(
+			Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"),
+			func(obj runtime.Object) (interface{}, error) {
+				return obj.(*batchv1.Job).Spec.Template.Spec.Containers[0].Image, nil
+			}), c.EventuallyTimeout(time.Minute))
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
 		c.Status().Update(job)
 
 		// Check autodeploy reconcile resulted in deploying to latest image of branch.
-		tryTimer = time.Now().Add(time.Minute)
-		deployImage := deployment.Spec.Template.Spec.Containers[0].Image
-		for time.Since(tryTimer) < 0 && deployImage != "us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test" {
-			c.EventuallyGet(helpers.Name("foo-web"), deployment)
-			// update variable to match fetched deployment.
-			deployImage = deployment.Spec.Template.Spec.Containers[0].Image
-		}
-
-		Expect(deployImage).To(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+		c.EventuallyGet(helpers.Name("foo-web"), deployment, c.EventuallyValue(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"), func(obj runtime.Object) (interface{}, error) {
+			return obj.(*appsv1.Deployment).Spec.Template.Spec.Containers[0].Image, nil
+		}))
 	})
 
 	It("sets error status and message if Spec.Version and Spec.AutoDeploy not specified", func() {
