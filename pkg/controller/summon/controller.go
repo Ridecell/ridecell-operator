@@ -114,6 +114,12 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewService("dispatch/service.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("dispatch/podDisruptionBudget.yml.tpl"),
 
+		// Business Portal components.
+		summoncomponents.NewDeployment("businessPortal/deployment.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("businessPortal/podDisruptionBudget.yml.tpl"),
+		summoncomponents.NewService("businessPortal/service.yml.tpl"),
+		summoncomponents.NewIngress("businessPortal/ingress.yml.tpl"),
+
 		// Set Monitoring
 		summoncomponents.NewMonitoring(),
 
