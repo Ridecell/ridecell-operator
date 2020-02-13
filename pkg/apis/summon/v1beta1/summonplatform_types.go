@@ -127,6 +127,9 @@ type ReplicasSpec struct {
 	// Number of dispatch pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no dispatch.version is set.
 	// +optional
 	Dispatch *int32 `json:"dispatch,omitempty"`
+	// Number of business-portal pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no businessPortal.version is set.
+	// +optional
+	BusinessPortal *int32 `json:"businessPortal,omitempty"`
 }
 
 // MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
@@ -142,7 +145,13 @@ type MetricsSpec struct {
 
 // CompDispatchSpec defines settings for comp-dispatch.
 type CompDispatchSpec struct {
-	// Summon image version to deploy.
+	// Comp-dispatch image version to deploy.
+	Version string `json:"version"`
+}
+
+// CompBusinessPortalSpec defines settings for comp-business-portal.
+type CompBusinessPortalSpec struct {
+	// Comp-business-portal image version to deploy.
 	Version string `json:"version"`
 }
 
@@ -235,6 +244,9 @@ type SummonPlatformSpec struct {
 	// Settings for comp-dispatch.
 	// +optional
 	Dispatch CompDispatchSpec `json:"dispatch,omitempty"`
+	// Settings for comp-business-portal.
+	// +optional
+	BusinessPortal CompBusinessPortalSpec `json:"businessPortal,omitempty"`
 	// Feature flag to disable the CORE-1540 fixup in case it goes AWOL.
 	// To be removed when support for the 1540 fixup is removed in summon.
 	// +optional
