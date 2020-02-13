@@ -143,6 +143,15 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// diffing because the status subresource might not always be available.
 	cleanTop := ctx.Top.DeepCopyObject()
 
+	// Check for annotation that blocks reconciles, exit early if found
+	instance := ctx.Top.(metav1.Object)
+	annotations := instance.GetAnnotations()
+	reconcileBlocked, ok := annotations["ridecell.io/skip-reconcile"]
+	if ok && reconcileBlocked == "true" {
+		glog.Infof("[%s] %s: Skipping Reconcile\n", request.NamespacedName, cr.name)
+		return reconcile.Result{}, nil
+	}
+
 	// Reconcile all the components.
 	// start := time.Now()
 	result, err := cr.reconcileComponents(ctx)
