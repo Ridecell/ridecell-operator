@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: dispatch
     app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
-    app.kubernetes.io/version: {{ .Instance.Spec.Version }}
+    app.kubernetes.io/version: {{ .Instance.Spec.Dispatch.Version }}
     app.kubernetes.io/component: dispatch
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
@@ -21,7 +21,7 @@ spec:
       labels:
         app.kubernetes.io/name: dispatch
         app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
-        app.kubernetes.io/version: {{ .Instance.Spec.Version }}
+        app.kubernetes.io/version: {{ .Instance.Spec.Dispatch.Version }}
         app.kubernetes.io/component: dispatch
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator

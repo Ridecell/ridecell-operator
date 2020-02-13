@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: businessportal
     app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
-    app.kubernetes.io/version: {{ .Instance.Spec.Version }}
+    app.kubernetes.io/version: {{ .Instance.Spec.BusinessPortal.Version }}
     app.kubernetes.io/component: web
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
@@ -21,7 +21,7 @@ spec:
       labels:
         app.kubernetes.io/name: businessportal
         app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
-        app.kubernetes.io/version: {{ .Instance.Spec.Version }}
+        app.kubernetes.io/version: {{ .Instance.Spec.BusinessPortal.Version }}
         app.kubernetes.io/component: web
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
