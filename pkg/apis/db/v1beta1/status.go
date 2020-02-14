@@ -136,3 +136,16 @@ func (pgu *DbConfig) SetErrorStatus(errorMsg string) {
 	pgu.Status.Status = StatusError
 	pgu.Status.Message = errorMsg
 }
+
+func (mgr *Migration) GetStatus() components.Status {
+	return mgr.Status
+}
+
+func (mgr *Migration) SetStatus(status components.Status) {
+	mgr.Status = status.(MigrationStatus)
+}
+
+func (mgr *Migration) SetErrorStatus(errorMsg string) {
+	mgr.Status.Status = StatusError
+	mgr.Status.Message = errorMsg
+}

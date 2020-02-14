@@ -24,6 +24,7 @@ const (
 	StatusReady     = "Ready"
 	StatusCreating  = "Creating"
 	StatusModifying = "Modifying"
+	StatusMigrating = "Migrating"
 	StatusError     = "Error"
 	StatusUnknown   = "Unknown"
 	StatusSkipped   = "Skipped"
