@@ -20,7 +20,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/golang/glog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -160,9 +159,6 @@ func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Clien
 		for _, summonInstance := range summonInstances.Items {
 			if summonInstance.Spec.AutoDeploy == "" {
 				continue
-			}
-			if glog.V(5) {
-				glog.Infof("[autodeploy] Send event to channel to trigger reconcile for summon instance %s", summonInstance.ObjectMeta.Name)
 			}
 			watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
 		}

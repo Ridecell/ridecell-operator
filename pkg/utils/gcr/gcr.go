@@ -107,8 +107,5 @@ func GetLatestImageOfBranch(branchTag string) (string, error) {
 			}
 		}
 	}
-	if glog.V(5) {
-		glog.Infof("[autodeploy] Latest image for %s is %s", branchTag, latestImage)
-	}
 	return latestImage, nil
 }
