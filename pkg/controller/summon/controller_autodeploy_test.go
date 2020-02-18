@@ -240,7 +240,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
-		migration := &dbv1beta1.Migration{}
+		migration := &dbv1beta1.MigrationJob{}
 		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
@@ -263,7 +263,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
-		migration := &dbv1beta1.Migration{}
+		migration := &dbv1beta1.MigrationJob{}
 		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
@@ -289,10 +289,10 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
 		// Confirm cache tag gets updated. (Results from controller sending event and triggering autodeploy reconcile)
-		c.EventuallyGet(helpers.Name("foo-migrations"), job, c.EventuallyValue(
+		c.EventuallyGet(helpers.Name("foo"), migration, c.EventuallyValue(
 			Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"),
 			func(obj runtime.Object) (interface{}, error) {
-				return obj.(*batchv1.Job).Spec.Template.Spec.Containers[0].Image, nil
+				return obj.(*dbv1beta1.MigrationJob).Spec.Template.Spec.Containers[0].Image, nil
 			}), c.EventuallyTimeout(time.Minute))
 
 		// Mark the migrations as successful.

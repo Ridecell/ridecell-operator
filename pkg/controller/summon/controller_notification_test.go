@@ -27,7 +27,6 @@ import (
 	. "github.com/onsi/gomega"
 	ghttp "github.com/onsi/gomega/ghttp"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -161,7 +160,7 @@ var _ = Describe("Summon controller notifications", func() {
 		c.Status().Update(rmqVhost)
 
 		// Check that a migration object was created.
-		migration := &dbv1beta1.Migration{}
+		migration := &dbv1beta1.MigrationJob{}
 		c.EventuallyGet(helpers.Name(name), migration)
 
 		// Mark the migrations as successful.
