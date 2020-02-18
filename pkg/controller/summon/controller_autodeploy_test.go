@@ -31,6 +31,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
@@ -70,7 +71,6 @@ func addMockTags(tags []string) error {
 			fmt.Printf("ERROR adding %s to registry: %s", tag, err)
 		}
 	}
-
 	return nil
 }
 
@@ -255,7 +255,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		Expect(instance.Spec.Version).To(Equal(""))
 	})
 
-	It("triggers autodeploy reconcile when tag cache updated (via watcher)", func() {
+	It("triggers autodeploy reconcile when channel gets event (via summonplatform-controller watcher)", func() {
 		c := helpers.TestClient
 		instance.Spec.AutoDeploy = "devops-feature-test"
 		tags := []string{"154551-2634073-devops-feature-test", "154480-bc4c502-devops-feature-test"}
@@ -283,56 +283,49 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 
 		// There should have been no updates to main tag cache yet.
 		Expect(gcr.LastCacheUpdate).Should(BeTemporally("<", time.Now()))
+
 		// Re-fetch the deployment object and check that there was no change to Spec.Version used.
 		c.EventuallyGet(helpers.Name("foo-web"), deployment)
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
-		// Instead of actually waiting 5 minutes for gcr.CachedTags to get updated which triggers
-		// the watcher to queue up autodeploy reconcile, simulate an updated CacheTag by directly modifying it
-		// and update LastCacheUpdate to now time.
-		gcr.CachedTags = append(gcr.CachedTags, "154575-cdf9c69-devops-feature-test")
-		gcr.LastCacheUpdate = time.Now()
-
-		// Need to give operators a few second to delete old job before fetching newly
-		// created one.
-		waitTimer = time.Now().Add(time.Second * 5)
-
-		// Wait instead of sleep since we need goroutines to keep running.
-		for time.Since(waitTimer) < 0 {
-		}
-
-		// Check that another migration Job was created and it's the new version.
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
-		Eventually(func() string {
-			return job.Spec.Template.Spec.Containers[0].Image
-		}, time.Minute).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+		// Confirm cache tag gets updated. (Results from controller sending event and triggering autodeploy reconcile)
+		c.EventuallyGet(helpers.Name("foo-migrations"), job, c.EventuallyValue(
+			Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"),
+			func(obj runtime.Object) (interface{}, error) {
+				return obj.(*batchv1.Job).Spec.Template.Spec.Containers[0].Image, nil
+			}), c.EventuallyTimeout(time.Minute))
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
 		c.Status().Update(job)
 
-		// Also need to wait a bit for deployment to get updated.
-		waitTimer = time.Now().Add(time.Second * 5)
-		for time.Since(waitTimer) < 0 {
-		}
-
-		// Expect deployment to deploy with latest branch tag.
-		c.EventuallyGet(helpers.Name("foo-web"), deployment)
-		Eventually(func() string {
-			return deployment.Spec.Template.Spec.Containers[0].Image
-		}, timeout).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+		// Check autodeploy reconcile resulted in deploying to latest image of branch.
+		c.EventuallyGet(helpers.Name("foo-web"), deployment, c.EventuallyValue(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"), func(obj runtime.Object) (interface{}, error) {
+			return obj.(*appsv1.Deployment).Spec.Template.Spec.Containers[0].Image, nil
+		}))
 	})
 
 	It("sets error status and message if Spec.Version and Spec.AutoDeploy not specified", func() {
 		c := helpers.TestClient
 		c.Create(instance)
-		c.Status().Update(instance)
 
 		summonplatform := &summonv1beta1.SummonPlatform{}
 		c.EventuallyGet(helpers.Name("foo"), summonplatform, c.EventuallyStatus(summonv1beta1.StatusError))
 		Expect(summonplatform.Status.Status).To(Equal(summonv1beta1.StatusError))
 		Expect(summonplatform.Status.Message).To(Equal("Spec.Version OR Spec.AutoDeploy must be set. No Version set for deployment."))
 
+	})
+
+	It("sets error status and message if Spec.Version and Spec.AutoDeploy both specified", func() {
+		c := helpers.TestClient
+		instance.Spec.Version = "1.2.3"
+		instance.Spec.AutoDeploy = "test-branch"
+		c.Create(instance)
+
+		summonplatform := &summonv1beta1.SummonPlatform{}
+		c.EventuallyGet(helpers.Name("foo"), summonplatform, c.EventuallyStatus(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Status).To(Equal(summonv1beta1.StatusError))
+		Expect(summonplatform.Status.Message).To(Equal("Spec.Version and Spec.AutoDeploy are both set. Must specify only one."))
 	})
 
 	It("errors if no docker image found for branch", func() {
@@ -356,25 +349,5 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		c.Status().Update(instance)
 		c.EventuallyGet(helpers.Name("foo"), instance, c.EventuallyStatus(summonv1beta1.StatusError))
 		Eventually(instance.Status.Message).Should(Equal("autodeploy: no matching branch image for devops-non-existent-branch"))
-	})
-
-	It("deploys Version specified if both Version and AutoDeploy specified", func() {
-		c := helpers.TestClient
-		instance.Spec.AutoDeploy = "TestTag"
-		instance.Spec.Version = "1.2.3"
-		setupDeployPrereqs("foo")
-
-		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
-
-		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
-
-		// Expect the deployment to be created with the latest branch tag.
-		deployment := &appsv1.Deployment{}
-		c.EventuallyGet(helpers.Name("foo-web"), deployment)
-		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:1.2.3"))
 	})
 })

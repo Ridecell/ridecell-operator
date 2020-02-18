@@ -207,6 +207,12 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.Config["FIREBASE_APP"].String).To(PointTo(Equal("foo")))
 	})
 
+	It("errors if Spec.Version and Spec.Autodeploy are both set", func() {
+		instance.Spec.AutoDeploy = "test-branch"
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(HaveOccurred())
+	})
+
 	Context("missing Spec.Version", func() {
 		It("errors about requiring Spec.Version or Spec.Autodeploy being set", func() {
 			instance.Spec.Version = ""

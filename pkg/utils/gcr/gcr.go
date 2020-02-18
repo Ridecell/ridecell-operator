@@ -13,11 +13,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-const CacheExpiry time.Duration = time.Minute * 5
+const cacheExpiry time.Duration = time.Minute * 5
+const testCacheExpiry time.Duration = time.Second * 30
 
 // Global variable used for cache purposes.
 var LastCacheUpdate time.Time
 var CachedTags []string
+
+func GetCacheExpiry() time.Duration {
+	if os.Getenv("LOCAL_REGISTRY_URL") == "" {
+		return cacheExpiry
+	} else {
+		return testCacheExpiry
+	}
+}
 
 func SanitizeBranchName(branch string) (string, error) {
 	// Since the circleci build number probably won't go over 7 digits, truncate branch name to 48 chars to
@@ -48,7 +57,7 @@ func GetLatestImageOfBranch(branchTag string) (string, error) {
 	elapsed := time.Since(LastCacheUpdate)
 
 	// Fetch tags if cache expired.
-	if elapsed >= CacheExpiry {
+	if elapsed >= GetCacheExpiry() {
 		// Setup hub connection
 		var key = os.Getenv("GOOGLE_SERVICE_ACCOUNT_KEY")
 		var registry_url = os.Getenv("LOCAL_REGISTRY_URL")
