@@ -57,17 +57,15 @@ func (comp *reportingUserComponent) Reconcile(ctx *components.ComponentContext) 
 		return components.Result{}, err
 	}
 
-	row := db.QueryRow(`select COUNT(*) from pg_user where usename='reporting'`)
 	var count int
-	err = row.Scan(&count)
+	err = db.QueryRow(`select COUNT(*) from pg_user where usename='reporting'`).Scan(&count)
 
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "database: error running db check query for reporting user")
 	}
 
 	// Check if reporting was already granted permissions before.
-	row = db.QueryRow(`SELECT COUNT(*) FROM information_schema.table_privileges where grantee='reporting'`)
-	err = row.Scan(&count)
+	err = db.QueryRow(`SELECT COUNT(*) FROM information_schema.table_privileges where grantee='reporting'`).Scan(&count)
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "database: error running db check query for reporting grants")
 	}
