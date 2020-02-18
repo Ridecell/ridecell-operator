@@ -52,9 +52,8 @@ func (_ *AutoDeployComponent) WatchChannel() chan event.GenericEvent {
 func (_ *AutoDeployComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	if instance.Spec.AutoDeploy != "" && instance.Spec.Version != "" {
-		// Ideally, Version and AutoDeploy are exclusively set, but no good way to enforce it by setting
-		// errors and status since AutoDeploy needs to set Version to work. Instead, just don't reconcile
-		// Autodeploy and default to normal behavior.
+		// Ideally, Version and AutoDeploy are exclusively set. This is enforced in defaults component which
+		// will set an error. But, just in case, don't allow autodeploy to reconcile.
 		return false
 	}
 	return instance.Spec.AutoDeploy != ""
