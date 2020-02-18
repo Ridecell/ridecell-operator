@@ -14,17 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package migration_test
+package migrationjob_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
-	"github.com/Ridecell/ridecell-operator/pkg/controller/migration"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/migrationjob"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -36,10 +35,7 @@ func TestTemplates(t *testing.T) {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start(migration.Add, true)
-	os.Setenv("AWS_ACCESS_KEY_ID", "garbage")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "garbage")
-	os.Setenv("AWS_REGION", "us-east-1")
+	testHelpers = test_helpers.Start(migrationjob.Add, true)
 })
 
 var _ = ginkgo.AfterSuite(func() {

@@ -137,15 +137,15 @@ func (pgu *DbConfig) SetErrorStatus(errorMsg string) {
 	pgu.Status.Message = errorMsg
 }
 
-func (mgr *Migration) GetStatus() components.Status {
+func (mgr *MigrationJob) GetStatus() components.Status {
 	return mgr.Status
 }
 
-func (mgr *Migration) SetStatus(status components.Status) {
-	mgr.Status = status.(MigrationStatus)
+func (mgr *MigrationJob) SetStatus(status components.Status) {
+	mgr.Status = status.(MigrationJobStatus)
 }
 
-func (mgr *Migration) SetErrorStatus(errorMsg string) {
+func (mgr *MigrationJob) SetErrorStatus(errorMsg string) {
 	mgr.Status.Status = StatusError
 	mgr.Status.Message = errorMsg
 }

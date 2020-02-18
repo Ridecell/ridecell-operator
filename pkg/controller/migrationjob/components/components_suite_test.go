@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,28 +27,50 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/migration"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-var instance *dbv1beta1.Migration
+var instance *dbv1beta1.MigrationJob
 var ctx *components.ComponentContext
 
 func TestComponents(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	err := apis.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	ginkgo.RunSpecs(t, "Migration Components Suite @unit")
+	ginkgo.RunSpecs(t, "MigrationJob Components Suite @unit")
 }
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
-	instance = &dbv1beta1.Migration{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo-dev", Namespace: "summon-dev"},
-		Spec: dbv1beta1.MigrationSpec{
-			Version: "1.2.3",
+	instance = &dbv1beta1.MigrationJob{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-dev",
+			Namespace: "summon-dev",
+			Labels: map[string]string{
+				"app.kubernetes.io/version": "1.2.3",
+			},
+		},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						corev1.Container{
+							Name:    "test-job",
+							Image:   "image-name",
+							Command: []string{"yes"},
+						},
+					},
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app.kubernetes.io/version": "1.2.3",
+					},
+				},
+			},
 		},
 	}
-	ctx = components.NewTestContext(instance, migration.Templates)
+	ctx = components.NewTestContext(instance, nil)
 })
 
 // Return an int pointer because &1 doesn't work in Go.

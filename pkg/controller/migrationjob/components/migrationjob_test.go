@@ -18,58 +18,46 @@ package components_test
 
 import (
 	"context"
-	"os"
-	"strings"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	batchv1 "k8s.io/api/batch/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	//dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	migrationcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/migration/components"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	migrationcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/migrationjob/components"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Migration Migrations Component", func() {
-	comp := migrationcomponents.NewMigrations("migrations.yml.tpl")
+var _ = Describe("MigrationJob Component", func() {
+	comp := migrationcomponents.NewMigrationJob()
 
 	BeforeEach(func() {
-		comp = migrationcomponents.NewMigrations("migrations.yml.tpl")
-		os.Setenv("AWS_ACCESS_KEY_ID", "garbage")
-		os.Setenv("AWS_SECRET_ACCESS_KEY", "garbage")
+		comp = migrationcomponents.NewMigrationJob()
 	})
 
 	Describe(".Reconcile()", func() {
-		Context("with no migration job existing", func() {
-			BeforeEach(func() {
-				instance.Spec.NoCore1540Fixup = true
-			})
+		Context("with no job existing", func() {
 			It("creates a migration job", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 				job := &batchv1.Job{}
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(job.Spec.Template.Spec.Containers[0].Name).To(Equal("test-job"))
+				Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal("image-name"))
 			})
 
-			It("checks template info for a presigned url", func() {
-				instance.Spec.Flavor = "test-flavor"
+			It("checks template for a command", func() {
+				instance.Spec.Template.Spec.Containers[0].Command[0] = "yes"
 				Expect(comp).To(ReconcileContext(ctx))
 				job := &batchv1.Job{}
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(strings.Contains(job.Spec.Template.Spec.Containers[0].Command[2], "https://ridecell-flavors.s3.us-west-2.amazonaws.com/test-flavor.json.bz2")).To(BeTrue())
-			})
-
-			It("makes sure loadflavor command is not loaded into template", func() {
-				Expect(comp).To(ReconcileContext(ctx))
-				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate -v3"))
+				Expect(job.Spec.Template.Spec.Containers[0].Command[0]).To(Equal("yes"))
 			})
 		})
 
@@ -79,10 +67,19 @@ var _ = Describe("Migration Migrations Component", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-dev-migrations",
 						Namespace: "summon-dev",
-						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.3"},
+					},
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{
+								Labels: map[string]string{
+									"app.kubernetes.io/version": "1.2.3",
+								},
+							},
+						},
 					},
 				}
-				ctx.Client = fake.NewFakeClient(job)
+				err := ctx.Client.Create(context.TODO(), job)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("still has a migration job", func() {
@@ -90,31 +87,27 @@ var _ = Describe("Migration Migrations Component", func() {
 				job := &batchv1.Job{}
 				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusMigrating))
 			})
 		})
 
 		Context("with a successful migration job", func() {
-			BeforeEach(func() {
-				job := &batchv1.Job{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo-dev-migrations",
-						Namespace: "summon-dev",
-						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.3"},
-					},
-					Status: batchv1.JobStatus{
-						Succeeded: 1,
-					},
-				}
-				ctx.Client = fake.NewFakeClient(job)
-			})
-
 			It("deletes the migration", func() {
+				Expect(comp).To(ReconcileContext(ctx))
+				job := &batchv1.Job{}
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
+				Expect(err).NotTo(HaveOccurred())
+				job.Status.Succeeded = 1
+				err = ctx.Update(context.TODO(), job)
+				Expect(err).NotTo(HaveOccurred())
+
 				Expect(comp).To(ReconcileContext(ctx))
 				// Pending controller-runtime #213
 				jobs := &metav1.List{}
-				err := ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
+				err = ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(jobs.Items).To(BeEmpty())
+				Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 			})
 		})
 
@@ -126,11 +119,21 @@ var _ = Describe("Migration Migrations Component", func() {
 						Namespace: "summon-dev",
 						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.3"},
 					},
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{
+								Labels: map[string]string{
+									"app.kubernetes.io/version": "1.2.3",
+								},
+							},
+						},
+					},
 					Status: batchv1.JobStatus{
 						Failed: 1,
 					},
 				}
-				ctx.Client = fake.NewFakeClient(job)
+				err := ctx.Client.Create(context.TODO(), job)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("leaves the migration", func() {
@@ -147,13 +150,22 @@ var _ = Describe("Migration Migrations Component", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-dev-migrations",
 						Namespace: "summon-dev",
-						Labels:    map[string]string{"app.kubernetes.io/version": "1.2.2"},
+					},
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{
+								Labels: map[string]string{
+									"app.kubernetes.io/version": "1.2.2",
+								},
+							},
+						},
 					},
 					Status: batchv1.JobStatus{
 						Failed: 1,
 					},
 				}
-				ctx.Client = fake.NewFakeClient(job)
+				err := ctx.Client.Create(context.TODO(), job)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("deletes the migration and reques", func() {
@@ -175,13 +187,20 @@ var _ = Describe("Migration Migrations Component", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-dev-migrations",
 						Namespace: "summon-dev",
-						Labels:    map[string]string{},
+					},
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{
+								Labels: map[string]string{},
+							},
+						},
 					},
 					Status: batchv1.JobStatus{
 						Failed: 1,
 					},
 				}
-				ctx.Client = fake.NewFakeClient(job)
+				err := ctx.Client.Create(context.TODO(), job)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("deletes the migration and reques", func() {
@@ -194,33 +213,6 @@ var _ = Describe("Migration Migrations Component", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(jobs.Items).To(BeEmpty())
 				Expect(resp.Requeue).To(BeTrue())
-			})
-		})
-
-		Context("with a bad template", func() {
-			It("returns an error", func() {
-				comp := migrationcomponents.NewMigrations("foo")
-				_, err := comp.Reconcile(ctx)
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("core1540fixup", func() {
-			It("tries to run the CORE-1540 fixup", func() {
-				Expect(comp).To(ReconcileContext(ctx))
-				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("if [ -f common/management/commands/core_1540_pre_migrate.py ]; then python manage.py core_1540_pre_migrate; fi && python manage.py migrate -v3"))
-			})
-
-			It("honors the NoCore1540Fixup flag", func() {
-				instance.Spec.NoCore1540Fixup = true
-				Expect(comp).To(ReconcileContext(ctx))
-				job := &batchv1.Job{}
-				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: "summon-dev"}, job)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(job.Spec.Template.Spec.Containers[0].Command[2]).To(Equal("python manage.py migrate -v3"))
 			})
 		})
 	})

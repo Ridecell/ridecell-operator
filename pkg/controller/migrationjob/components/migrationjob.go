@@ -18,11 +18,8 @@ package components
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
@@ -37,57 +34,63 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-const flavorBucket = "ridecell-flavors"
+const MigrationJobFinalizer = "migration.finalizer"
 
-type migrationComponent struct {
-	templatePath string
+type migrationJobComponent struct {
 }
 
-func NewMigrations(templatePath string) *migrationComponent {
-	return &migrationComponent{templatePath: templatePath}
+func NewMigrationJob() *migrationJobComponent {
+	return &migrationJobComponent{}
 }
 
-func (comp *migrationComponent) WatchTypes() []runtime.Object {
+func (comp *migrationJobComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&batchv1.Job{},
 	}
 }
 
-func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+func (_ *migrationJobComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*dbv1beta1.Migration)
+func (comp *migrationJobComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.MigrationJob)
 
-	var urlStr string
-	if instance.Spec.Flavor != "" {
-		svc := s3.New(session.Must(session.NewSession(&aws.Config{
-			Region: aws.String("us-west-2"),
-		})))
-		req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
-			Bucket: aws.String(flavorBucket),
-			Key:    aws.String(fmt.Sprintf("%s.json.bz2", instance.Spec.Flavor)),
-		})
-
-		var err error
-		urlStr, err = req.Presign(15 * time.Minute)
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "migrations: failed to presign s3 url")
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !helpers.ContainsFinalizer(MigrationJobFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(MigrationJobFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "migration: failed to update instance while adding finalizer")
+			}
 		}
+	} else {
+		if helpers.ContainsFinalizer(MigrationJobFinalizer, instance) {
+			result, err := comp.deleteDependencies(ctx)
+			if err != nil {
+				return result, err
+			}
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(MigrationJobFinalizer, instance)
+			err = ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "migration: failed to update object while removing finalizer")
+			}
+		}
+		// If object is being deleted and has no finalizer just exit.
+		return components.Result{}, nil
 	}
 
-	extra := map[string]interface{}{}
-	extra["presignedUrl"] = urlStr
-
-	obj, err := ctx.GetTemplate(comp.templatePath, extra)
-	if err != nil {
-		return components.Result{}, err
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-migrations", instance.Name),
+			Namespace: instance.Namespace,
+		},
+		Spec: instance.Spec,
 	}
-	job := obj.(*batchv1.Job)
 
 	existing := &batchv1.Job{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, existing)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, existing)
 	if err != nil && kerrors.IsNotFound(err) {
 		glog.Infof("Creating migration Job %s/%s\n", job.Namespace, job.Name)
 		err = controllerutil.SetControllerReference(instance, job, ctx.Scheme)
@@ -98,12 +101,11 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 		err = ctx.Create(ctx.Context, job)
 		if err != nil {
 			// If this fails, someone else might have started a migraton job between the Get and here, so just try again.
-			return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: error creation migration job %s/%s, might have lost the race condition", job.Namespace, job.Name)
+			return components.Result{}, errors.Wrapf(err, "migrations: error creation migration job %s/%s, might have lost the race condition", job.Namespace, job.Name)
 		}
-		// Job is started, so we're done for now.
-
+		// Job is started, so we're done for now
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
-			instance := obj.(*dbv1beta1.Migration)
+			instance := obj.(*dbv1beta1.MigrationJob)
 			instance.Status.Status = dbv1beta1.StatusMigrating
 			return nil
 		}}, nil
@@ -114,11 +116,16 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// If we get this far, the job previously started at some point and might be done.
 	// First make sure we even care about this job, it only counts if it's for the version we want.
-	existingVersion, ok := existing.Labels["app.kubernetes.io/version"]
-	if !ok || existingVersion != instance.Spec.Version {
+	newVersion, ok := instance.Labels["app.kubernetes.io/version"]
+	if !ok {
+		return components.Result{}, errors.Wrapf(err, "migrations: unable to find version label")
+	}
+	existingVersion, ok := existing.Spec.Template.Labels["app.kubernetes.io/version"]
+	if !ok || existingVersion != newVersion {
 		glog.Infof("[%s/%s] migrations: Found existing migration job with bad version %#v\n", instance.Namespace, instance.Name, existingVersion)
 		// This is from a bad (or broken if !ok) version, try to delete it and then run again.
-		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
+		_, err = comp.deleteDependencies(ctx)
+		// Pass in redundant requeue as err is sometimes nil here
 		return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: found existing migration job %s/%s with bad version %#v", instance.Namespace, instance.Name, existingVersion)
 	}
 
@@ -126,16 +133,16 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 	if existing.Status.Succeeded > 0 {
 		// Success! Update the MigrateVersion (this will trigger a reconcile) and delete the job.
 		glog.V(2).Infof("[%s/%s] Deleting migration Job %s/%s\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
-		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
+		_, err = comp.deleteDependencies(ctx)
 		if err != nil {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: error deleting successful migration job %s/%s", existing.Namespace, existing.Name)
+			return components.Result{}, errors.Wrapf(err, "migrations: error deleting successful migration job %s/%s", existing.Namespace, existing.Name)
 		}
 
-		glog.Infof("[%s/%s] migrations: Migration job succeeded for version %s\n", instance.Namespace, instance.Name, instance.Spec.Version)
+		glog.Infof("[%s/%s] migrations: Migration job succeeded for version %s\n", instance.Namespace, instance.Name, newVersion)
 
 		// Onward to deploying!
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
-			instance := obj.(*dbv1beta1.Migration)
+			instance := obj.(*dbv1beta1.MigrationJob)
 			instance.Status.Status = dbv1beta1.StatusReady
 			return nil
 		}}, nil
@@ -150,8 +157,18 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// Job is still running, will get reconciled when it finishes.
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*dbv1beta1.Migration)
+		instance := obj.(*dbv1beta1.MigrationJob)
 		instance.Status.Status = dbv1beta1.StatusMigrating
 		return nil
 	}}, nil
+}
+
+func (_ *migrationJobComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.MigrationJob)
+	targetJob := &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-migrations", instance.Name), Namespace: instance.Namespace}}
+	err := ctx.Delete(ctx.Context, targetJob, client.PropagationPolicy(metav1.DeletePropagationBackground))
+	if err != nil && !kerrors.IsNotFound(err) {
+		return components.Result{}, errors.Wrapf(err, "migrations: error deleting migration job %s/%s", targetJob.Namespace, targetJob.Name)
+	}
+	return components.Result{}, nil
 }

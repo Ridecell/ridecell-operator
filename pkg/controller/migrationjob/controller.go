@@ -14,22 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package migration
+package migrationjob
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	migrationcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/migration/components"
+	migrationcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/migrationjob/components"
 )
 
-// Add creates a new Migration Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// Add creates a new MigrationJob Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("migration-controller", mgr, &dbv1beta1.Migration{}, Templates, []components.Component{
-		// Set default values.
-		migrationcomponents.NewMigrations("migrations.yml.tpl"),
+	_, err := components.NewReconciler("migration-job-controller", mgr, &dbv1beta1.MigrationJob{}, nil, []components.Component{
+		migrationcomponents.NewMigrationJob(),
 	})
 	return err
 }

@@ -240,12 +240,12 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+		migration := &dbv1beta1.Migration{}
+		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		//Expect deployment to deploy with latest branch tag
 		deployment := &appsv1.Deployment{}
@@ -263,12 +263,12 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+		migration := &dbv1beta1.Migration{}
+		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Expect the deployment to be created with the latest branch tag.
 		deployment := &appsv1.Deployment{}
@@ -302,14 +302,14 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		}
 
 		// Check that another migration Job was created and it's the new version.
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+		c.EventuallyGet(helpers.Name("foo"), migration)
 		Eventually(func() string {
-			return job.Spec.Template.Spec.Containers[0].Image
-		}, time.Minute).Should(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"))
+			return migration.Spec.Version
+		}, time.Minute).Should(Equal("154575-cdf9c69-devops-feature-test"))
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Also need to wait a bit for deployment to get updated.
 		waitTimer = time.Now().Add(time.Second * 5)
@@ -365,12 +365,12 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+		migration := &dbv1beta1.Migration{}
+		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Expect the deployment to be created with the latest branch tag.
 		deployment := &appsv1.Deployment{}

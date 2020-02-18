@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,46 +17,40 @@ limitations under the License.
 package v1beta1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MigrationSpec defines the desired state of Migration
-type MigrationSpec struct {
-	Version         string `json:"version"`
-	Flavor          string `json:"flavor,omitempty"`
-	EnableNewRelic  bool   `json:"enableNewRelic,omitempty"`
-	NoCore1540Fixup bool   `json:"noCore1540Fixup,omitempty"`
-}
-
-// MigrationStatus defines the observed state of Migration
-type MigrationStatus struct {
+// MigrationJobStatus defines the observed state of MigrationJob
+type MigrationJobStatus struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
+	Version string `json:"version"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Migration is the Schema for the Migrations API
+// MigrationJob is the Schema for the MigrationJobs API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-type Migration struct {
+type MigrationJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MigrationSpec   `json:"spec,omitempty"`
-	Status MigrationStatus `json:"status,omitempty"`
+	Spec   batchv1.JobSpec    `json:"spec,omitempty"`
+	Status MigrationJobStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MigrationList contains a list of Migration
-type MigrationList struct {
+// MigrationJobList contains a list of MigrationJob
+type MigrationJobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Migration `json:"items"`
+	Items           []MigrationJob `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Migration{}, &MigrationList{})
+	SchemeBuilder.Register(&MigrationJob{}, &MigrationJobList{})
 }

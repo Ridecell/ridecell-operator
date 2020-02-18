@@ -1,5 +1,5 @@
 /*
-Copyright 2018-2019 Ridecell, Inc.
+Copyright 2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var _ = Describe("PostgresExtension types", func() {
+var _ = Describe("MigrationJob types", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
@@ -38,22 +38,22 @@ var _ = Describe("PostgresExtension types", func() {
 		helpers.TeardownTest()
 	})
 
-	It("can create a PostgresExtension object", func() {
+	It("can create a MigrationJob object", func() {
 		c := helpers.Client
 		key := types.NamespacedName{
-			Name:      "postgis",
+			Name:      "migration-job",
 			Namespace: helpers.Namespace,
 		}
-		created := &dbv1beta1.PostgresExtension{
+		created := &dbv1beta1.MigrationJob{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "postgis",
+				Name:      "migration-job",
 				Namespace: helpers.Namespace,
 			},
 		}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
 
-		fetched := &dbv1beta1.PostgresExtension{}
+		fetched := &dbv1beta1.MigrationJob{}
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetched.Spec).To(Equal(created.Spec))

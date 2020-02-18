@@ -160,13 +160,13 @@ var _ = Describe("Summon controller notifications", func() {
 		}
 		c.Status().Update(rmqVhost)
 
-		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name(name+"-migrations"), job)
+		// Check that a migration object was created.
+		migration := &dbv1beta1.Migration{}
+		c.EventuallyGet(helpers.Name(name), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Mark the deployments as ready.
 		updateDeployment := func(s string) {
