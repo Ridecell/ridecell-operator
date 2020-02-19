@@ -148,6 +148,16 @@ var _ = Describe("Migration controller", func() {
 			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, &batchv1.Job{})
 		}, timeout).ShouldNot(Succeed())
 
+		// Retains ready status after job deletion
+		Consistently(func() bool {
+			fetchMigration := &dbv1beta1.MigrationJob{}
+			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, fetchMigration)
+			if err != nil {
+				return false
+			}
+			return fetchMigration.Status.Status == dbv1beta1.StatusReady
+		}, timeout).Should(BeTrue())
+
 		// Check that status is updated as expected
 		fetchMigration := &dbv1beta1.MigrationJob{}
 		err = helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: helpers.Namespace}, fetchMigration)
