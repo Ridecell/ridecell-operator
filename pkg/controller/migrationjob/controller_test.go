@@ -151,7 +151,7 @@ var _ = Describe("Migration controller", func() {
 		// Retains ready status after job deletion
 		Consistently(func() string {
 			fetchMigration := &dbv1beta1.MigrationJob{}
-			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, fetchMigration)
+			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev", Namespace: helpers.Namespace}, fetchMigration)
 			if err != nil {
 				return err.Error()
 			}
