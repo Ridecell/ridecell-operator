@@ -149,14 +149,14 @@ var _ = Describe("Migration controller", func() {
 		}, timeout).ShouldNot(Succeed())
 
 		// Retains ready status after job deletion
-		Consistently(func() bool {
+		Consistently(func() string {
 			fetchMigration := &dbv1beta1.MigrationJob{}
 			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, fetchMigration)
 			if err != nil {
-				return false
+				return err.Error()
 			}
-			return fetchMigration.Status.Status == dbv1beta1.StatusReady
-		}, timeout).Should(BeTrue())
+			return fetchMigration.Status.Status
+		}, timeout).Should(Equal(dbv1beta1.StatusReady))
 
 		// Check that status is updated as expected
 		fetchMigration := &dbv1beta1.MigrationJob{}
