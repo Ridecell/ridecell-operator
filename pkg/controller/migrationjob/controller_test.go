@@ -18,6 +18,7 @@ package migrationjob_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
@@ -74,6 +75,14 @@ var _ = Describe("Migration controller", func() {
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			helpers.DebugList(&dbv1beta1.MigrationJobList{})
+			jobs := &batchv1.JobList{}
+			helpers.TestClient.List(nil, jobs)
+			fmt.Println("Jobs:")
+			for _, item := range jobs.Items {
+				if item.Namespace == helpers.Namespace {
+					fmt.Printf("\t%s %#v %#v\n", item.Name, item.Status, item.GetDeletionTimestamp())
+				}
+			}
 		}
 		helpers.TeardownTest()
 	})
