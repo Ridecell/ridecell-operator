@@ -139,7 +139,7 @@ func (comp *migrationJobComponent) Reconcile(ctx *components.ComponentContext) (
 		// Success! Update the MigrateVersion (this will trigger a reconcile) and delete the job.
 		glog.V(2).Infof("[%s/%s] Deleting migration Job %s/%s\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
 		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
-		if err != nil {
+		if err != nil && !kerrors.IsNotFound(err) {
 			return components.Result{}, errors.Wrapf(err, "migrations: error deleting successful migration job %s/%s", existing.Namespace, existing.Name)
 		}
 
