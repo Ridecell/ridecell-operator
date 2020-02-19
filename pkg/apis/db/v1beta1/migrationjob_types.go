@@ -25,7 +25,6 @@ import (
 type MigrationJobStatus struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
-	Version string `json:"version"`
 }
 
 // +genclient

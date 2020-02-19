@@ -81,6 +81,11 @@ func (comp *migrationJobComponent) Reconcile(ctx *components.ComponentContext) (
 		return components.Result{}, nil
 	}
 
+	// If status is ready we've already migrated. Object will be cleaned up by summon controller.
+	if instance.Status.Status == dbv1beta1.StatusReady {
+		return components.Result{}, nil
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-migrations", instance.Name),
