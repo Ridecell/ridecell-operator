@@ -102,6 +102,7 @@ var _ = Describe("MigrationJob Component", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(comp).To(ReconcileContext(ctx))
+				Expect(comp).To(ReconcileContext(ctx))
 				// Pending controller-runtime #213
 				jobs := &metav1.List{}
 				err = ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
