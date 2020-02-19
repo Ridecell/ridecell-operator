@@ -93,7 +93,7 @@ var _ = Describe("Migration controller", func() {
 				return false
 			}
 			return fetchMigration.Status.Status == dbv1beta1.StatusMigrating
-		}, timeout).Should(Succeed())
+		}, timeout).Should(BeTrue())
 	})
 
 	It("finalizers delete job before deleting self", func() {
@@ -126,7 +126,7 @@ var _ = Describe("Migration controller", func() {
 		job := &batchv1.Job{}
 		// Make sure job is created
 		Eventually(func() error {
-			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, &batchv1.Job{})
+			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, job)
 		}, timeout).Should(Succeed())
 
 		// Mark job as succeeded
@@ -153,7 +153,7 @@ var _ = Describe("Migration controller", func() {
 		job := &batchv1.Job{}
 		// Make sure job is created
 		Eventually(func() error {
-			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, &batchv1.Job{})
+			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-migrations", Namespace: helpers.Namespace}, job)
 		}, timeout).Should(Succeed())
 
 		// Mark job as failed
