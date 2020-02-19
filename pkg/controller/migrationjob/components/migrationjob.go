@@ -129,7 +129,7 @@ func (comp *migrationJobComponent) Reconcile(ctx *components.ComponentContext) (
 	if !ok || existingVersion != newVersion {
 		glog.Infof("[%s/%s] migrations: Found existing migration job with bad version %#v\n", instance.Namespace, instance.Name, existingVersion)
 		// This is from a bad (or broken if !ok) version, try to delete it and then run again.
-		_, err = comp.deleteDependencies(ctx)
+		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
 		// Pass in redundant requeue as err is sometimes nil here
 		return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: found existing migration job %s/%s with bad version %#v", instance.Namespace, instance.Name, existingVersion)
 	}
@@ -138,7 +138,7 @@ func (comp *migrationJobComponent) Reconcile(ctx *components.ComponentContext) (
 	if existing.Status.Succeeded > 0 {
 		// Success! Update the MigrateVersion (this will trigger a reconcile) and delete the job.
 		glog.V(2).Infof("[%s/%s] Deleting migration Job %s/%s\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
-		_, err = comp.deleteDependencies(ctx)
+		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "migrations: error deleting successful migration job %s/%s", existing.Namespace, existing.Name)
 		}
