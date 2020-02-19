@@ -72,8 +72,3 @@ var _ = ginkgo.BeforeEach(func() {
 	}
 	ctx = components.NewTestContext(instance, nil)
 })
-
-// Return an int pointer because &1 doesn't work in Go.
-func intp(n int32) *int32 {
-	return &n
-}
