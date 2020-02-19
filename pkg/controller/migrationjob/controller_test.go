@@ -131,7 +131,7 @@ var _ = Describe("Migration controller", func() {
 
 		// Mark job as succeeded
 		job.Status.Succeeded = 1
-		err = helpers.Client.Update(context.TODO(), job)
+		err = helpers.Client.Status().Update(context.TODO(), job)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Checks that job is deleted
@@ -158,7 +158,7 @@ var _ = Describe("Migration controller", func() {
 
 		// Mark job as failed
 		job.Status.Failed = 1
-		err = helpers.Client.Update(context.TODO(), job)
+		err = helpers.Client.Status().Update(context.TODO(), job)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Checks that job is NOT deleted
