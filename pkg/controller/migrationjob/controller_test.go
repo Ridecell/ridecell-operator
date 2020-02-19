@@ -51,6 +51,7 @@ var _ = Describe("Migration controller", func() {
 			Spec: batchv1.JobSpec{
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
+						RestartPolicy: "Never",
 						Containers: []corev1.Container{
 							corev1.Container{
 								Name:    "test-job",
