@@ -136,7 +136,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (com
 }
 
 func (_ *migrationComponent) deleteMigration(ctx *components.ComponentContext, target *dbv1beta1.MigrationJob) error {
-	err := ctx.Delete(ctx.Context, target, nil)
+	err := ctx.Delete(ctx.Context, target)
 	if err != nil && !kerrors.IsNotFound(err) {
 		return errors.Wrap(err, "migrations: failed to delete migration object")
 	}

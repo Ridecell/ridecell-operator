@@ -43,7 +43,7 @@ var _ = Describe("Migration controller", func() {
 		migration = &dbv1beta1.MigrationJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo-dev",
-				Namespace: "summon-dev",
+				Namespace: helpers.Namespace,
 				Labels: map[string]string{
 					"app.kubernetes.io/version": "1.2.3",
 				},
