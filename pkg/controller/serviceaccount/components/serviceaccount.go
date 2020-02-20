@@ -21,14 +21,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iam/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	gcpv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/gcp/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/errors"
 )
 
 // Interface for an IAM client to allow for a mock implementation.
@@ -95,6 +95,10 @@ func (comp *serviceAccountComponent) Reconcile(ctx *components.ComponentContext)
 	projectPath := fmt.Sprintf("projects/%s", instance.Spec.Project)
 	serviceAccountEmail := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", instance.Spec.AccountName, instance.Spec.Project)
 	serviceAccountPath := fmt.Sprintf("%s/serviceAccounts/%s", projectPath, serviceAccountEmail)
+
+	if comp.sam == nil {
+		return components.Result{}, errors.New("Google credentials not available")
+	}
 
 	accountExists := true
 	_, err := comp.sam.Get(serviceAccountPath)

@@ -162,11 +162,11 @@ func watchForImages(watchChannel chan event.GenericEvent, k8sClient client.Clien
 		}
 
 		// Pick out each that have AutoDeploy enabled and trigger reconcile if cache was updated.
-		for _, summonInstance := range summonInstances.Items {
+		for n, summonInstance := range summonInstances.Items {
 			if summonInstance.Spec.AutoDeploy == "" {
 				continue
 			}
-			watchChannel <- event.GenericEvent{Object: &summonInstance, Meta: &summonInstance}
+			watchChannel <- event.GenericEvent{Object: &summonInstances.Items[n], Meta: &summonInstances.Items[n]}
 		}
 	}
 }
