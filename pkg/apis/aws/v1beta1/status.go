@@ -46,6 +46,19 @@ func (iu *IAMUser) SetErrorStatus(errorMsg string) {
 	iu.Status.Message = errorMsg
 }
 
+func (ir *IAMRole) GetStatus() components.Status {
+	return ir.Status
+}
+
+func (ir *IAMRole) SetStatus(status components.Status) {
+	ir.Status = status.(IAMRoleStatus)
+}
+
+func (ir *IAMRole) SetErrorStatus(errorMsg string) {
+	ir.Status.Status = StatusError
+	ir.Status.Message = errorMsg
+}
+
 func (es *ElasticSearch) GetStatus() components.Status {
 	return es.Status
 }

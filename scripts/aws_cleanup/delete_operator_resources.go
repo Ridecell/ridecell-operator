@@ -246,6 +246,36 @@ func getIAMUsersToDelete(iamsvc *iam.IAM, prefix string) ([]*string, error) {
 	return iamUsersToDelete, nil
 }
 
+func getIAMRolesToDelete(iamsvc *iam.IAM, prefix string) ([]*string, error) {
+	// List all the users
+	listRolesOutput, err := iamsvc.ListRoles(&iam.ListRolesInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	var iamRolesToDelete []*string
+	for _, role := range listRolesOutput.Roles {
+		regexString := fmt.Sprintf(`^%s-.*-summon-platform$`, prefix)
+		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(role.RoleName)))
+		if match {
+			getRoleOutput, err := iamsvc.GetRole(&iam.GetRoleInput{RoleName: role.RoleName})
+			if err != nil {
+				return nil, err
+			}
+			permissionsBoundaryArn := getRoleOutput.Role.PermissionsBoundary.PermissionsBoundaryArn
+			if aws.StringValue(permissionsBoundaryArn) != os.Getenv("AWS_TEST_ACCOUNT_PERMISSIONS_BOUNDARY_ARN") {
+				fmt.Printf("PermissionsBoundaryArn did not match for role %s, skipping\n", aws.StringValue(role.RoleName))
+			}
+			for _, tagSet := range getRoleOutput.Role.Tags {
+				if aws.StringValue(tagSet.Key) == "ridecell-operator" {
+					iamRolesToDelete = append(iamRolesToDelete, role.RoleName)
+				}
+			}
+		}
+	}
+	return iamRolesToDelete, nil
+}
+
 func deleteIamUser(iamsvc *iam.IAM, username *string) error {
 	fmt.Printf("Starting user deletion for %s:\n", aws.StringValue(username))
 
@@ -283,6 +313,33 @@ func deleteIamUser(iamsvc *iam.IAM, username *string) error {
 	fmt.Printf("- Deleting User\n")
 	//Now that other resources tied to user are deleted we can delete the user itself
 	_, err = iamsvc.DeleteUser(&iam.DeleteUserInput{UserName: username})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteIamRole(iamsvc *iam.IAM, roleName *string) error {
+	fmt.Printf("Starting role deletion for %s:\n", aws.StringValue(roleName))
+
+	// We have to delete all role policies cause AWS
+	listRolePoliciesOutput, err := iamsvc.ListRolePolicies(&iam.ListRolePoliciesInput{RoleName: roleName})
+	if err != nil {
+		return err
+	}
+	for _, policyName := range listRolePoliciesOutput.PolicyNames {
+		fmt.Printf("- Deleting Policy %s\n", aws.StringValue(policyName))
+		_, err = iamsvc.DeleteRolePolicy(&iam.DeleteRolePolicyInput{
+			RoleName:   roleName,
+			PolicyName: policyName,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Printf("- Deleting Role\n")
+	//Now that other resources tied to user are deleted we can delete the role itself
+	_, err = iamsvc.DeleteRole(&iam.DeleteRoleInput{RoleName: roleName})
 	if err != nil {
 		return err
 	}
