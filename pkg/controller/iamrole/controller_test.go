@@ -118,6 +118,12 @@ var _ = Describe("iamrole controller", func() {
 	AfterEach(func() {
 		// Delete role and see if it cleans up on its own
 		c := helpers.TestClient
+
+		// Display some debugging info if the test failed.
+		if CurrentGinkgoTestDescription().Failed {
+			helpers.DebugList(&awsv1beta1.IAMRoleList{})
+		}
+
 		c.Delete(iamRole)
 		if expectedRoleName == "" {
 			expectedRoleName = iamRole.Spec.RoleName
@@ -155,8 +161,9 @@ var _ = Describe("iamrole controller", func() {
 		c := helpers.TestClient
 		rolename := fmt.Sprintf("%s-policynotinspec-test-summon-platform", randOwnerPrefix)
 		_, err := iamsvc.CreateRole(&iam.CreateRoleInput{
-			RoleName:            aws.String(rolename),
-			PermissionsBoundary: aws.String(iamRole.Spec.PermissionsBoundaryArn),
+			RoleName:                 aws.String(rolename),
+			PermissionsBoundary:      aws.String(iamRole.Spec.PermissionsBoundaryArn),
+			AssumeRolePolicyDocument: aws.String(iamRole.Spec.AssumeRolePolicyDocument),
 		})
 		Expect(err).ToNot(HaveOccurred())
 

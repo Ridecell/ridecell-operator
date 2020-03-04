@@ -42,12 +42,12 @@ var _ = Describe("IAMRole types", func() {
 	It("can create a IAMRole object", func() {
 		c := helpers.Client
 		key := types.NamespacedName{
-			Name:      "IAMRole",
+			Name:      "test-role",
 			Namespace: helpers.Namespace,
 		}
 		created := &awsv1beta1.IAMRole{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "IAMRole",
+				Name:      "test-role",
 				Namespace: helpers.Namespace,
 			},
 		}
