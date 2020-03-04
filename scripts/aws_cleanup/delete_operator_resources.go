@@ -90,6 +90,24 @@ func main() {
 		}
 	}
 
+	iamRolesToDeleteOutput, err := getIAMRolesToDelete(iamsvc, namePrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	// If there are a ton of results something bad happened
+	if len(iamRolesToDeleteOutput) > 10 {
+		fmt.Printf("more than ten roles to delete, aborting\n")
+		os.Exit(1)
+	}
+
+	for _, iamRoleToDelete := range iamRolesToDeleteOutput {
+		err = deleteIamRole(iamsvc, iamRoleToDelete)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	rdssvc := rds.New(sess)
 	rdsInstancesToDeleteOutput, err := getRDSInstancesToDelete(rdssvc, namePrefix)
 	if err != nil {
