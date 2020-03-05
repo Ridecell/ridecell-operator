@@ -263,12 +263,12 @@ var _ = Describe("iamrole controller", func() {
 })
 
 func roleExists(roleName string) error {
-	_, err := iamsvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(iamRole.Spec.RoleName)})
+	_, err := iamsvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(roleName)})
 	return err
 }
 
 func roleHasValidTag(roleName string) bool {
-	listRoleTagsOutput, err := iamsvc.ListRoleTags(&iam.ListRoleTagsInput{RoleName: aws.String(iamRole.Spec.RoleName)})
+	listRoleTagsOutput, err := iamsvc.ListRoleTags(&iam.ListRoleTagsInput{RoleName: aws.String(roleName)})
 	if err != nil {
 		return false
 	}
