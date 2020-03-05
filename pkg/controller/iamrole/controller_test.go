@@ -303,12 +303,12 @@ func getRolePolicyDocument(roleName string, rolePolicyName string) string {
 		PolicyName: aws.String(rolePolicyName),
 	})
 	if err != nil {
-		return ""
+		return err.Error()
 	}
 
 	decoded, err := url.PathUnescape(aws.StringValue(getRolePolicy.PolicyDocument))
 	if err != nil {
-		return ""
+		return err.Error()
 	}
 	return decoded
 }
@@ -319,5 +319,9 @@ func getAssumeRolePolicyDocument(roleName string) string {
 		return err.Error()
 	}
 
-	return aws.StringValue(fetchRole.Role.AssumeRolePolicyDocument)
+	decoded, err := url.PathUnescape(aws.StringValue(fetchRole.Role.AssumeRolePolicyDocument))
+	if err != nil {
+		return err.Error()
+	}
+	return decoded
 }
