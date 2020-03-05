@@ -24,7 +24,7 @@ import (
 type IAMRoleSpec struct {
 	RoleName                 string            `json:"roleName,omitempty"`
 	InlinePolicies           map[string]string `json:"inlinePolicies,omitempty"`
-	PermissionsBoundaryArn   string            `json:"permissionsBoundaryArn"`
+	PermissionsBoundaryArn   string            `json:"permissionsBoundaryArn,omitempty"`
 	AssumeRolePolicyDocument string            `json:"assumeRolePolicyDocument"`
 }
 

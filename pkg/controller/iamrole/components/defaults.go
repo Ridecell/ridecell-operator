@@ -17,10 +17,13 @@ limitations under the License.
 package components
 
 import (
+	"os"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 type defaultsComponent struct {
@@ -44,6 +47,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// Fill in defaults.
 	if instance.Spec.RoleName == "" {
 		instance.Spec.RoleName = instance.Name
+	}
+
+	if instance.Spec.PermissionsBoundaryArn == "" {
+		defaultPermissionsBoundaryArn := os.Getenv("DEFAULT_PERMISSIONS_BOUNDARY_ARN")
+		if defaultPermissionsBoundaryArn == "" {
+			return components.Result{}, errors.New("DEFAULT_PERMISSIONS_BOUNDARY_ARN is not set")
+		}
+		instance.Spec.PermissionsBoundaryArn = defaultPermissionsBoundaryArn
 	}
 	return components.Result{}, nil
 }

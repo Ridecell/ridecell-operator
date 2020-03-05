@@ -17,20 +17,29 @@ limitations under the License.
 package components_test
 
 import (
+	"os"
+
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	iamrolecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/iamrole/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("iamrole Defaults Component", func() {
+	BeforeEach(func() {
+		os.Setenv("DEFAULT_PERMISSIONS_BOUNDARY_ARN", "defaults-test")
+	})
+
 	It("does nothing on a filled out object", func() {
 		comp := iamrolecomponents.NewDefaults()
 		instance.Spec.RoleName = "test"
+		instance.Spec.PermissionsBoundaryArn = "permboundary"
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.RoleName).To(Equal("test"))
+		Expect(instance.Spec.PermissionsBoundaryArn).To(Equal("permboundary"))
+
 	})
 
 	It("sets defaults", func() {
@@ -38,6 +47,7 @@ var _ = Describe("iamrole Defaults Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		Expect(instance.Spec.RoleName).To(Equal("test-role"))
+		Expect(instance.Spec.PermissionsBoundaryArn).To(Equal("defaults-test"))
 	})
 
 })
