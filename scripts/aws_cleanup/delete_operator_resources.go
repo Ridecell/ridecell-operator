@@ -265,7 +265,7 @@ func getIAMUsersToDelete(iamsvc *iam.IAM, prefix string) ([]*string, error) {
 }
 
 func getIAMRolesToDelete(iamsvc *iam.IAM, prefix string) ([]*string, error) {
-	// List all the users
+	// List all the roles
 	listRolesOutput, err := iamsvc.ListRoles(&iam.ListRolesInput{})
 	if err != nil {
 		return nil, err
@@ -356,7 +356,7 @@ func deleteIamRole(iamsvc *iam.IAM, roleName *string) error {
 		}
 	}
 	fmt.Printf("- Deleting Role\n")
-	//Now that other resources tied to user are deleted we can delete the role itself
+	//Now that other resources tied to role are deleted we can delete the role itself
 	_, err = iamsvc.DeleteRole(&iam.DeleteRoleInput{RoleName: roleName})
 	if err != nil {
 		return err
