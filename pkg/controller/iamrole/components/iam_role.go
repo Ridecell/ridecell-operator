@@ -137,6 +137,16 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 			RoleName:                 aws.String(roleName),
 			PermissionsBoundary:      aws.String(instance.Spec.PermissionsBoundaryArn),
 			AssumeRolePolicyDocument: aws.String(assumePolicyDocument),
+			Tags: []*iam.Tag{
+				&iam.Tag{
+					Key:   aws.String("ridecell-operator"),
+					Value: aws.String("True"),
+				},
+				&iam.Tag{
+					Key:   aws.String("Kiam"),
+					Value: aws.String("true"),
+				},
+			},
 		})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "iam_role: failed to create role")
@@ -158,7 +168,7 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		if aws.StringValue(tags.Key) == "ridecell-operator" {
 			foundOperatorTag = true
 		}
-		if aws.StringValue(tags.Key) == "iam:ResourceTag/Kiam" {
+		if aws.StringValue(tags.Key) == "Kiam" {
 			foundKiamTag = true
 		}
 	}
@@ -171,7 +181,7 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 					Value: aws.String("True"),
 				},
 				&iam.Tag{
-					Key:   aws.String("iam:ResourceTag/Kiam"),
+					Key:   aws.String("Kiam"),
 					Value: aws.String("true"),
 				},
 			},

@@ -164,6 +164,12 @@ var _ = Describe("iamrole controller", func() {
 			RoleName:                 aws.String(rolename),
 			PermissionsBoundary:      aws.String(iamRole.Spec.PermissionsBoundaryArn),
 			AssumeRolePolicyDocument: aws.String(iamRole.Spec.AssumeRolePolicyDocument),
+			Tags: []*iam.Tag{
+				&iam.Tag{
+					Key:   aws.String("ridecell-operator"),
+					Value: aws.String("True"),
+				},
+			},
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -278,7 +284,7 @@ func roleHasValidTag(roleName string) bool {
 		if aws.StringValue(TagSet.Key) == "ridecell-operator" && aws.StringValue(TagSet.Value) == "True" {
 			foundOperatorTag = true
 		}
-		if aws.StringValue(TagSet.Key) == "iam:ResourceTag/Kiam" && aws.StringValue(TagSet.Value) == "true" {
+		if aws.StringValue(TagSet.Key) == "Kiam" && aws.StringValue(TagSet.Value) == "true" {
 			foundKiamTag = true
 		}
 	}

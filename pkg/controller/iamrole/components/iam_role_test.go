@@ -262,7 +262,7 @@ func (m *mockIAMClient) ListRoleTags(input *iam.ListRoleTagsInput) (*iam.ListRol
 					Value: aws.String("True"),
 				},
 				&iam.Tag{
-					Key:   aws.String("iam:ResourceTag/Kiam"),
+					Key:   aws.String("Kiam"),
 					Value: aws.String("true"),
 				},
 			},
