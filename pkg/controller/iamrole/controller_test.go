@@ -253,7 +253,7 @@ var _ = Describe("iamrole controller", func() {
 
 		Expect(roleExists(expectedRoleName)).ToNot(HaveOccurred())
 		Expect(roleHasValidTag(expectedRoleName)).To(BeTrue())
-		Expect(getRolePolicyNames(expectedRoleName)).To(HaveLen(2))
+		Expect(getRolePolicyNames(expectedRoleName)).To(HaveLen(1))
 		Expect(getRolePolicyDocument(expectedRoleName, "test_tmpl")).To(MatchJSON(expectedInlinePolicy))
 		Expect(getAssumeRolePolicyDocument(expectedRoleName)).To(MatchJSON(expectedAssumePolicy))
 
