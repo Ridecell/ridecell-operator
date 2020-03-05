@@ -300,6 +300,18 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 }
 
 func (comp *iamRoleComponent) deleteDependencies(roleName string) (components.Result, error) {
+	// check if the role exists before listing policies to prevent AccessDenied IAM edge case
+	_, err := comp.iamAPI.GetRole(&iam.GetRoleInput{RoleName: aws.String(roleName)})
+	if err != nil {
+		aerr, ok := err.(awserr.Error)
+		if ok && aerr.Code() == iam.ErrCodeNoSuchEntityException {
+			// role no longer exists, can exit early
+			return components.Result{}, nil
+		}
+		if !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
+			return components.Result{}, errors.Wrapf(aerr, "iam_role: failed to get role")
+		}
+	}
 	// Have to delete attached policies before role deletion
 	listRolePoliciesOutput, err := comp.iamAPI.ListRolePolicies(&iam.ListRolePoliciesInput{RoleName: aws.String(roleName)})
 	// If the role doesn't exist skip error
