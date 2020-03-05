@@ -105,7 +105,7 @@ var _ = Describe("iamrole controller", func() {
 								"sqs:SendMessage",
 								"sqs:CreateQueue"
 							],
-							"Resource": "arn:aws:sqs:us-west-2::invalid"
+							"Resource": "arn:aws:sqs:us-west-1::invalid"
 						}
 					}`,
 				},
@@ -240,13 +240,13 @@ var _ = Describe("iamrole controller", func() {
 		iamRole.Spec.RoleName = fmt.Sprintf("%s-templating-test-{{ .Region }}-summon-platform", randOwnerPrefix)
 		iamRole.Spec.AssumeRolePolicyDocument = fmt.Sprintf(`{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam::%s:role/iamrole-testing-role-{{ .Region }}"},"Action": "sts:AssumeRole"}]}`, os.Getenv("AWS_TESTING_ACCOUNT_ID"))
 		iamRole.Spec.InlinePolicies = map[string]string{
-			"test_tmpl": `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn::{{ .Region }}:*"}}`,
+			"test_tmpl": `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn:aws:s3:::random-test-bucket-{{ .Region }}"}}`,
 		}
 		c.Create(iamRole)
 
-		expectedRoleName = fmt.Sprintf("%s-templating-test-us-west-2-summon-platform", randOwnerPrefix)
-		expectedAssumePolicy := fmt.Sprintf(`{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam::%s:role/iamrole-testing-role-us-west-2"},"Action": "sts:AssumeRole"}]}`, os.Getenv("AWS_TESTING_ACCOUNT_ID"))
-		expectedInlinePolicy := `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn::us-west-2:*"}}`
+		expectedRoleName = fmt.Sprintf("%s-templating-test-us-west-1-summon-platform", randOwnerPrefix)
+		expectedAssumePolicy := fmt.Sprintf(`{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam::%s:role/iamrole-testing-role-us-west-1"},"Action": "sts:AssumeRole"}]}`, os.Getenv("AWS_TESTING_ACCOUNT_ID"))
+		expectedInlinePolicy := `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn:aws:s3:::random-test-bucket-us-west-1"}}`
 
 		fetchIAMRole := &awsv1beta1.IAMRole{}
 		c.EventuallyGet(helpers.Name("test"), fetchIAMRole, c.EventuallyStatus(awsv1beta1.StatusReady))
