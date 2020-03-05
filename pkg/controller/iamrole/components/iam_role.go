@@ -70,37 +70,6 @@ func (_ *iamRoleComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*awsv1beta1.IAMRole)
 
-	// if object is not being deleted
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Is our finalizer attached to the object?
-		if !helpers.ContainsFinalizer(iamRoleFinalizer, instance) {
-			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(iamRoleFinalizer, instance)
-			err := ctx.Update(ctx.Context, instance)
-			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "iamrole: failed to update instance while adding finalizer")
-			}
-			return components.Result{Requeue: true}, nil
-		}
-	} else {
-		if helpers.ContainsFinalizer(iamRoleFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
-				result, err := comp.deleteDependencies(ctx)
-				if err != nil {
-					return result, err
-				}
-			}
-			// All operations complete, remove finalizer
-			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(iamRoleFinalizer, instance)
-			err := ctx.Update(ctx.Context, instance)
-			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "iamrole: failed to update instance while removing finalizer")
-			}
-			return components.Result{}, nil
-		}
-		// If object is being deleted and has no finalizer just exit.
-		return components.Result{}, nil
-	}
-
 	// do the template thing on all the stuff
 	templateData := templatingData{
 		Region: os.Getenv("AWS_REGION"),
@@ -123,6 +92,37 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 			return components.Result{}, err
 		}
 		inlinePolicies[policyName] = parsedPolicy
+	}
+
+	// if object is not being deleted
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Is our finalizer attached to the object?
+		if !helpers.ContainsFinalizer(iamRoleFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(iamRoleFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "iamrole: failed to update instance while adding finalizer")
+			}
+			return components.Result{Requeue: true}, nil
+		}
+	} else {
+		if helpers.ContainsFinalizer(iamRoleFinalizer, instance) {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+				result, err := comp.deleteDependencies(roleName)
+				if err != nil {
+					return result, err
+				}
+			}
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(iamRoleFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "iamrole: failed to update instance while removing finalizer")
+			}
+			return components.Result{}, nil
+		}
+		// If object is being deleted and has no finalizer just exit.
+		return components.Result{}, nil
 	}
 
 	// Try to get our role, if it can't be found create it
@@ -289,10 +289,9 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}}, nil
 }
 
-func (comp *iamRoleComponent) deleteDependencies(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*awsv1beta1.IAMRole)
+func (comp *iamRoleComponent) deleteDependencies(roleName string) (components.Result, error) {
 	// Have to delete attached policies before role deletion
-	listRolePoliciesOutput, err := comp.iamAPI.ListRolePolicies(&iam.ListRolePoliciesInput{RoleName: aws.String(instance.Spec.RoleName)})
+	listRolePoliciesOutput, err := comp.iamAPI.ListRolePolicies(&iam.ListRolePoliciesInput{RoleName: aws.String(roleName)})
 	// If the role doesn't exist skip error
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
@@ -301,14 +300,14 @@ func (comp *iamRoleComponent) deleteDependencies(ctx *components.ComponentContex
 	}
 	for _, rolePolicy := range listRolePoliciesOutput.PolicyNames {
 		_, err = comp.iamAPI.DeleteRolePolicy(&iam.DeleteRolePolicyInput{
-			RoleName:   aws.String(instance.Spec.RoleName),
+			RoleName:   aws.String(roleName),
 			PolicyName: rolePolicy,
 		})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "iam_role: failed to delete role policy for finalizer")
 		}
 	}
-	_, err = comp.iamAPI.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(instance.Spec.RoleName)})
+	_, err = comp.iamAPI.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(roleName)})
 	// If the role doesn't exist skip error
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
