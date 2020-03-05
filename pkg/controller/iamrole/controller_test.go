@@ -238,14 +238,14 @@ var _ = Describe("iamrole controller", func() {
 	It("uses templating functionality on every possible field", func() {
 		c := helpers.TestClient
 		iamRole.Spec.RoleName = fmt.Sprintf("%s-templating-test-{{ .Region }}-summon-platform", randOwnerPrefix)
-		iamRole.Spec.AssumeRolePolicyDocument = `{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam:{{ .Region }}::role/does-not-exist"},"Action": "sts:AssumeRole"}]}`
+		iamRole.Spec.AssumeRolePolicyDocument = `{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam::*:role/does-not-exist-{{ .Region }}"},"Action": "sts:AssumeRole"}]}`
 		iamRole.Spec.InlinePolicies = map[string]string{
 			"test_tmpl": `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn::{{ .Region }}:*"}}`,
 		}
 		c.Create(iamRole)
 
 		expectedRoleName = fmt.Sprintf("%s-templating-test-us-west-2-summon-platform", randOwnerPrefix)
-		expectedAssumePolicy := `{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam:us-west-2::role/does-not-exist"},"Action": "sts:AssumeRole"}]}`
+		expectedAssumePolicy := `{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam::*:role/does-not-exist-us-west-2"},"Action": "sts:AssumeRole"}]}`
 		expectedInlinePolicy := `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn::us-west-2:*"}}`
 
 		fetchIAMRole := &awsv1beta1.IAMRole{}
