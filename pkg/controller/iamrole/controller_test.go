@@ -281,8 +281,8 @@ var _ = Describe("iamrole controller", func() {
 		c.EventuallyGet(helpers.Name("controller-test-role"), fetchIAMRole, c.EventuallyStatus(awsv1beta1.StatusReady))
 
 		Expect(roleExists("controller-test-role")).ToNot(HaveOccurred())
-		Expect(roleHasValidTag(expectedRoleName)).To(BeTrue())
-		Expect(getRolePolicyNames(expectedRoleName)).To(HaveLen(0))
+		Expect(roleHasValidTag("controller-test-role")).To(BeTrue())
+		Expect(getRolePolicyNames("controller-test-role")).To(HaveLen(0))
 		expectedAssumeRolePolicyJson := fmt.Sprintf(`{
 			"Version": "2012-10-17",
 			"Statement": [
@@ -295,7 +295,7 @@ var _ = Describe("iamrole controller", func() {
 				}
 			]
 		}`, os.Getenv("TRUSTED_ROLE_ARNS"))
-		Expect(getAssumeRolePolicyDocument(iamRole.Spec.RoleName)).To(MatchJSON(expectedAssumeRolePolicyJson))
+		Expect(getAssumeRolePolicyDocument("controller-test-role")).To(MatchJSON(expectedAssumeRolePolicyJson))
 		Expect(fetchIAMRole.Spec.PermissionsBoundaryArn).To(Equal(os.Getenv("DEFAULT_PERMISSIONS_BOUNDARY_ARN")))
 
 		Expect(fetchIAMRole.ObjectMeta.Finalizers).To(HaveLen(1))
