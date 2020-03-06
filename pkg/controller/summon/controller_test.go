@@ -201,6 +201,36 @@ var _ = Describe("Summon controller", func() {
 		// Delete the Deployment and expect it to come back.
 		c.Delete(deploy)
 		c.EventuallyGet(helpers.Name("foo-web"), deploy)
+
+		// Check that component deployments are at 0 replicas by default.
+		c.EventuallyGet(helpers.Name("foo-dispatch"), deploy)
+		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
+		c.EventuallyGet(helpers.Name("foo-businessportal"), deploy)
+		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
+		c.EventuallyGet(helpers.Name("foo-tripshare"), deploy)
+		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
+		c.EventuallyGet(helpers.Name("foo-hwaux"), deploy)
+		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
+
+		// Turn on some components and check that they have replicas.
+		c.EventuallyGet(helpers.Name("foo"), instance)
+		instance.Spec.Dispatch.Version = "1234"
+		instance.Spec.TripShare.Version = "5678"
+		c.Update(instance)
+		Eventually(func() error {
+			c.Get(helpers.Name("foo-dispatch"), deploy)
+			if *deploy.Spec.Replicas != 1 {
+				return fmt.Errorf("No update yet")
+			}
+			return nil
+		}, timeout).Should(Succeed())
+		Eventually(func() error {
+			c.Get(helpers.Name("foo-dispatch"), deploy)
+			if *deploy.Spec.Replicas != 1 {
+				return fmt.Errorf("No update yet")
+			}
+			return nil
+		}, timeout).Should(Succeed())
 	})
 
 	It("reconciles labels", func() {

@@ -350,4 +350,18 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data).To(HaveKeyWithValue("Debug", true))
 	})
+
+	It("creates a comp-hw-aux secret", func() {
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.hwaux", Namespace: "summon-dev"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		data := map[string]interface{}{}
+		err = yaml.Unmarshal(fetchSecret.Data["hwaux.yml"], &data)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 })

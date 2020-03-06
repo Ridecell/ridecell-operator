@@ -130,6 +130,12 @@ type ReplicasSpec struct {
 	// Number of business-portal pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no businessPortal.version is set.
 	// +optional
 	BusinessPortal *int32 `json:"businessPortal,omitempty"`
+	// Number of trip-share pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no tripShare.version is set.
+	// +optional
+	TripShare *int32 `json:"tripShare,omitempty"`
+	// Number of hw-aux pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no hwAux.version is set.
+	// +optional
+	HwAux *int32 `json:"hwAux,omitempty"`
 }
 
 // MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
@@ -152,6 +158,18 @@ type CompDispatchSpec struct {
 // CompBusinessPortalSpec defines settings for comp-business-portal.
 type CompBusinessPortalSpec struct {
 	// Comp-business-portal image version to deploy.
+	Version string `json:"version"`
+}
+
+// CompTripShareSpec defines settings for comp-trip-share.
+type CompTripShareSpec struct {
+	// Comp-trip-share image version to deploy.
+	Version string `json:"version"`
+}
+
+// CompHwAuxSpec defines settings for comp-hw-aux.
+type CompHwAuxSpec struct {
+	// Comp-hw-aux image version to deploy.
 	Version string `json:"version"`
 }
 
@@ -247,6 +265,12 @@ type SummonPlatformSpec struct {
 	// Settings for comp-business-portal.
 	// +optional
 	BusinessPortal CompBusinessPortalSpec `json:"businessPortal,omitempty"`
+	// Settings for comp-trip-share.
+	// +optional
+	TripShare CompTripShareSpec `json:"tripShare,omitempty"`
+	// Settings for comp-hw-aux.
+	// +optional
+	HwAux CompHwAuxSpec `json:"hxAux,omitempty"`
 	// Feature flag to disable the CORE-1540 fixup in case it goes AWOL.
 	// To be removed when support for the 1540 fixup is removed in summon.
 	// +optional

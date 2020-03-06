@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Instance.Name }}-businessportal
+  name: {{ .Instance.Name }}-tripshare
   namespace: {{ .Instance.Namespace }}
   labels:
-    app.kubernetes.io/name: businessportal
-    app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
-    app.kubernetes.io/version: {{ .Instance.Spec.BusinessPortal.Version | quote }}
+    app.kubernetes.io/name: tripshare
+    app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
+    app.kubernetes.io/version: {{ .Instance.Spec.TripShare.Version | quote }}
     app.kubernetes.io/component: web
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
     metrics-enabled: "false"
 spec:
-  replicas: {{ .Instance.Spec.Replicas.BusinessPortal }}
+  replicas: {{ .Instance.Spec.Replicas.TripShare }}
   selector:
     matchLabels:
-      app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
+      app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: businessportal
-        app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
-        app.kubernetes.io/version: {{ .Instance.Spec.BusinessPortal.Version | quote }}
+        app.kubernetes.io/name: tripshare
+        app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
+        app.kubernetes.io/version: {{ .Instance.Spec.TripShare.Version | quote }}
         app.kubernetes.io/component: web
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
@@ -35,18 +35,18 @@ spec:
               topologyKey: failure-domain.beta.kubernetes.io/zone
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
           - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
       imagePullSecrets:
       - name: pull-secret
       containers:
       - name: default
-        image: "us.gcr.io/ridecell-1/comp-business-portal:{{ .Instance.Spec.BusinessPortal.Version }}"
+        image: "us.gcr.io/ridecell-1/comp-trip-share:{{ .Instance.Spec.TripShare.Version }}"
         ports:
         - containerPort: 8000
         resources:

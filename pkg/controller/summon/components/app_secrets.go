@@ -234,6 +234,9 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	dispatchSecretsData["DatabaseURL"] = strings.Replace(appSecretsData["DATABASE_URL"].(string), "postgis://", "postgres://", 1)
 	dispatchSecretsData["GoogleApiKey"] = appSecretsData["GOOGLE_MAPS_BACKEND_API_KEY"]
 
+	// Set up secrets for comp-hw-aux.
+	hwauxSecretsData := map[string]interface{}{}
+
 	// Serialize the app secrets YAML and put it in a secret.
 	yamlData, err := yaml.Marshal(appSecretsData)
 	if err != nil {
@@ -286,6 +289,23 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	})
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update comp-dispatch secret object")
+	}
+
+	// Create the comp-hw-aux secret.
+	hwauxYamlData, err := yaml.Marshal(hwauxSecretsData)
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed for comp-hw-aux")
+	}
+
+	_, _, err = ctx.CreateOrUpdate("secrets/hwaux.yml.tpl", nil, func(_, existingObj runtime.Object) error {
+		existing := existingObj.(*corev1.Secret)
+		existing.Data = map[string][]byte{
+			"hwaux.yml": hwauxYamlData,
+		}
+		return nil
+	})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update comp-hw-aux secret object")
 	}
 
 	return components.Result{}, nil
