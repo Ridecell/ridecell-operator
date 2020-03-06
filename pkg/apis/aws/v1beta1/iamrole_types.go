@@ -30,8 +30,9 @@ type IAMRoleSpec struct {
 
 // IAMRoleStatus defines the observed state of IAMRole
 type IAMRoleStatus struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status   string `json:"status"`
+	Message  string `json:"message"`
+	RoleName string `json:"roleName"`
 }
 
 // +genclient

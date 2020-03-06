@@ -273,7 +273,7 @@ func getIAMRolesToDelete(iamsvc *iam.IAM, prefix string) ([]*string, error) {
 
 	var iamRolesToDelete []*string
 	for _, role := range listRolesOutput.Roles {
-		regexString := fmt.Sprintf(`^%s-.*-summon-platform$`, prefix)
+		regexString := fmt.Sprintf(`^%s-.*`, prefix)
 		match := regexp.MustCompile(regexString).Match([]byte(aws.StringValue(role.RoleName)))
 		if match {
 			getRoleOutput, err := iamsvc.GetRole(&iam.GetRoleInput{RoleName: role.RoleName})

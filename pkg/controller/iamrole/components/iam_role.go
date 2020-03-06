@@ -71,23 +71,19 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 	instance := ctx.Top.(*awsv1beta1.IAMRole)
 
 	// do the template thing on all the stuff
-	templateData := templatingData{
-		Region: os.Getenv("AWS_REGION"),
-	}
-
-	roleName, err := templateData.parseField(instance.Spec.RoleName)
+	roleName, err := comp.parseField(instance.Spec.RoleName)
 	if err != nil {
 		return components.Result{}, err
 	}
 
-	assumePolicyDocument, err := templateData.parseField(instance.Spec.AssumeRolePolicyDocument)
+	assumePolicyDocument, err := comp.parseField(instance.Spec.AssumeRolePolicyDocument)
 	if err != nil {
 		return components.Result{}, err
 	}
 
 	inlinePolicies := map[string]string{}
 	for policyName, policyValue := range instance.Spec.InlinePolicies {
-		parsedPolicy, err := templateData.parseField(policyValue)
+		parsedPolicy, err := comp.parseField(policyValue)
 		if err != nil {
 			return components.Result{}, err
 		}
@@ -124,7 +120,6 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		// If object is being deleted and has no finalizer just exit.
 		return components.Result{}, nil
 	}
-
 	// check assumeRolePolicyDocument for valid JSON
 	// inlinepolicies is checked later in UnMarshal
 	if !json.Valid([]byte(assumePolicyDocument)) {
@@ -171,14 +166,19 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	var foundOperatorTag, foundKiamTag bool
 	for _, tags := range listRoleTagsOutput.Tags {
-		if aws.StringValue(tags.Key) == "ridecell-operator" {
+		if aws.StringValue(tags.Key) == "ridecell-operator" && aws.StringValue(tags.Value) == "True" {
 			foundOperatorTag = true
 		}
-		if aws.StringValue(tags.Key) == "Kiam" {
+		if aws.StringValue(tags.Key) == "Kiam" && aws.StringValue(tags.Value) == "true" {
 			foundKiamTag = true
 		}
 	}
-	if !foundOperatorTag || !foundKiamTag {
+
+	if !foundOperatorTag {
+		return components.Result{}, errors.New("iam_role: existing role is not tagged with ridecell-operator: True, aborting")
+	}
+
+	if !foundKiamTag {
 		_, err = comp.iamAPI.TagRole(&iam.TagRoleInput{
 			RoleName: role.RoleName,
 			Tags: []*iam.Tag{
@@ -301,6 +301,7 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		instance := obj.(*awsv1beta1.IAMRole)
 		instance.Status.Status = awsv1beta1.StatusReady
 		instance.Status.Message = "Role exists"
+		instance.Status.RoleName = aws.StringValue(role.RoleName)
 		return nil
 	}}, nil
 }
@@ -343,17 +344,21 @@ func (comp *iamRoleComponent) deleteDependencies(roleName string) (components.Re
 	return components.Result{}, nil
 }
 
-func (td *templatingData) parseField(field string) (string, error) {
+func (comp *iamRoleComponent) parseField(field string) (string, error) {
+	templateData := templatingData{
+		Region: os.Getenv("AWS_REGION"),
+	}
+
 	buff := &bytes.Buffer{}
 
 	// Create template
-	nameTemplate, err := template.New("").Parse(field)
+	fieldTemplate, err := template.New("").Parse(field)
 	if err != nil {
 		return "", errors.Wrapf(err, "iam_role: could not parse template")
 	}
 
 	// Swap template delimiters to [[]] and execute
-	err = nameTemplate.Delims("[[", "]]").Execute(buff, td)
+	err = fieldTemplate.Delims("[[", "]]").Execute(buff, templateData)
 	if err != nil {
 		return "", errors.Wrapf(err, "iam_role: could not execute template")
 	}

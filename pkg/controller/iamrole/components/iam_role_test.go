@@ -42,6 +42,7 @@ type mockIAMClient struct {
 	mockhasRolePolicies bool
 	mockExtraRolePolicy bool
 	mockRoleTagged      bool
+	mockRoleCreated     bool
 
 	deleteRole    bool
 	finalizerTest bool
@@ -77,10 +78,11 @@ var _ = Describe("iam_role aws Component", func() {
 
 	It("runs basic reconcile with no existing role", func() {
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(mockIAM.mockRoleTagged).To(BeTrue())
+		Expect(mockIAM.mockRoleCreated).To(BeTrue())
 	})
 
 	It("has extra items attached to role", func() {
+		mockIAM.mockRoleHasTags = true
 		mockIAM.mockRoleExists = true
 		mockIAM.mockExtraRolePolicy = true
 
@@ -114,6 +116,13 @@ var _ = Describe("iam_role aws Component", func() {
 
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("iam_role: role policy from spec test has invalid JSON: invalid character 'n' looking for beginning of object key string"))
+	})
+
+	It("makes sure component errors if role not properly tagged", func() {
+		mockIAM.mockRoleExists = true
+
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(MatchError("iam_role: existing role is not tagged with ridecell-operator: True, aborting"))
 	})
 
 	Describe("finalizer tests", func() {
@@ -188,6 +197,8 @@ func (m *mockIAMClient) CreateRole(input *iam.CreateRoleInput) (*iam.CreateRoleO
 	if aws.StringValue(input.AssumeRolePolicyDocument) != m.expectedPolicyDocument {
 		return &iam.CreateRoleOutput{}, errors.New("awsmock_createrole: given assume role policy document does not match spec")
 	}
+	m.mockRoleCreated = true
+	m.mockRoleHasTags = true
 	return &iam.CreateRoleOutput{Role: &iam.Role{RoleName: input.RoleName, AssumeRolePolicyDocument: input.AssumeRolePolicyDocument}}, nil
 }
 
