@@ -24,8 +24,8 @@ import (
 type IAMRoleSpec struct {
 	RoleName                 string            `json:"roleName,omitempty"`
 	InlinePolicies           map[string]string `json:"inlinePolicies,omitempty"`
+	AssumeRolePolicyDocument string            `json:"assumeRolePolicyDocument,omitempty"`
 	PermissionsBoundaryArn   string            `json:"permissionsBoundaryArn,omitempty"`
-	AssumeRolePolicyDocument string            `json:"assumeRolePolicyDocument"`
 }
 
 // IAMRoleStatus defines the observed state of IAMRole

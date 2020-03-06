@@ -17,7 +17,11 @@ limitations under the License.
 package components
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
@@ -52,9 +56,41 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.PermissionsBoundaryArn == "" {
 		defaultPermissionsBoundaryArn := os.Getenv("DEFAULT_PERMISSIONS_BOUNDARY_ARN")
 		if defaultPermissionsBoundaryArn == "" {
-			return components.Result{}, errors.New("DEFAULT_PERMISSIONS_BOUNDARY_ARN is not set")
+			return components.Result{}, errors.New("iam_role: DEFAULT_PERMISSIONS_BOUNDARY_ARN is not set")
 		}
 		instance.Spec.PermissionsBoundaryArn = defaultPermissionsBoundaryArn
 	}
+
+	if instance.Spec.AssumeRolePolicyDocument == "" {
+		trustedArnList := os.Getenv("TRUSTED_ROLE_ARNS")
+		if trustedArnList == "" {
+			return components.Result{}, errors.New("iam_role: TRUSTED_ROLE_ARNS is not set")
+		}
+
+		newStrings := strings.Split(trustedArnList, ",")
+		// Sort the arns for safety
+		sort.Strings(newStrings)
+
+		arnJSONList, err := json.Marshal(newStrings)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iam_role: unable to marshal trusted arns into json")
+		}
+
+		defaultPolicy := fmt.Sprintf(`{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": {
+						"AWS": %s
+					},
+					"Action": "sts:AssumeRole"
+				}
+			]
+		}`, string(arnJSONList))
+
+		instance.Spec.AssumeRolePolicyDocument = defaultPolicy
+	}
+
 	return components.Result{}, nil
 }

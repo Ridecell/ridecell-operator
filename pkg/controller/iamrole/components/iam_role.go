@@ -125,6 +125,12 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		return components.Result{}, nil
 	}
 
+	// check assumeRolePolicyDocument for valid JSON
+	// inlinepolicies is checked later in UnMarshal
+	if !json.Valid([]byte(assumePolicyDocument)) {
+		return components.Result{}, errors.New("iam_role: assume role trust policy contains invalid json")
+	}
+
 	// Try to get our role, if it can't be found create it
 	var role *iam.Role
 	getRoleOutput, err := comp.iamAPI.GetRole(&iam.GetRoleInput{RoleName: aws.String(roleName)})

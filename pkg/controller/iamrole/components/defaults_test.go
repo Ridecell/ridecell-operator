@@ -29,17 +29,19 @@ import (
 var _ = Describe("iamrole Defaults Component", func() {
 	BeforeEach(func() {
 		os.Setenv("DEFAULT_PERMISSIONS_BOUNDARY_ARN", "defaults-test")
+		os.Setenv("TRUSTED_ROLE_ARNS", "obtuse,rubber_goose,green_moose,guava_juice,giant_snake,birthday_cake,large_fries,chocolate_shake")
 	})
 
 	It("does nothing on a filled out object", func() {
 		comp := iamrolecomponents.NewDefaults()
 		instance.Spec.RoleName = "test"
 		instance.Spec.PermissionsBoundaryArn = "permboundary"
+		instance.Spec.AssumeRolePolicyDocument = "already_exists"
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.RoleName).To(Equal("test"))
 		Expect(instance.Spec.PermissionsBoundaryArn).To(Equal("permboundary"))
-
+		Expect(instance.Spec.AssumeRolePolicyDocument).To(Equal("already_exists"))
 	})
 
 	It("sets defaults", func() {
@@ -48,6 +50,28 @@ var _ = Describe("iamrole Defaults Component", func() {
 
 		Expect(instance.Spec.RoleName).To(Equal("test-role"))
 		Expect(instance.Spec.PermissionsBoundaryArn).To(Equal("defaults-test"))
+		expectedAssumeRolePolicyDocument := `{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": {
+						"AWS": [
+							"birthday_cake",
+							"chocolate_shake",
+							"giant_snake",
+							"green_moose",
+							"guava_juice",
+							"large_fries",
+							"obtuse",
+							"rubber_goose"
+						]
+					},
+					"Action": "sts:AssumeRole"
+				}
+			]
+		}`
+		Expect(instance.Spec.AssumeRolePolicyDocument).To(MatchJSON(expectedAssumeRolePolicyDocument))
 	})
 
 })

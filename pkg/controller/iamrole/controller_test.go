@@ -266,6 +266,41 @@ var _ = Describe("iamrole controller", func() {
 		Expect(fetchIAMRole.ObjectMeta.Finalizers).To(HaveLen(1))
 		Expect(fetchIAMRole.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
 	})
+
+	It("makes sure defaulting works as expected", func() {
+		c := helpers.TestClient
+		iamRole.Name = "controller-test-role"
+		// unset all the things
+		iamRole.Spec.RoleName = ""
+		iamRole.Spec.AssumeRolePolicyDocument = ""
+		iamRole.Spec.InlinePolicies = map[string]string{}
+		iamRole.Spec.PermissionsBoundaryArn = ""
+		c.Create(iamRole)
+
+		fetchIAMRole := &awsv1beta1.IAMRole{}
+		c.EventuallyGet(helpers.Name("controller-test-role"), fetchIAMRole, c.EventuallyStatus(awsv1beta1.StatusReady))
+
+		Expect(roleExists("controller-test-role")).ToNot(HaveOccurred())
+		Expect(roleHasValidTag(expectedRoleName)).To(BeTrue())
+		Expect(getRolePolicyNames(expectedRoleName)).To(HaveLen(0))
+		expectedAssumeRolePolicyJson := fmt.Sprintf(`{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": {
+						"AWS": [%s]
+					},
+					"Action": "sts:AssumeRole"
+				}
+			]
+		}`, os.Getenv("TRUSTED_ROLE_ARNS"))
+		Expect(getAssumeRolePolicyDocument(iamRole.Spec.RoleName)).To(MatchJSON(expectedAssumeRolePolicyJson))
+		Expect(fetchIAMRole.Spec.PermissionsBoundaryArn).To(Equal(os.Getenv("DEFAULT_PERMISSIONS_BOUNDARY_ARN")))
+
+		Expect(fetchIAMRole.ObjectMeta.Finalizers).To(HaveLen(1))
+		Expect(fetchIAMRole.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+	})
 })
 
 func roleExists(roleName string) error {
