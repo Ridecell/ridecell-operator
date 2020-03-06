@@ -283,13 +283,14 @@ var _ = Describe("iamrole controller", func() {
 		Expect(roleExists("controller-test-role")).ToNot(HaveOccurred())
 		Expect(roleHasValidTag("controller-test-role")).To(BeTrue())
 		Expect(getRolePolicyNames("controller-test-role")).To(HaveLen(0))
+		// Principal in aws return is normalized from a list to a string.
 		expectedAssumeRolePolicyJson := fmt.Sprintf(`{
 			"Version": "2012-10-17",
 			"Statement": [
 				{
 					"Effect": "Allow",
 					"Principal": {
-						"AWS": ["%s"]
+						"AWS": "%s"
 					},
 					"Action": "sts:AssumeRole"
 				}
