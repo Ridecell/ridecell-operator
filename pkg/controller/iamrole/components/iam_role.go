@@ -314,9 +314,7 @@ func (comp *iamRoleComponent) deleteDependencies(roleName string) (components.Re
 			// role no longer exists, can exit early
 			return components.Result{}, nil
 		}
-		if !ok || aerr.Code() != iam.ErrCodeNoSuchEntityException {
-			return components.Result{}, errors.Wrapf(aerr, "iam_role: failed to get role")
-		}
+		return components.Result{}, errors.Wrapf(aerr, "iam_role: failed to get role")
 	}
 	// Have to delete attached policies before role deletion
 	listRolePoliciesOutput, err := comp.iamAPI.ListRolePolicies(&iam.ListRolePoliciesInput{RoleName: aws.String(roleName)})
