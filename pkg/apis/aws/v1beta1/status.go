@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2019-2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,6 +44,19 @@ func (iu *IAMUser) SetStatus(status components.Status) {
 func (iu *IAMUser) SetErrorStatus(errorMsg string) {
 	iu.Status.Status = StatusError
 	iu.Status.Message = errorMsg
+}
+
+func (ir *IAMRole) GetStatus() components.Status {
+	return ir.Status
+}
+
+func (ir *IAMRole) SetStatus(status components.Status) {
+	ir.Status = status.(IAMRoleStatus)
+}
+
+func (ir *IAMRole) SetErrorStatus(errorMsg string) {
+	ir.Status.Status = StatusError
+	ir.Status.Message = errorMsg
 }
 
 func (es *ElasticSearch) GetStatus() components.Status {
