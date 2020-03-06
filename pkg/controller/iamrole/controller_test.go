@@ -289,7 +289,7 @@ var _ = Describe("iamrole controller", func() {
 				{
 					"Effect": "Allow",
 					"Principal": {
-						"AWS": [%s]
+						"AWS": ["%s"]
 					},
 					"Action": "sts:AssumeRole"
 				}
