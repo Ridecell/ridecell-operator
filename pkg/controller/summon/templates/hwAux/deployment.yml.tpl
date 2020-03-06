@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Instance.Name }}-dispatch
+  name: {{ .Instance.Name }}-hwaux
   namespace: {{ .Instance.Namespace }}
   labels:
-    app.kubernetes.io/name: dispatch
-    app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
-    app.kubernetes.io/version: {{ .Instance.Spec.Dispatch.Version | quote }}
-    app.kubernetes.io/component: dispatch
+    app.kubernetes.io/name: hwaux
+    app.kubernetes.io/instance: {{ .Instance.Name }}-hwaux
+    app.kubernetes.io/version: {{ .Instance.Spec.HwAux.Version | quote }}
+    app.kubernetes.io/component: hwaux
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
     metrics-enabled: "false"
 spec:
-  replicas: {{ .Instance.Spec.Replicas.Dispatch }}
+  replicas: {{ .Instance.Spec.Replicas.HwAux }}
   selector:
     matchLabels:
-      app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
+      app.kubernetes.io/instance: {{ .Instance.Name }}-hwaux
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: dispatch
-        app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
-        app.kubernetes.io/version: {{ .Instance.Spec.Dispatch.Version | quote }}
-        app.kubernetes.io/component: dispatch
+        app.kubernetes.io/name: hwaux
+        app.kubernetes.io/instance: {{ .Instance.Name }}-hwaux
+        app.kubernetes.io/version: {{ .Instance.Spec.HwAux.Version | quote }}
+        app.kubernetes.io/component: hwaux
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
         metrics-enabled: "false"
@@ -38,18 +38,18 @@ spec:
               topologyKey: failure-domain.beta.kubernetes.io/zone
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-hwaux
           - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-dispatch
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-hwaux
       imagePullSecrets:
       - name: pull-secret
       containers:
       - name: default
-        image: "us.gcr.io/ridecell-1/comp-dispatch:{{ .Instance.Spec.Dispatch.Version }}"
+        image: "us.gcr.io/ridecell-1/comp-hw-aux:{{ .Instance.Spec.HwAux.Version }}"
         ports:
         - containerPort: 8000
         resources:
@@ -74,7 +74,7 @@ spec:
           value: {{ .Instance.Name }}-summon-platform
         {{ end }}
         volumeMounts:
-        - name: dispatch-config
+        - name: hwaux-config
           mountPath: /etc/config
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
@@ -85,9 +85,9 @@ spec:
           mountPath: /var/run/secrets/gcp-service-account
         {{ end }}
       volumes:
-        - name: dispatch-config
+        - name: hwaux-config
           secret:
-            secretName: {{ .Instance.Name }}.dispatch
+            secretName: {{ .Instance.Name }}.hwaux
         {{ if .Instance.Spec.EnableNewRelic }}
         - name: newrelic
           secret:

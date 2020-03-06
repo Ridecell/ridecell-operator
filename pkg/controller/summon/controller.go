@@ -117,6 +117,17 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewService("businessPortal/service.yml.tpl"),
 		summoncomponents.NewIngress("businessPortal/ingress.yml.tpl"),
 
+		// Trip Share components.
+		summoncomponents.NewDeployment("tripShare/deployment.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("tripShare/podDisruptionBudget.yml.tpl"),
+		summoncomponents.NewService("tripShare/service.yml.tpl"),
+		summoncomponents.NewIngress("tripShare/ingress.yml.tpl"),
+
+		// Hw Aux components.
+		summoncomponents.NewDeployment("hwAux/deployment.yml.tpl"),
+		summoncomponents.NewService("hwAux/service.yml.tpl"),
+		summoncomponents.NewPodDisruptionBudget("hwAux/podDisruptionBudget.yml.tpl"),
+
 		// Set Monitoring
 		summoncomponents.NewMonitoring(),
 
