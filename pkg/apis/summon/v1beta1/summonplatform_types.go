@@ -270,7 +270,7 @@ type SummonPlatformSpec struct {
 	TripShare CompTripShareSpec `json:"tripShare,omitempty"`
 	// Settings for comp-hw-aux.
 	// +optional
-	HwAux CompHwAuxSpec `json:"hxAux,omitempty"`
+	HwAux CompHwAuxSpec `json:"hwAux,omitempty"`
 	// Feature flag to disable the CORE-1540 fixup in case it goes AWOL.
 	// To be removed when support for the 1540 fixup is removed in summon.
 	// +optional
