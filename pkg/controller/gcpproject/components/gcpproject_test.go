@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/googleapi"
 
@@ -37,7 +38,7 @@ var _ = Describe("serviceaccount serviceaccount Component", func() {
 		os.Setenv("GOOGLE_ORGANIZATION_ID", "12345")
 		comp = gppcomponents.NewProject()
 		mock = &gppcomponents.GCPCloudResourceManagerMock{
-			CreateFunc: func(_ string) (*cloudresourcemanager.Operation, error) {
+			CreateFunc: func(_ *components.ComponentContext, _ string) (*cloudresourcemanager.Operation, error) {
 				return &cloudresourcemanager.Operation{}, nil
 			},
 			GetFunc: func(_ string) (*cloudresourcemanager.Project, error) {
@@ -62,7 +63,7 @@ var _ = Describe("serviceaccount serviceaccount Component", func() {
 	})
 
 	It("creates the project if it doesn't exist", func() {
-		mock.CreateFunc = func(_ string) (*cloudresourcemanager.Operation, error) {
+		mock.CreateFunc = func(_ *components.ComponentContext, _ string) (*cloudresourcemanager.Operation, error) {
 			return &cloudresourcemanager.Operation{Done: false, Name: ""}, nil
 		}
 		mock.GetFunc = func(_ string) (*cloudresourcemanager.Project, error) {

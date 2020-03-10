@@ -22,7 +22,15 @@ import (
 
 // GCPProjectSpec defines the desired state of GCPProject
 type GCPProjectSpec struct {
-	ProjectName string `json:"projectName"`
+	ProjectID string        `json:"projectID"`
+	Parent    ProjectParent `json:"parent"`
+}
+
+// ProjectParent is used to populate cloudresourcemanager.ResourceId when project is created
+type ProjectParent struct {
+	// +kubebuilder:validation:Enum=organization;folder;project
+	Type       string `json:"type"`
+	ResourceID string `json:"resourceID"`
 }
 
 // GCPProjectStatus defines the observed state of GCPProject

@@ -44,7 +44,7 @@ var _ = ginkgo.BeforeEach(func() {
 	instance = &gcpv1beta1.GCPProject{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-project", Namespace: "default"},
 		Spec: gcpv1beta1.GCPProjectSpec{
-			ProjectName: "test-project",
+			ProjectID: "test-project",
 		},
 	}
 	ctx = components.NewTestContext(instance, nil)

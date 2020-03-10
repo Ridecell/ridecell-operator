@@ -35,7 +35,7 @@ import (
 //go:generate moq -out zz_generated.mock_cloudresourcemanager_test.go . GCPCloudResourceManager
 type GCPCloudResourceManager interface {
 	Get(string) (*cloudresourcemanager.Project, error)
-	Create(string) (*cloudresourcemanager.Operation, error)
+	Create(*components.ComponentContext, string) (*cloudresourcemanager.Operation, error)
 	GetOperation(string) (*cloudresourcemanager.Operation, error)
 }
 
@@ -56,12 +56,14 @@ func (r *realCloudResourceManager) Get(projectID string) (*cloudresourcemanager.
 	return r.svc.Projects.Get(projectID).Do()
 }
 
-func (r *realCloudResourceManager) Create(projectID string) (*cloudresourcemanager.Operation, error) {
+func (r *realCloudResourceManager) Create(ctx *components.ComponentContext, projectID string) (*cloudresourcemanager.Operation, error) {
+	instance := ctx.Top.(*gcpv1beta1.GCPProject)
+
 	newProject := &cloudresourcemanager.Project{
 		ProjectId: projectID,
 		Parent: &cloudresourcemanager.ResourceId{
-			Type: "organization",
-			Id:   os.Getenv("GOOGLE_ORGANIZATION_ID"),
+			Type: instance.Spec.Parent.Type,
+			Id:   instance.Spec.Parent.ResourceID,
 		},
 	}
 	return r.svc.Projects.Create(newProject).Do()
@@ -104,16 +106,12 @@ func (_ *gcpProjectComponent) IsReconcilable(_ *components.ComponentContext) boo
 func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*gcpv1beta1.GCPProject)
 
-	if os.Getenv("GOOGLE_ORGANIZATION_ID") == "" {
-		return components.Result{}, errors.New("gcpproject: GOOGLE_ORGANIZATION_ID env var not set")
-	}
-
 	if comp.crm == nil {
 		return components.Result{}, errors.New("gcpproject: google credentials not available")
 	}
 
 	foundProject := true
-	_, err := comp.crm.Get(instance.Spec.ProjectName)
+	_, err := comp.crm.Get(instance.Spec.ProjectID)
 	if err != nil {
 		if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
 			foundProject = false
@@ -142,7 +140,7 @@ func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (co
 		}
 
 		if needsCreate {
-			operation, err = comp.crm.Create(instance.Spec.ProjectName)
+			operation, err = comp.crm.Create(ctx, instance.Spec.ProjectID)
 			if err != nil {
 				return components.Result{}, errors.Wrap(err, "gcpproject: failed to create project")
 			}
