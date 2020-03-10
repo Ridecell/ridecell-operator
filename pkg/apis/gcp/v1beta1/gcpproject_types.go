@@ -28,7 +28,7 @@ type GCPProjectSpec struct {
 
 // ProjectParent is used to populate cloudresourcemanager.ResourceId when project is created
 type ProjectParent struct {
-	// +kubebuilder:validation:Enum=organization;folder;project
+	// +kubebuilder:validation:Enum=organization,folder,project
 	Type       string `json:"type"`
 	ResourceID string `json:"resourceID"`
 }
