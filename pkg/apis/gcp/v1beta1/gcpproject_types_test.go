@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("GCPServiceAccount types", func() {
+var _ = Describe("GCPProject types", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
@@ -39,22 +39,22 @@ var _ = Describe("GCPServiceAccount types", func() {
 		helpers.TeardownTest()
 	})
 
-	It("can create a GCPServiceAccount object", func() {
+	It("can create a GCPProject object", func() {
 		c := helpers.Client
 		key := types.NamespacedName{
-			Name:      "gcpserviceaccount",
+			Name:      "gcpproject",
 			Namespace: helpers.Namespace,
 		}
-		created := &gcpv1beta1.GCPServiceAccount{
+		created := &gcpv1beta1.GCPProject{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "gcpserviceaccount",
+				Name:      "gcpproject",
 				Namespace: helpers.Namespace,
 			},
 		}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
 
-		fetched := &gcpv1beta1.GCPServiceAccount{}
+		fetched := &gcpv1beta1.GCPProject{}
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetched.Spec).To(Equal(created.Spec))
