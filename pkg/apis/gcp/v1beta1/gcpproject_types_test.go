@@ -50,6 +50,13 @@ var _ = Describe("GCPProject types", func() {
 				Name:      "gcpproject",
 				Namespace: helpers.Namespace,
 			},
+			Spec: gcpv1beta1.GCPProjectSpec{
+				ProjectID: "role-id",
+				Parent: gcpv1beta1.ProjectParent{
+					Type:       "folder",
+					ResourceID: "id",
+				},
+			},
 		}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
@@ -58,5 +65,17 @@ var _ = Describe("GCPProject types", func() {
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetched.Spec).To(Equal(created.Spec))
+	})
+
+	It("fails to create a GCPProject object", func() {
+		c := helpers.Client
+		created := &gcpv1beta1.GCPProject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "gcpproject",
+				Namespace: helpers.Namespace,
+			},
+		}
+		err := c.Create(context.TODO(), created)
+		Expect(err).To(HaveOccurred())
 	})
 })
