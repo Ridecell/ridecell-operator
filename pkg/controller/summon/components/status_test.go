@@ -48,6 +48,7 @@ var _ = Describe("SummonPlatform Status Component", func() {
 	}
 
 	BeforeEach(func() {
+		os.Setenv("ENABLE_NEW_STATUS_CHECK", "false")
 		webDeployment = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-web", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
