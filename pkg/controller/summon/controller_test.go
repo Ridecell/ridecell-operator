@@ -18,6 +18,7 @@ package summon_test
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -55,6 +56,7 @@ var _ = Describe("Summon controller", func() {
 				"filler": []byte{}}}
 		err = helpers.Client.Create(context.TODO(), appSecrets)
 		Expect(err).NotTo(HaveOccurred())
+		os.Setenv("ENABLE_NEW_STATUS_CHECK", "false")
 	})
 
 	AfterEach(func() {
@@ -550,4 +552,165 @@ var _ = Describe("Summon controller", func() {
 			return c.Get(context.TODO(), helpers.Name("annotest-web"), service)
 		}, time.Second*10).ShouldNot(Succeed())
 	})
+
+	It("manages the new status behavior correctly", func() {
+		c := helpers.Client
+
+		os.Setenv("ENABLE_NEW_STATUS_CHECK", "true")
+
+		// Create a SummonPlatform and related objects.
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				Version: "1-abcdef1-master",
+				Secrets: []string{"statustester"},
+			},
+		}
+		err := c.Create(context.TODO(), instance)
+		Expect(err).NotTo(HaveOccurred())
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.postgres-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretdbpass",
+			},
+		}
+		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
+		// Create fake aws creds from iam_user controller
+		accessKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.aws-credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("test"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test"),
+			},
+		}
+		err = c.Create(context.TODO(), accessKey)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create fake rmq creds from rabbitmquser controller
+		rmqSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.rabbitmq-user-password", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretrabbitpass",
+			},
+		}
+		err = c.Create(context.TODO(), rmqSecret)
+
+		Expect(err).NotTo(HaveOccurred())
+		inSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
+			StringData: map[string]string{},
+		}
+		err = c.Create(context.TODO(), inSecret)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Wait for the database to be created.
+		db := &dbv1beta1.PostgresDatabase{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester", Namespace: helpers.Namespace}, db)
+		}, timeout).Should(Succeed())
+
+		// Check the status. Should not be set yet.
+		assertStatus := func(status string) {
+			Eventually(func() (string, error) {
+				err := c.Get(context.TODO(), types.NamespacedName{Name: "statustester", Namespace: helpers.Namespace}, instance)
+				return instance.Status.Status, err
+			}, timeout).Should(Equal(status))
+		}
+		assertStatus("")
+
+		// Set the database to Running
+		db.Status.Status = dbv1beta1.StatusReady
+		db.Status.Connection = dbv1beta1.PostgresConnection{
+			Host:     "summon-dev-database",
+			Username: "statustester_dev",
+			Database: "statustester_dev",
+			PasswordSecretRef: apihelpers.SecretRef{
+				Name: "statustester.postgres-user-password",
+				Key:  "password",
+			},
+		}
+		err = c.Status().Update(context.TODO(), db)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Check the status. Should still be Initializing.
+		assertStatus(summonv1beta1.StatusInitializing)
+
+		// Set the pull secret to ready.
+		pullSecret := &secretsv1beta1.PullSecret{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-pullsecret", Namespace: helpers.Namespace}, pullSecret)
+		}, timeout).Should(Succeed())
+		pullSecret.Status.Status = secretsv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), pullSecret)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set the rmq vhost to ready.
+		rmqVhost := &dbv1beta1.RabbitmqVhost{}
+		helpers.TestClient.EventuallyGet(helpers.Name("statustester"), rmqVhost)
+		rmqVhost.Status = dbv1beta1.RabbitmqVhostStatus{
+			Status: dbv1beta1.StatusReady,
+			Connection: dbv1beta1.RabbitmqStatusConnection{
+				Host:     "rabbitmqserver",
+				Username: "statustester-user",
+				Vhost:    "statustester",
+				PasswordSecretRef: apihelpers.SecretRef{
+					Name: "statustester.rabbitmq-user-password",
+					Key:  "password",
+				},
+			},
+		}
+		helpers.TestClient.Status().Update(rmqVhost)
+
+		// Check the status again. Should be Migrating.
+		assertStatus(summonv1beta1.StatusMigrating)
+
+		// Mark the migration as a success.
+		job := &batchv1.Job{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-migrations", Namespace: helpers.Namespace}, job)
+		}, timeout).Should(Succeed())
+		job.Status.Succeeded = 1
+		err = c.Status().Update(context.TODO(), job)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Check the status again. Should be Deploying.
+		assertStatus(summonv1beta1.StatusDeploying)
+
+		// Set deployments and statefulsets to ready.
+		updateDeployment := func(s string) {
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, deployment)
+			}, timeout).Should(Succeed())
+			deployment.Status.Replicas = 1
+			deployment.Status.ReadyReplicas = 1
+			deployment.Status.UpdatedReplicas = 1
+			deployment.Status.UnavailableReplicas = 0
+			err = c.Status().Update(context.TODO(), deployment)
+			Expect(err).NotTo(HaveOccurred())
+		}
+		updateStatefulSet := func(s string) {
+			statefulset := &appsv1.StatefulSet{}
+			Eventually(func() error {
+				return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, statefulset)
+			}, timeout).Should(Succeed())
+			Expect(err).NotTo(HaveOccurred())
+			statefulset.Status.Replicas = 1
+			statefulset.Status.ReadyReplicas = 1
+			statefulset.Status.UpdatedReplicas = 1
+			err = c.Status().Update(context.TODO(), statefulset)
+			Expect(err).NotTo(HaveOccurred())
+		}
+		updateDeployment("web")
+		updateDeployment("daphne")
+		updateDeployment("celeryd")
+		updateDeployment("channelworker")
+		updateDeployment("static")
+		updateStatefulSet("celerybeat")
+
+		// Check the status again. Should be Deploying.
+		assertStatus(summonv1beta1.StatusReady)
+	})
+
 })
