@@ -113,7 +113,9 @@ func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (co
 	foundProject := true
 	_, err := comp.crm.Get(instance.Spec.ProjectID)
 	if err != nil {
-		if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
+		// Google appears to respond with a 403 when a project doesn't exist.
+		// Catch 404 anyway just in case this assumption is wrong.
+		if gErr, ok := err.(*googleapi.Error); ok && (gErr.Code == 404 || gErr.Code == 403) {
 			foundProject = false
 		} else {
 			return components.Result{}, errors.Wrap(err, "gcpproject: failed to get project")
