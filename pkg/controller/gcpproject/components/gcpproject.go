@@ -22,8 +22,11 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/cloudresourcemanager/v1"
+	"google.golang.org/api/firebase/v1beta1"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	gcpv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/gcp/v1beta1"
@@ -39,8 +42,20 @@ type GCPCloudResourceManager interface {
 	GetOperation(string) (*cloudresourcemanager.Operation, error)
 }
 
+// Interface for a firebase client to allow for a mock implementation.
+//go:generate moq -out zz_generated.mock_firebase_test.go . GCPFirebase
+type GCPFirebase interface {
+	Get(string) (*firebase.FirebaseProject, error)
+	AddFirebase(string) (*firebase.Operation, error)
+	GetOperation(string) (*firebase.Operation, error)
+}
+
 type realCloudResourceManager struct {
 	svc *cloudresourcemanager.Service
+}
+
+type realFirebase struct {
+	svc *firebase.Service
 }
 
 func newRealCloudResourceManager() (*realCloudResourceManager, error) {
@@ -50,6 +65,18 @@ func newRealCloudResourceManager() (*realCloudResourceManager, error) {
 	}
 
 	return &realCloudResourceManager{svc: svc}, nil
+}
+
+func newRealFirebase() (*realFirebase, error) {
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: os.Getenv("MACHINE_USER_ACCESS_TOKEN"),
+	})
+	svc, err := firebase.NewService(context.Background(), option.WithTokenSource(tokenSource))
+	if err != nil {
+		return nil, err
+	}
+
+	return &realFirebase{svc: svc}, nil
 }
 
 func (r *realCloudResourceManager) Get(projectID string) (*cloudresourcemanager.Project, error) {
@@ -73,8 +100,21 @@ func (r *realCloudResourceManager) GetOperation(name string) (*cloudresourcemana
 	return r.svc.Operations.Get(name).Do()
 }
 
+func (r *realFirebase) Get(projectID string) (*firebase.FirebaseProject, error) {
+	return r.svc.Projects.Get(projectID).Do()
+}
+
+func (r *realFirebase) GetOperation(name string) (*firebase.Operation, error) {
+	return r.svc.Operations.Get(name).Do()
+}
+
+func (r *realFirebase) AddFirebase(projectID string) (*firebase.Operation, error) {
+	return r.svc.Projects.AddFirebase(projectID, &firebase.AddFirebaseRequest{}).Do()
+}
+
 type gcpProjectComponent struct {
-	crm GCPCloudResourceManager
+	crm      GCPCloudResourceManager
+	firebase GCPFirebase
 }
 
 func NewProject() *gcpProjectComponent {
@@ -86,13 +126,28 @@ func NewProject() *gcpProjectComponent {
 			// We need better handling of this, so far we haven't have components that can fail to create.
 			log.Fatal(err)
 		}
+
 	}
 
-	return &gcpProjectComponent{crm: crm}
+	var firebase GCPFirebase
+	if os.Getenv("MACHINE_USER_ACCESS_TOKEN") != "" {
+		var err error
+		firebase, err = newRealFirebase()
+		if err != nil {
+			// We need better handling of this, so far we haven't have components that can fail to create.
+			log.Fatal(err)
+		}
+	}
+
+	return &gcpProjectComponent{crm: crm, firebase: firebase}
 }
 
 func (comp *gcpProjectComponent) InjectCRM(crm GCPCloudResourceManager) {
 	comp.crm = crm
+}
+
+func (comp *gcpProjectComponent) InjectFirebase(firebase GCPFirebase) {
+	comp.firebase = firebase
 }
 
 func (_ *gcpProjectComponent) WatchTypes() []runtime.Object {
@@ -105,8 +160,8 @@ func (_ *gcpProjectComponent) IsReconcilable(_ *components.ComponentContext) boo
 
 func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*gcpv1beta1.GCPProject)
-
-	if comp.crm == nil {
+	// All of this code makes me a bit sad if i'm honest
+	if comp.crm == nil || comp.firebase == nil {
 		return components.Result{}, errors.New("gcpproject: google credentials not available")
 	}
 
@@ -128,8 +183,8 @@ func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (co
 		var needsCreate bool
 		// Storing and retrieving the operation name from status is not preferred
 		// Google does not appear to expose operations.list for projects however
-		if instance.Status.OperationName != "" {
-			operation, err = comp.crm.GetOperation(instance.Status.OperationName)
+		if instance.Status.ProjectOperationName != "" {
+			operation, err = comp.crm.GetOperation(instance.Status.ProjectOperationName)
 			if err != nil {
 				if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
 					needsCreate = true
@@ -153,7 +208,8 @@ func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (co
 			return components.Result{
 				StatusModifier: func(obj runtime.Object) error {
 					instance := obj.(*gcpv1beta1.GCPProject)
-					instance.Status.OperationName = operation.Name
+					instance.Status.Message = "Waiting on project creation."
+					instance.Status.ProjectOperationName = operation.Name
 					return nil
 				},
 				RequeueAfter: time.Minute,
@@ -161,11 +217,65 @@ func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (co
 		}
 	}
 
-	// Clear operation name if exists and move on
+	if instance.Spec.EnableFirebase != nil && *instance.Spec.EnableFirebase {
+		foundFirebase := true
+		_, err := comp.firebase.Get(instance.Spec.ProjectID)
+		if err != nil {
+			if err != nil {
+				// This doesn't throw 403 unless the GCP Project does not exist.
+				if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
+					foundFirebase = false
+				} else {
+					return components.Result{}, errors.Wrap(err, "gcpproject: failed to get firebase project")
+				}
+			}
+		}
+
+		if !foundFirebase {
+			var firebaseOperation *firebase.Operation
+			var firebaseNeedsCreate bool
+			if instance.Status.FirebaseOperationName != "" {
+				firebaseOperation, err = comp.firebase.GetOperation(instance.Status.FirebaseOperationName)
+				if err != nil {
+					if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
+						firebaseNeedsCreate = true
+					} else {
+						return components.Result{}, errors.Wrap(err, "gcpproject: failed to get operation")
+					}
+				}
+			} else {
+				firebaseNeedsCreate = true
+			}
+
+			if firebaseNeedsCreate {
+				firebaseOperation, err = comp.firebase.AddFirebase(instance.Spec.ProjectID)
+				if err != nil {
+					return components.Result{}, errors.Wrap(err, "gcpproject: failed to add firebase to project")
+				}
+			}
+
+			if !firebaseOperation.Done {
+				return components.Result{
+					StatusModifier: func(obj runtime.Object) error {
+						instance := obj.(*gcpv1beta1.GCPProject)
+						instance.Status.Message = "Waiting on firebase creation."
+						instance.Status.ProjectOperationName = ""
+						instance.Status.FirebaseOperationName = firebaseOperation.Name
+						return nil
+					},
+					RequeueAfter: time.Minute,
+				}, nil
+			}
+		}
+	}
+
+	// Clear operation names if exists and move on
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*gcpv1beta1.GCPProject)
 		instance.Status.Status = gcpv1beta1.StatusReady
-		instance.Status.OperationName = ""
+		instance.Status.Message = "Ready"
+		instance.Status.ProjectOperationName = ""
+		instance.Status.FirebaseOperationName = ""
 		return nil
 	}}, nil
 }

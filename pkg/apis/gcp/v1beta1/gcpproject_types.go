@@ -22,8 +22,9 @@ import (
 
 // GCPProjectSpec defines the desired state of GCPProject
 type GCPProjectSpec struct {
-	ProjectID string        `json:"projectID"`
-	Parent    ProjectParent `json:"parent"`
+	ProjectID      string        `json:"projectID"`
+	Parent         ProjectParent `json:"parent"`
+	EnableFirebase *bool         `json:"enableFirebase,omitempty"`
 }
 
 // ProjectParent is used to populate cloudresourcemanager.ResourceId when project is created
@@ -35,9 +36,10 @@ type ProjectParent struct {
 
 // GCPProjectStatus defines the observed state of GCPProject
 type GCPProjectStatus struct {
-	Status        string `json:"status"`
-	Message       string `json:"message"`
-	OperationName string `json:"operationName,omitempty"`
+	Status                string `json:"status"`
+	Message               string `json:"message"`
+	ProjectOperationName  string `json:"projectOperationName,omitempty"`
+	FirebaseOperationName string `json:"firebaseOperationName,omitempty"`
 }
 
 // +genclient
