@@ -28,6 +28,7 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("gcpproject-controller", mgr, &gcpv1beta1.GCPProject{}, nil, []components.Component{
+		gcpprojectcomponents.NewDefaults(),
 		gcpprojectcomponents.NewGCPProject(),
 		gcpprojectcomponents.NewFirebaseProject(),
 		gcpprojectcomponents.NewBilling(),
