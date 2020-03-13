@@ -17,7 +17,6 @@ limitations under the License.
 package components_test
 
 import (
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -25,20 +24,17 @@ import (
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"google.golang.org/api/cloudresourcemanager/v1"
-	"google.golang.org/api/firebase/v1beta1"
 	"google.golang.org/api/googleapi"
 
 	gppcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/gcpproject/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("serviceaccount serviceaccount Component", func() {
-	comp := gppcomponents.NewProject()
+var _ = Describe("gcpproject gcpproject Component", func() {
+	comp := gppcomponents.NewGCPProject()
 	var crmmock *gppcomponents.GCPCloudResourceManagerMock
-	var firebasemock *gppcomponents.GCPFirebaseMock
 	BeforeEach(func() {
-		os.Setenv("GOOGLE_ORGANIZATION_ID", "12345")
-		comp = gppcomponents.NewProject()
+		comp = gppcomponents.NewGCPProject()
 		crmmock = &gppcomponents.GCPCloudResourceManagerMock{
 			CreateFunc: func(_ *components.ComponentContext, _ string) (*cloudresourcemanager.Operation, error) {
 				return &cloudresourcemanager.Operation{}, nil
@@ -51,19 +47,7 @@ var _ = Describe("serviceaccount serviceaccount Component", func() {
 			},
 		}
 
-		firebasemock = &gppcomponents.GCPFirebaseMock{
-			GetFunc: func(_ string) (*firebase.FirebaseProject, error) {
-				return &firebase.FirebaseProject{}, nil
-			},
-			GetOperationFunc: func(_ string) (*firebase.Operation, error) {
-				return &firebase.Operation{}, nil
-			},
-			AddFirebaseFunc: func(_ string) (*firebase.Operation, error) {
-				return &firebase.Operation{}, nil
-			},
-		}
 		comp.InjectCRM(crmmock)
-		comp.InjectFirebase(firebasemock)
 	})
 
 	Describe("IsReconcilable", func() {
@@ -116,52 +100,5 @@ var _ = Describe("serviceaccount serviceaccount Component", func() {
 		Expect(crmmock.GetCalls()).To(HaveLen(3))
 		Expect(crmmock.GetOperationCalls()).To(HaveLen(2))
 		Expect(crmmock.CreateCalls()).To(HaveLen(1))
-
-		// None of the firebase stuff should have fired.
-		Expect(firebasemock.GetCalls()).To(HaveLen(0))
-		Expect(firebasemock.GetOperationCalls()).To(HaveLen(0))
-		Expect(firebasemock.AddFirebaseCalls()).To(HaveLen(0))
-	})
-
-	It("adds firebase to an existing project", func() {
-		trueBool := true
-		instance.Spec.EnableFirebase = &trueBool
-		crmmock.GetFunc = func(_ string) (*cloudresourcemanager.Project, error) {
-			// returning nil means it exists!
-			return nil, nil
-		}
-
-		firebasemock.GetFunc = func(_ string) (*firebase.FirebaseProject, error) {
-			// Return a 404 to signal that firebase has not been added to project
-			return nil, &googleapi.Error{Code: 404}
-		}
-
-		res, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.RequeueAfter).To(Equal(time.Minute))
-		Expect(crmmock.GetCalls()).To(HaveLen(1))
-		Expect(crmmock.GetOperationCalls()).To(HaveLen(0))
-		Expect(crmmock.CreateCalls()).To(HaveLen(0))
-
-		Expect(firebasemock.GetCalls()).To(HaveLen(1))
-		Expect(firebasemock.GetOperationCalls()).To(HaveLen(0))
-		Expect(firebasemock.AddFirebaseCalls()).To(HaveLen(1))
-
-		// Signal firebase operation as done
-		instance.Status.FirebaseOperationName = "firebase-operation"
-		firebasemock.GetOperationFunc = func(_ string) (*firebase.Operation, error) {
-			return &firebase.Operation{Done: true}, nil
-		}
-
-		res, err = comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.RequeueAfter).To(Equal(time.Second * 0))
-		Expect(crmmock.GetCalls()).To(HaveLen(2))
-		Expect(crmmock.GetOperationCalls()).To(HaveLen(0))
-		Expect(crmmock.CreateCalls()).To(HaveLen(0))
-
-		Expect(firebasemock.GetCalls()).To(HaveLen(2))
-		Expect(firebasemock.GetOperationCalls()).To(HaveLen(1))
-		Expect(firebasemock.AddFirebaseCalls()).To(HaveLen(1))
 	})
 })

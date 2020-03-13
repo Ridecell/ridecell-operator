@@ -47,5 +47,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.EnableFirebase = &enableFirebaseDefault
 	}
 
+	if instance.Spec.EnableBilling == nil {
+		enableBillingDefault := false
+		instance.Spec.EnableBilling = &enableBillingDefault
+	}
+
 	return components.Result{}, nil
 }

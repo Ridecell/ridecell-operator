@@ -25,6 +25,7 @@ type GCPProjectSpec struct {
 	ProjectID      string        `json:"projectID"`
 	Parent         ProjectParent `json:"parent"`
 	EnableFirebase *bool         `json:"enableFirebase,omitempty"`
+	EnableBilling  *bool         `json:"enableBilling,omitempty"`
 }
 
 // ProjectParent is used to populate cloudresourcemanager.ResourceId when project is created

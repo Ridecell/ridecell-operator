@@ -31,9 +31,11 @@ var _ = Describe("gcpproject Defaults Component", func() {
 		comp := gcpprojectcomponents.NewDefaults()
 		trueBool := true
 		instance.Spec.EnableFirebase = &trueBool
+		instance.Spec.EnableBilling = &trueBool
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.EnableFirebase).To(PointTo(BeTrue()))
+		Expect(instance.Spec.EnableBilling).To(PointTo(BeTrue()))
 	})
 
 	It("sets defaults", func() {
@@ -41,6 +43,7 @@ var _ = Describe("gcpproject Defaults Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		Expect(instance.Spec.EnableFirebase).To(PointTo(BeFalse()))
+		Expect(instance.Spec.EnableBilling).To(PointTo(BeFalse()))
 	})
 
 })
