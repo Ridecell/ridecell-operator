@@ -27,9 +27,10 @@ import (
 // Add creates a new iamuser Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("project-controller", mgr, &gcpv1beta1.GCPProject{}, nil, []components.Component{
+	_, err := components.NewReconciler("gcpproject-controller", mgr, &gcpv1beta1.GCPProject{}, nil, []components.Component{
 		gcpprojectcomponents.NewGCPProject(),
 		gcpprojectcomponents.NewFirebaseProject(),
+		gcpprojectcomponents.NewBilling(),
 	})
 	return err
 }

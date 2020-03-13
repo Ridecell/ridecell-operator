@@ -142,7 +142,6 @@ func (comp *firebaseProjectComponent) Reconcile(ctx *components.ComponentContext
 					StatusModifier: func(obj runtime.Object) error {
 						instance := obj.(*gcpv1beta1.GCPProject)
 						instance.Status.Message = "Waiting on firebase creation."
-						instance.Status.ProjectOperationName = ""
 						instance.Status.FirebaseOperationName = firebaseOperation.Name
 						return nil
 					},
