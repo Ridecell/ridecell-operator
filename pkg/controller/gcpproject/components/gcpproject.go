@@ -166,8 +166,6 @@ func (comp *gcpProjectComponent) Reconcile(ctx *components.ComponentContext) (co
 	// Clear operation names if exists and move on
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*gcpv1beta1.GCPProject)
-		instance.Status.Status = gcpv1beta1.StatusReady
-		instance.Status.Message = "Ready"
 		instance.Status.ProjectOperationName = ""
 		return nil
 	}}, nil

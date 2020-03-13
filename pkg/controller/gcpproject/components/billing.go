@@ -120,6 +120,7 @@ func (comp *billingComponent) Reconcile(ctx *components.ComponentContext) (compo
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*gcpv1beta1.GCPProject)
 		instance.Status.Status = gcpv1beta1.StatusReady
+		instance.Status.Message = "Ready"
 		return nil
 	}}, nil
 }
