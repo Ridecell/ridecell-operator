@@ -17,6 +17,8 @@ limitations under the License.
 package components_test
 
 import (
+	"os"
+
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,15 +29,23 @@ import (
 
 var _ = Describe("gcpproject Defaults Component", func() {
 
+	BeforeEach(func() {
+		os.Setenv("FIREBASE_DATABASE_DEFAULT_RULES", "not empty")
+	})
+
 	It("does nothing on a filled out object", func() {
 		comp := gcpprojectcomponents.NewDefaults()
 		trueBool := true
 		instance.Spec.EnableFirebase = &trueBool
 		instance.Spec.EnableBilling = &trueBool
+		instance.Spec.EnableRealtimeDatabase = &trueBool
+		instance.Spec.RealtimeDatabaseRules = `{"test": "true"}`
 
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.EnableFirebase).To(PointTo(BeTrue()))
 		Expect(instance.Spec.EnableBilling).To(PointTo(BeTrue()))
+		Expect(instance.Spec.EnableRealtimeDatabase).To(PointTo(BeTrue()))
+		Expect(instance.Spec.RealtimeDatabaseRules).To(Equal(`{"test": "true"}`))
 	})
 
 	It("sets defaults", func() {
@@ -44,6 +54,8 @@ var _ = Describe("gcpproject Defaults Component", func() {
 
 		Expect(instance.Spec.EnableFirebase).To(PointTo(BeFalse()))
 		Expect(instance.Spec.EnableBilling).To(PointTo(BeFalse()))
+		Expect(instance.Spec.EnableRealtimeDatabase).To(PointTo(BeFalse()))
+		Expect(instance.Spec.RealtimeDatabaseRules).To(Equal("not empty"))
 	})
 
 })

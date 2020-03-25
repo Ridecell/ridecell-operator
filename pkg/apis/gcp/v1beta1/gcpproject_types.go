@@ -22,10 +22,12 @@ import (
 
 // GCPProjectSpec defines the desired state of GCPProject
 type GCPProjectSpec struct {
-	ProjectID      string        `json:"projectID"`
-	Parent         ProjectParent `json:"parent"`
-	EnableFirebase *bool         `json:"enableFirebase,omitempty"`
-	EnableBilling  *bool         `json:"enableBilling,omitempty"`
+	ProjectID              string        `json:"projectID"`
+	Parent                 ProjectParent `json:"parent"`
+	EnableFirebase         *bool         `json:"enableFirebase,omitempty"`
+	EnableBilling          *bool         `json:"enableBilling,omitempty"`
+	EnableRealtimeDatabase *bool         `json:"enableRealtimeDatabase,omitempty"`
+	RealtimeDatabaseRules  string        `json:"realtimeDatabaseRules,omitempty"`
 }
 
 // ProjectParent is used to populate cloudresourcemanager.ResourceId when project is created

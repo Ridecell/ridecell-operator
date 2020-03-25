@@ -17,7 +17,10 @@ limitations under the License.
 package components
 
 import (
+	"os"
+
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	gcpv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/gcp/v1beta1"
@@ -50,6 +53,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.EnableBilling == nil {
 		enableBillingDefault := false
 		instance.Spec.EnableBilling = &enableBillingDefault
+	}
+
+	if instance.Spec.EnableRealtimeDatabase == nil {
+		enableRealtimeDatabaseDefault := false
+		instance.Spec.EnableRealtimeDatabase = &enableRealtimeDatabaseDefault
+	}
+
+	if instance.Spec.RealtimeDatabaseRules == "" {
+		defaultRules := os.Getenv("FIREBASE_DATABASE_DEFAULT_RULES")
+		if defaultRules == "" {
+			return components.Result{}, errors.New("gcpproject: FIREBASE_DATABASE_DEFAULT_RULES is not set")
+		}
+		instance.Spec.RealtimeDatabaseRules = defaultRules
 	}
 
 	return components.Result{}, nil

@@ -116,11 +116,5 @@ func (comp *billingComponent) Reconcile(ctx *components.ComponentContext) (compo
 		}
 	}
 
-	// Clear operation names if exists and move on
-	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*gcpv1beta1.GCPProject)
-		instance.Status.Status = gcpv1beta1.StatusReady
-		instance.Status.Message = "Ready"
-		return nil
-	}}, nil
+	return components.Result{}, nil
 }
