@@ -39,7 +39,10 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 		putCount = 0
 		httpMock = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == "GET" {
-				w.Write([]byte("{}"))
+				_, err := w.Write([]byte("{}"))
+				if err != nil {
+					panic(err)
+				}
 				getCount++
 			}
 
@@ -70,6 +73,7 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 	Describe("with flag set", func() {
 		BeforeEach(func() {
 			trueBool := true
+			instance.Spec.EnableFirebase = &trueBool
 			instance.Spec.EnableRealtimeDatabase = &trueBool
 		})
 
@@ -84,7 +88,10 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 			instance.Spec.RealtimeDatabaseRules = `{"test": "dothetest"}`
 			httpMock = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method == "GET" {
-					w.Write([]byte(`{"test": "dothetest"}`))
+					_, err := w.Write([]byte(`{"test": "dothetest"}`))
+					if err != nil {
+						panic(err)
+					}
 					getCount++
 				}
 
