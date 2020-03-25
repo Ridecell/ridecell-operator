@@ -36,7 +36,12 @@ import (
 )
 
 func newRealHTTPClient() (*http.Client, error) {
-	client, err := google.DefaultClient(context.Background())
+	// Scopes pulled from firebase-tools
+	client, err := google.DefaultClient(context.Background(),
+		"email", "openid",
+		"https://www.googleapis.com/auth/cloudplatformprojects.readonly",
+		"https://www.googleapis.com/auth/firebase",
+		"https://www.googleapis.com/auth/cloud-platform")
 	if err != nil {
 		return nil, err
 	}
