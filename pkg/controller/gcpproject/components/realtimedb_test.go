@@ -66,19 +66,15 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 
 	Describe("StripComments", func() {
 		It("handles a bunch of edge cases", func() {
-			type testCase struct {
-				input    string
-				expected string
-			}
 
-			testCases := []testCase{
-				testCase{
+			testCases := []struct{ input, expected string }{
+				{
 					input: `// comment at the beginning of doc
 					{"foo": "bar"}`,
 					expected: `
 					{"foo": "bar"}`,
 				},
-				testCase{
+				{
 					input: `{// should be removed
 						"foo": "bar",//does not remove comma
 						"test": "yes"
@@ -88,7 +84,7 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 						"test": "yes"
 						}`,
 				},
-				testCase{
+				{
 					input: `{/*
 						blocky 2
 						*/
@@ -98,7 +94,7 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 						"foo": "bar"
 						}`,
 				},
-				testCase{
+				{
 					input: `//this comment gets removed
 					{"foo": "http://this.url.should.remain.untouched/path"}//this also gets removed`,
 					expected: `
