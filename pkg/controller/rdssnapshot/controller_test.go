@@ -45,6 +45,7 @@ var rdsInstanceID *string
 
 var _ = Describe("rdssnapshot controller", func() {
 	var helpers *test_helpers.PerTestHelpers
+	var randOwnerPrefix string
 
 	BeforeEach(func() {
 		if os.Getenv("AWS_TESTING_ACCOUNT_ID") == "" {
@@ -70,7 +71,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 		rdssvc = rds.New(sess)
 
-		randOwnerPrefix := os.Getenv("RAND_OWNER_PREFIX")
+		randOwnerPrefix = os.Getenv("RAND_OWNER_PREFIX")
 		if randOwnerPrefix == "" {
 			panic("$RAND_OWNER_PREFIX not set, failing test")
 		}
@@ -99,7 +100,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 	It("creates a snapshot with no ttl", func() {
 		c := helpers.TestClient
-		rdsSnapshot.Name = fmt.Sprintf("no-ttl")
+		rdsSnapshot.Name = fmt.Sprintf("%s-no-ttl", randOwnerPrefix)
 		c.Create(rdsSnapshot)
 
 		fetchSnapshot := &dbv1beta1.RDSSnapshot{}
@@ -120,7 +121,7 @@ var _ = Describe("rdssnapshot controller", func() {
 
 	It("creates snapshot with a ttl", func() {
 		c := helpers.TestClient
-		rdsSnapshot.Name = fmt.Sprintf("five-minute-ttl")
+		rdsSnapshot.Name = fmt.Sprintf("%s-five-minute-ttl", randOwnerPrefix)
 		rdsSnapshot.Spec.TTL.Duration = time.Minute * 5
 		c.Create(rdsSnapshot)
 
