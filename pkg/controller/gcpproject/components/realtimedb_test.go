@@ -64,6 +64,54 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 		})
 	})
 
+	Describe("StripComments", func() {
+		It("handles a bunch of edge cases", func() {
+			type testCase struct {
+				input    string
+				expected string
+			}
+
+			testCases := []testCase{
+				testCase{
+					input: `// comment at the beginning of doc
+					{"foo": "bar"}`,
+					expected: `
+					{"foo": "bar"}`,
+				},
+				testCase{
+					input: `{// should be removed
+						"foo": "bar",//does not remove comma
+						"test": "yes"
+						}`,
+					expected: `{
+						"foo": "bar",
+						"test": "yes"
+						}`,
+				},
+				testCase{
+					input: `{/*
+						blocky 2
+						*/
+						"foo": /* if you do this you're a monster */"bar"
+						}`,
+					expected: `{
+						"foo": "bar"
+						}`,
+				},
+				testCase{
+					input: `//this comment gets removed
+					{"foo": "http://this.url.should.remain.untouched/path"}//this also gets removed`,
+					expected: `
+					{"foo": "http://this.url.should.remain.untouched/path"}`,
+				},
+			}
+
+			for _, test := range testCases {
+				Expect(string(comp.StripComments([]byte(test.input)))).To(Equal(test.expected))
+			}
+		})
+	})
+
 	It("does nothing if the flag is not set", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(getCount).To(Equal(0))
@@ -118,8 +166,7 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 							{
 							"key": /* block comment gets removed */ "value",// Comma isn't removed
 							// Normal comments get removed
-							"foo": "http://this.url.should.be.preserved", /* more block comments */
-							"failCompare": "true"
+							"foo": "http://this.url.should.be.preserved" /* more block comments */
 							}`))
 					if err != nil {
 						panic(err)
@@ -134,7 +181,7 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 			comp.InjectHTTPClient(httpMock.Client(), httpMock.URL)
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(getCount).To(Equal(1))
-			Expect(putCount).To(Equal(1))
+			Expect(putCount).To(Equal(0))
 		})
 	})
 })
