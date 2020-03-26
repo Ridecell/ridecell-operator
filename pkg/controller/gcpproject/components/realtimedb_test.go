@@ -104,5 +104,37 @@ var _ = Describe("gcpproject realtimedb Component", func() {
 			Expect(getCount).To(Equal(1))
 			Expect(putCount).To(Equal(0))
 		})
+
+		It("tests out the comment stripping behavior", func() {
+			instance.Spec.RealtimeDatabaseRules = `// comments at the beginning are removed
+				{
+				"key": /* block comment gets removed */ "value",// Comma isn't removed
+				// Normal comments get removed
+				"foo": "http://this.url.should.be.preserved" /* more block comments */
+				}`
+			httpMock = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == "GET" {
+					_, err := w.Write([]byte(`//comments at the beginning are removed
+							{
+							"key": /* block comment gets removed */ "value",// Comma isn't removed
+							// Normal comments get removed
+							"foo": "http://this.url.should.be.preserved", /* more block comments */
+							"failCompare": "true"
+							}`))
+					if err != nil {
+						panic(err)
+					}
+					getCount++
+				}
+
+				if r.Method == "PUT" {
+					putCount++
+				}
+			}))
+			comp.InjectHTTPClient(httpMock.Client(), httpMock.URL)
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(getCount).To(Equal(1))
+			Expect(putCount).To(Equal(1))
+		})
 	})
 })

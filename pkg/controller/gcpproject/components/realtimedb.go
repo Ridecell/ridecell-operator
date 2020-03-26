@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
@@ -98,7 +99,7 @@ func (comp *realtimedbComponent) Reconcile(ctx *components.ComponentContext) (co
 
 		// Parse default rules into interface
 		var specRulesJSON interface{}
-		err := json.Unmarshal([]byte(instance.Spec.RealtimeDatabaseRules), &specRulesJSON)
+		err := json.Unmarshal(comp.stripComments([]byte(instance.Spec.RealtimeDatabaseRules)), &specRulesJSON)
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "gcpproject: failed to parse spec database rules")
 		}
@@ -115,7 +116,7 @@ func (comp *realtimedbComponent) Reconcile(ctx *components.ComponentContext) (co
 		}
 
 		var rulesJSON interface{}
-		err = json.Unmarshal(rulesBytes, &rulesJSON)
+		err = json.Unmarshal(comp.stripComments(rulesBytes), &rulesJSON)
 		if err != nil {
 			return components.Result{}, errors.Wrap(err, "gcpproject: failed to parse database rules")
 		}
@@ -143,4 +144,13 @@ func (comp *realtimedbComponent) Reconcile(ctx *components.ComponentContext) (co
 		instance.Status.Message = "Ready"
 		return nil
 	}}, nil
+}
+
+// We have to strip out C style comments to parse into json
+// Firebase uses them by default for reasons
+func (_ *realtimedbComponent) stripComments(input []byte) []byte {
+	// Matches block comments
+	input = regexp.MustCompile(`\/\*[\s\S]*?\*\/`).ReplaceAll(input, nil)
+	// Matches "//" comments, ignores URLs, puts back preceeding character
+	return regexp.MustCompile(`([^:]|^)\/\/.*`).ReplaceAll(input, []byte("$1"))
 }
