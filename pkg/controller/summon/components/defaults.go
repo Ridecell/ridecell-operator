@@ -63,6 +63,12 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.New("Spec.Version and Spec.AutoDeploy are both set. Must specify only one.")
 	}
 
+	// Enable web prometheus metrics exporting everywhere.
+	if instance.Spec.Metrics.Web == nil {
+		val := true
+		instance.Spec.Metrics.Web = &val
+	}
+
 	// If the persistentVolumeClaim for redis changes this integer should as well.
 	if instance.Spec.Redis.RAM > 10 {
 		return components.Result{}, errors.New("redis memory limit cannot surpass available disk space")
@@ -224,15 +230,18 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	gatewayEnv := "prod"
 
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
-		// Enable web prometheus metrics exporting for dev/qa.
-		if instance.Spec.Metrics.Web == nil {
+		// Enable DEBUG automatically for dev/qa.
+		_, ok := instance.Spec.Config["DEBUG"]
+		if !ok {
 			val := true
-			instance.Spec.Metrics.Web = &val
+			instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
 		}
 
-		// Enable DEBUG automatically for dev/qa.
-		defVal("DEBUG", "true")
-		defVal("ENABLE_JSON_LOGGING", "true")
+		_, ok = instance.Spec.Config["ENABLE_JSON_LOGGING"]
+		if !ok {
+			val := true
+			instance.Spec.Config["ENABLE_JSON_LOGGING"] = summonv1beta1.ConfigValue{Bool: &val}
+		}
 
 		gatewayEnv = "master"
 	}
