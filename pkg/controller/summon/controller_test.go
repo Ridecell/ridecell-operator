@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -170,13 +169,13 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Status().Update(db)
 
-		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+		// Check that a migration object was created.
+		migration := &dbv1beta1.MigrationJob{}
+		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Check the web Deployment object.
 		deploy := &appsv1.Deployment{}
@@ -479,12 +478,12 @@ var _ = Describe("Summon controller", func() {
 		assertStatus(summonv1beta1.StatusMigrating)
 
 		// Mark the migration as a success.
-		job := &batchv1.Job{}
+		migration := &dbv1beta1.MigrationJob{}
 		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-migrations", Namespace: helpers.Namespace}, job)
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester", Namespace: helpers.Namespace}, migration)
 		}, timeout).Should(Succeed())
-		job.Status.Succeeded = 1
-		err = c.Status().Update(context.TODO(), job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), migration)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Check the status again. Should be Deploying.

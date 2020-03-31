@@ -27,7 +27,6 @@ import (
 	. "github.com/onsi/gomega"
 	ghttp "github.com/onsi/gomega/ghttp"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -160,13 +159,13 @@ var _ = Describe("Summon controller notifications", func() {
 		}
 		c.Status().Update(rmqVhost)
 
-		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name(name+"-migrations"), job)
+		// Check that a migration object was created.
+		migration := &dbv1beta1.MigrationJob{}
+		c.EventuallyGet(helpers.Name(name), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Mark the deployments as ready.
 		updateDeployment := func(s string) {

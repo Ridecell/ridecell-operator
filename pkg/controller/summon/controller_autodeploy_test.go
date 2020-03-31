@@ -28,7 +28,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -240,12 +239,12 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+		migration := &dbv1beta1.MigrationJob{}
+		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		//Expect deployment to deploy with latest branch tag
 		deployment := &appsv1.Deployment{}
@@ -263,12 +262,12 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		setupDeployPrereqs("foo")
 
 		// Check that a migration Job was created.
-		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("foo-migrations"), job)
+		migration := &dbv1beta1.MigrationJob{}
+		c.EventuallyGet(helpers.Name("foo"), migration)
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Expect the deployment to be created with the latest branch tag.
 		deployment := &appsv1.Deployment{}
@@ -289,15 +288,15 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 		Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(Equal("us.gcr.io/ridecell-1/summon:154551-2634073-devops-feature-test"))
 
 		// Confirm cache tag gets updated. (Results from controller sending event and triggering autodeploy reconcile)
-		c.EventuallyGet(helpers.Name("foo-migrations"), job, c.EventuallyValue(
+		c.EventuallyGet(helpers.Name("foo"), migration, c.EventuallyValue(
 			Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"),
 			func(obj runtime.Object) (interface{}, error) {
-				return obj.(*batchv1.Job).Spec.Template.Spec.Containers[0].Image, nil
+				return obj.(*dbv1beta1.MigrationJob).Spec.Template.Spec.Containers[0].Image, nil
 			}), c.EventuallyTimeout(time.Minute))
 
 		// Mark the migrations as successful.
-		job.Status.Succeeded = 1
-		c.Status().Update(job)
+		migration.Status.Status = dbv1beta1.StatusReady
+		c.Status().Update(migration)
 
 		// Check autodeploy reconcile resulted in deploying to latest image of branch.
 		c.EventuallyGet(helpers.Name("foo-web"), deployment, c.EventuallyValue(Equal("us.gcr.io/ridecell-1/summon:154575-cdf9c69-devops-feature-test"), func(obj runtime.Object) (interface{}, error) {
