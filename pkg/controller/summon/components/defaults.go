@@ -63,6 +63,12 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.New("Spec.Version and Spec.AutoDeploy are both set. Must specify only one.")
 	}
 
+	// Enable web prometheus metrics exporting everywhere.
+	if instance.Spec.Metrics.Web == nil {
+		val := true
+		instance.Spec.Metrics.Web = &val
+	}
+
 	// If the persistentVolumeClaim for redis changes this integer should as well.
 	if instance.Spec.Redis.RAM > 10 {
 		return components.Result{}, errors.New("redis memory limit cannot surpass available disk space")
@@ -225,11 +231,28 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
-		val := true
-		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+		_, ok := instance.Spec.Config["DEBUG"]
+		if !ok {
+			val := true
+			instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+		}
+
+		_, ok = instance.Spec.Config["ENABLE_JSON_LOGGING"]
+		if !ok {
+			val := true
+			instance.Spec.Config["ENABLE_JSON_LOGGING"] = summonv1beta1.ConfigValue{Bool: &val}
+		}
 
 		gatewayEnv = "master"
 	}
+
+	// Set debug to false globally if not already set.
+	_, ok := instance.Spec.Config["DEBUG"]
+	if !ok {
+		val := false
+		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+	}
+
 	// Use our translated region and gateway env to set GATEWAY_BASE_URL
 	defVal("GATEWAY_BASE_URL", "https://global.%s.%s.svc.ridecell.io/", translatedRegion, gatewayEnv)
 
@@ -356,7 +379,6 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("CONN_MAX_AGE", float64(60))
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
-	defConfig("DEBUG", false)
 	defConfig("ENABLE_NEW_RELIC", false)
 	defConfig("ENABLE_SENTRY", false)
 	defConfig("FACEBOOK_AUTHENTICATION_EMPLOYEE_PERMISSION_REQUIRED", false)

@@ -184,7 +184,7 @@ var _ = Describe("Summon controller", func() {
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
 		Expect(deploy.Spec.Template.Spec.Containers).To(HaveLen(1))
 		container := deploy.Spec.Template.Spec.Containers[0]
-		Expect(container.Command).To(Equal([]string{"python", "-m", "twisted", "--log-format", "text", "web", "--listen", "tcp:8000", "--wsgi", "summon_platform.wsgi.application"}))
+		Expect(container.Command).To(Equal([]string{"python", "-m", "summon_platform"}))
 		Expect(container.Ports[0].ContainerPort).To(BeEquivalentTo(8000))
 		Expect(container.ReadinessProbe.HTTPGet.Path).To(Equal("/healthz"))
 
