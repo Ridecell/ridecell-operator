@@ -224,9 +224,15 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	gatewayEnv := "prod"
 
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
+		// Enable web prometheus metrics exporting for dev/qa.
+		if instance.Spec.Metrics.Web == nil {
+			val := true
+			instance.Spec.Metrics.Web = &val
+		}
+
 		// Enable DEBUG automatically for dev/qa.
-		val := true
-		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+		defVal("DEBUG", "true")
+		defVal("ENABLE_JSON_LOGGING", "true")
 
 		gatewayEnv = "master"
 	}
