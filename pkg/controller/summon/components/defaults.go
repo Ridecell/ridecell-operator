@@ -245,6 +245,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 		gatewayEnv = "master"
 	}
+
+	// Set debug to false globally if not already set.
+	_, ok := instance.Spec.Config["DEBUG"]
+	if !ok {
+		val := false
+		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
+	}
+
 	// Use our translated region and gateway env to set GATEWAY_BASE_URL
 	defVal("GATEWAY_BASE_URL", "https://global.%s.%s.svc.ridecell.io/", translatedRegion, gatewayEnv)
 
@@ -371,7 +379,6 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("CONN_MAX_AGE", float64(60))
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
-	defConfig("DEBUG", false)
 	defConfig("ENABLE_NEW_RELIC", false)
 	defConfig("ENABLE_SENTRY", false)
 	defConfig("FACEBOOK_AUTHENTICATION_EMPLOYEE_PERMISSION_REQUIRED", false)
