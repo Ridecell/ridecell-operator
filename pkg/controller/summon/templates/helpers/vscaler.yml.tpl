@@ -1,5 +1,5 @@
 {{ define "verticalPodAutoscaler" }}
-apiVersion: autoscaling/v1
+apiVersion: autoscaling.k8s.io/v1beta2
 kind: VerticalPodAutoscaler
 metadata:
   name: {{ .Instance.Name }}-{{block "componentName" . }}{{ end }}
@@ -10,6 +10,9 @@ metadata:
     app.kubernetes.io/component: {{ block "componentType" . }}{{ end }}
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
+    {{ /* creator and source needed for goldilocks dashboard to pick vpa up */ }}
+    creator: "Fairwinds"
+    source: "goldilocks"
 spec:
   TargetRef: {{ block "controller" . }}{{ end }}
   UpdatePolicy:
