@@ -87,6 +87,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.Config[key] = summonv1beta1.ConfigValue{String: &value}
 		}
 	}
+	// and the same for a bool.
+	defBoolVal := func(key string, value bool) {
+		_, ok := instance.Spec.Config[key]
+		if !ok {
+			instance.Spec.Config[key] = summonv1beta1.ConfigValue{Bool: &value}
+		}
+	}
 
 	// Initialize the config map.
 	if instance.Spec.Config == nil {
@@ -216,8 +223,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 	defVal("DATA_PIPELINE_SQS_QUEUE_NAME", "%s", instance.Spec.SQSQueue)
-	defVal("DISPATCH_BASE_URL", "http://%s-dispatch:8000/", instance.Name)
 	defVal("HWAUX_BASE_URL", "http://%s-hwaux:8000/", instance.Name)
+	// NOTE: For now, only set the dispatch URL if the component is enabled. This was a miscommunication with
+	// the backend team and can be removed some time after PCR 2020-6 goes out. Confirm with the Ridesharing
+	// team before putting this back to always being set as a default.
+	if instance.Spec.Replicas.Dispatch != nil && *instance.Spec.Replicas.Dispatch > 0 {
+		defVal("DISPATCH_BASE_URL", "http://%s-dispatch:8000/", instance.Name)
+	}
+
+	// Indicator flags for if each component is enabled or not.
+	defBoolVal("DISPATCH_ENABLED", instance.Spec.Replicas.Dispatch != nil && *instance.Spec.Replicas.Dispatch > 0)
+	defBoolVal("HWAUX_ENABLED", instance.Spec.Replicas.HwAux != nil && *instance.Spec.Replicas.HwAux > 0)
+	defBoolVal("BUSINESSPORTAL_ENABLED", instance.Spec.Replicas.BusinessPortal != nil && *instance.Spec.Replicas.BusinessPortal > 0)
+	defBoolVal("TRIPSHARE_ENABLED", instance.Spec.Replicas.TripShare != nil && *instance.Spec.Replicas.TripShare > 0)
 
 	// Translate our aws region into a usable region
 	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
@@ -231,27 +249,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
-		_, ok := instance.Spec.Config["DEBUG"]
-		if !ok {
-			val := true
-			instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
-		}
-
-		_, ok = instance.Spec.Config["ENABLE_JSON_LOGGING"]
-		if !ok {
-			val := true
-			instance.Spec.Config["ENABLE_JSON_LOGGING"] = summonv1beta1.ConfigValue{Bool: &val}
-		}
-
+		defBoolVal("DEBUG", true)
+		defBoolVal("ENABLE_JSON_LOGGING", true)
 		gatewayEnv = "master"
 	}
 
 	// Set debug to false globally if not already set.
-	_, ok := instance.Spec.Config["DEBUG"]
-	if !ok {
-		val := false
-		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
-	}
+	defBoolVal("DEBUG", false)
 
 	// Use our translated region and gateway env to set GATEWAY_BASE_URL
 	defVal("GATEWAY_BASE_URL", "https://global.%s.%s.svc.ridecell.io/", translatedRegion, gatewayEnv)
