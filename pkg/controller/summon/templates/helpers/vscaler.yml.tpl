@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/component: {{ block "componentType" . }}{{ end }}
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
-    {{ /* creator and source needed for goldilocks dashboard to pick vpa up */ }}
+    {{/* creator and source needed for goldilocks dashboard to pick vpa up */ -}}
     creator: "Fairwinds"
     source: "goldilocks"
 spec:
