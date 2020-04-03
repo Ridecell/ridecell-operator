@@ -266,8 +266,8 @@ func (m *mockRDSDBClient) CreateDBInstance(input *rds.CreateDBInstanceInput) (*r
 			Address: aws.String("endpoint.test"),
 			Port:    aws.Int64(5432),
 		},
-		MasterUsername:   aws.String("test-user"),
-		DBInstanceStatus: aws.String("creating"),
+		MasterUsername:        aws.String("test-user"),
+		DBInstanceStatus:      aws.String("creating"),
 		BackupRetentionPeriod: aws.Int64(7),
 	}
 	m.createdDB = true

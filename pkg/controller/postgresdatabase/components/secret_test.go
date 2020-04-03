@@ -17,13 +17,13 @@ limitations under the License.
 package components_test
 
 import (
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	pdcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresdatabase/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -65,7 +65,7 @@ var _ = Describe("postgresdatabase Secret Component", func() {
 				"password": []byte("same-namespace"),
 			},
 		}
-		ctx.Client = fake.NewFakeClient(dbconfig,secret)
+		ctx.Client = fake.NewFakeClient(dbconfig, secret)
 		Expect(comp).To(ReconcileContext(ctx))
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "mysecret", Namespace: "summon-dev"}, secret)
 		Expect(err).ToNot(HaveOccurred())
@@ -89,7 +89,7 @@ var _ = Describe("postgresdatabase Secret Component", func() {
 				"password": []byte("cross-namespace"),
 			},
 		}
-		ctx.Client = fake.NewFakeClient(dbconfig,secret)
+		ctx.Client = fake.NewFakeClient(dbconfig, secret)
 		Expect(comp).To(ReconcileContext(ctx))
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "mysecret", Namespace: "summon-dev"}, secret)
 		Expect(err).ToNot(HaveOccurred())
