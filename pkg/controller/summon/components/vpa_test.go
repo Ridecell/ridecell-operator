@@ -34,7 +34,7 @@ var _ = Describe("VerticalPodAutoscaler (vpa) Component", func() {
 	var comp components.Component
 
 	It("creates a VPA for businessPortal component", func() {
-		comp = summoncomponents.NewVPA("businessportal/vscaler.yml.tpl")
+		comp = summoncomponents.NewVPA("businessPortal/vscaler.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 
 		vpa := &autoscaling.VerticalPodAutoscaler{}
@@ -142,7 +142,7 @@ var _ = Describe("VerticalPodAutoscaler (vpa) Component", func() {
 	})
 
 	It("creates a VPA for tripShare component", func() {
-		comp = summoncomponents.NewVPA("tripshare/vscaler.yml.tpl")
+		comp = summoncomponents.NewVPA("tripShare/vscaler.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 
 		vpa := &autoscaling.VerticalPodAutoscaler{}
