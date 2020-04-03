@@ -1,8 +1,8 @@
 {{ define "verticalPodAutoscaler" }}
-apiVersion: autoscaling.k8s.io/v1beta2
+apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
-  name: {{ .Instance.Name }}-{{block "componentName" . }}{{ end }}
+  name: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
   namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: {{ block "componentName" .}}{{ end }}
@@ -14,8 +14,8 @@ metadata:
     creator: "Fairwinds"
     source: "goldilocks"
 spec:
-  TargetRef: {{ block "controller" . }}{{ end }}
-  UpdatePolicy:
-    UpdateMode: {{ block "updateMode" . }}{{ end }}
+  targetRef: {{ block "controller" . }}{{ end }}
+  updatePolicy:
+    updateMode: {{ block "updateMode" . }}{{ end }}
   {{/* Leaving ResourcePolicy blank so autoscaler can compute recommended */ -}}
 {{ end }}
