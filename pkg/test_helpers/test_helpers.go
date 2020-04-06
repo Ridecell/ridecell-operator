@@ -19,15 +19,18 @@ package test_helpers
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/onsi/gomega"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
+	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,6 +62,31 @@ type PerTestHelpers struct {
 	OperatorNamespace string
 }
 
+func readCRDFromFile(file string) (*apiextv1beta1.CustomResourceDefinition, error) {
+	// Unmarshal the file into a struct
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	crd := &apiextv1beta1.CustomResourceDefinition{}
+	if err = yaml.Unmarshal(b, crd); err != nil {
+		//fmt.Printf("DEBUG: when unmarshalling, got error: %+v\n", err)
+		return nil, err
+	}
+
+	if crd.ObjectMeta.Name == "" {
+		// I think we need to name it ourselves since there's no direct ObjectMeta.Name to unmarshal?
+		crd.ObjectMeta.Name = crd.Spec.Names.Plural + "." + crd.Spec.Group
+		//fmt.Printf("DEBUG: assigned metaname: %s\n", crd.ObjectMeta.Name)
+	}
+
+	glog.V(3).Info("read CRD from file", "file", file)
+	//fmt.Printf("DEBUG: File: %s\n. CRD: %+v\n\n", file, crd)
+
+	return crd, nil
+}
+
 func New() (*TestHelpers, error) {
 	helpers := &TestHelpers{}
 	_, callerLine, _, ok := runtime.Caller(0)
@@ -67,12 +95,18 @@ func New() (*TestHelpers, error) {
 	}
 	crdPath := filepath.Join(callerLine, "..", "..", "..", "config", "crds")
 	poCrdPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "github.com", "coreos", "prometheus-operator", "example", "prometheus-operator-crd")
+	vpaPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "k8s.io", "autoscaler", "vertical-pod-autoscaler", "deploy")
+	vpaFile := filepath.Join(vpaPath, "vpa-v1-crd.yaml")
+	vpaCRD, err := readCRDFromFile(vpaFile)
+	//fmt.Printf("DEBUG: Got vpaCRD: %+v\n", vpaCRD)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	helpers.Environment = &envtest.Environment{
-		CRDDirectoryPaths:  []string{crdPath, poCrdPath},
-		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
+		CRDDirectoryPaths:  []string{crdPath, poCrdPath, vpaPath},
+		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD(), vpaCRD},
 		UseExistingCluster: os.Getenv("USE_EXISTING_CLUSTER") == "true",
 	}
-	err := apis.AddToScheme(scheme.Scheme)
+	//fmt.Printf("DEBUG: CRD Envs: %+v\n", helpers.Environment.CRDs)
+	err = apis.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// Initialze the RNG.
@@ -94,6 +128,7 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 	helpers.starter = func() {
 		// Start the test environment.
 		cfg, err := helpers.Environment.Start()
+		fmt.Printf("DEBUG: Done starting env up...err? %+v\n", err)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		helpers.Cfg = cfg
 
