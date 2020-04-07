@@ -59,11 +59,10 @@ spec:
           fi
         resources:
           requests:
-            memory: 512M
-            cpu: 100m
+            memory: 260M
+            cpu: 10m
           limits:
-            memory: 1G
-            cpu: 200m
+            memory: 500M
         env:
         - name: SUMMON_COMPONENT
           valueFrom:

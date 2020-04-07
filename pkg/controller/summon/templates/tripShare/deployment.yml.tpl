@@ -51,11 +51,10 @@ spec:
         - containerPort: 8000
         resources:
           requests:
-            memory: 64M
-            cpu: 100m
-        # Not setting a limit until we work out baseline resource usage and load test it a bit.
-        #   limits:
-        #     memory: 64M
+            memory: 60M
+            cpu: 5m
+          limits:
+            memory: 100M
         env:
         - name: SUMMON_COMPONENT
           valueFrom:
