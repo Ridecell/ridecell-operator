@@ -42,7 +42,7 @@ spec:
         resources:
           requests:
             memory: {{ .Instance.Spec.Redis.RAM }}G
-            cpu: 100m
+            cpu: 25m
           limits:
             memory: {{ .Instance.Spec.Redis.RAM }}G
         readinessProbe:

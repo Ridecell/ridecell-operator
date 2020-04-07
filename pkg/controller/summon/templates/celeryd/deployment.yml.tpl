@@ -68,11 +68,10 @@ spec:
         - containerPort: 8000
         resources:
           requests:
-            memory: 512M
+            memory: 1G
             cpu: 500m
           limits:
-            memory: 3G
-            cpu: 1000m
+            memory: 1.5G
         env:
         - name: SUMMON_COMPONENT
           valueFrom:
