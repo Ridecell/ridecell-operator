@@ -111,22 +111,6 @@ func readCRDFromFile(file string) ([]*apiextv1beta1.CustomResourceDefinition, er
 	return crds, nil
 }
 
-func unstructuredCRDListToCRD(l []*unstructured.Unstructured) []*apiextv1beta1.CustomResourceDefinition {
-	res := []kruntime.Object{}
-	for _, obj := range l {
-		res = append(res, obj.DeepCopy())
-	}
-	var newRes []*apiextv1beta1.CustomResourceDefinition
-	for _, run := range res {
-		u := &apiextv1beta1.CustomResourceDefinition{}
-		if err := kruntime.NewScheme().Convert(run, u, nil); err != nil {
-			continue
-		}
-		newRes = append(newRes, u)
-	}
-	return newRes
-}
-
 func New() (*TestHelpers, error) {
 	helpers := &TestHelpers{}
 	_, callerLine, _, ok := runtime.Caller(0)
