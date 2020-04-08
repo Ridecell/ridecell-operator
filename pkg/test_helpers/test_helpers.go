@@ -17,16 +17,19 @@ limitations under the License.
 package test_helpers
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/onsi/gomega"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
@@ -37,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,29 +66,65 @@ type PerTestHelpers struct {
 	OperatorNamespace string
 }
 
-func readCRDFromFile(file string) (*apiextv1beta1.CustomResourceDefinition, error) {
-	// Unmarshal the file into a struct
+var (
+	conversionScheme = kruntime.NewScheme()
+)
+
+// init is required to correctly initialize the crdScheme package variable.
+func init() {
+	_ = apiextv1beta1.AddToScheme(conversionScheme)
+}
+
+func readCRDFromFile(file string) ([]*apiextv1beta1.CustomResourceDefinition, error) {
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-
-	crd := &apiextv1beta1.CustomResourceDefinition{}
-	if err = yaml.Unmarshal(b, crd); err != nil {
-		//fmt.Printf("DEBUG: when unmarshalling, got error: %+v\n", err)
-		return nil, err
+	docs := [][]byte{}
+	reader := k8syaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(b)))
+	for {
+		// Read document
+		doc, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		docs = append(docs, doc)
 	}
+	var crds []*apiextv1beta1.CustomResourceDefinition
+	for _, doc := range docs {
+		crd := &apiextv1beta1.CustomResourceDefinition{}
+		if err = yaml.Unmarshal(doc, crd); err != nil {
+			return nil, err
+		}
 
-	if crd.ObjectMeta.Name == "" {
-		// I think we need to name it ourselves since there's no direct ObjectMeta.Name to unmarshal?
-		crd.ObjectMeta.Name = crd.Spec.Names.Plural + "." + crd.Spec.Group
-		//fmt.Printf("DEBUG: assigned metaname: %s\n", crd.ObjectMeta.Name)
+		// Seems we need to set ObjectMeta ourselves to workaround this error:
+		// CustomResourceDefinition.apiextensions.k8s.io "" is invalid: metadata.name: Required value: name or generateName is required
+		if crd.ObjectMeta.Name == "" {
+			crd.ObjectMeta.Name = crd.Spec.Names.Plural + "." + crd.Spec.Group
+		}
+
+		crds = append(crds, crd)
 	}
+	return crds, nil
+}
 
-	glog.V(3).Info("read CRD from file", "file", file)
-	//fmt.Printf("DEBUG: File: %s\n. CRD: %+v\n\n", file, crd)
-
-	return crd, nil
+func unstructuredCRDListToCRD(l []*unstructured.Unstructured) []*apiextv1beta1.CustomResourceDefinition {
+	res := []kruntime.Object{}
+	for _, obj := range l {
+		res = append(res, obj.DeepCopy())
+	}
+	var newRes []*apiextv1beta1.CustomResourceDefinition
+	for _, run := range res {
+		u := &apiextv1beta1.CustomResourceDefinition{}
+		if err := kruntime.NewScheme().Convert(run, u, nil); err != nil {
+			continue
+		}
+		newRes = append(newRes, u)
+	}
+	return newRes
 }
 
 func New() (*TestHelpers, error) {
@@ -97,15 +137,24 @@ func New() (*TestHelpers, error) {
 	poCrdPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "github.com", "coreos", "prometheus-operator", "example", "prometheus-operator-crd")
 	vpaPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "k8s.io", "autoscaler", "vertical-pod-autoscaler", "deploy")
 	vpaFile := filepath.Join(vpaPath, "vpa-v1-crd.yaml")
-	vpaCRD, err := readCRDFromFile(vpaFile)
-	//fmt.Printf("DEBUG: Got vpaCRD: %+v\n", vpaCRD)
+	vpaCRDs, err := readCRDFromFile(vpaFile)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	// HACK: Need to make version be v1 instead of v1beta1, since we're using v1, but CRDS mashed them all together under v1beta1.
+	// Additionally, Versions first listed version must match Version. Sorting to make that so.
+	len := len(vpaCRDs)
+	for i := 0; i < len; i++ {
+		vpaCRDs[i].Spec.Version = "v1"
+		versions := vpaCRDs[i].Spec.Versions
+		sort.SliceStable(versions, func(i, j int) bool { return versions[i].Name < versions[j].Name })
+	}
+
 	helpers.Environment = &envtest.Environment{
-		CRDDirectoryPaths:  []string{crdPath, poCrdPath, vpaPath},
-		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD(), vpaCRD},
+		CRDDirectoryPaths:  []string{crdPath, poCrdPath},
+		CRDs:               append([]*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()}, vpaCRDs...),
 		UseExistingCluster: os.Getenv("USE_EXISTING_CLUSTER") == "true",
 	}
-	//fmt.Printf("DEBUG: CRD Envs: %+v\n", helpers.Environment.CRDs)
+
 	err = apis.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -128,7 +177,6 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 	helpers.starter = func() {
 		// Start the test environment.
 		cfg, err := helpers.Environment.Start()
-		fmt.Printf("DEBUG: Done starting env up...err? %+v\n", err)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		helpers.Cfg = cfg
 
