@@ -33,7 +33,7 @@ import (
 	"github.com/onsi/gomega"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
-	"gopkg.in/yaml.v2"
+
 	corev1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/yaml"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 )
@@ -99,13 +100,6 @@ func readCRDFromFile(file string) ([]*apiextv1beta1.CustomResourceDefinition, er
 		if err = yaml.Unmarshal(doc, crd); err != nil {
 			return nil, err
 		}
-
-		// Seems we need to set ObjectMeta ourselves to workaround this error:
-		// CustomResourceDefinition.apiextensions.k8s.io "" is invalid: metadata.name: Required value: name or generateName is required
-		if crd.ObjectMeta.Name == "" {
-			crd.ObjectMeta.Name = crd.Spec.Names.Plural + "." + crd.Spec.Group
-		}
-
 		crds = append(crds, crd)
 	}
 	return crds, nil
