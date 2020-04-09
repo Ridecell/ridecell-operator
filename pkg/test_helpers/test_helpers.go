@@ -17,28 +17,36 @@ limitations under the License.
 package test_helpers
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"time"
 
 	"github.com/onsi/gomega"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
+
 	corev1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/yaml"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 )
@@ -59,6 +67,44 @@ type PerTestHelpers struct {
 	OperatorNamespace string
 }
 
+var (
+	conversionScheme = kruntime.NewScheme()
+)
+
+// init is required to correctly initialize the crdScheme package variable.
+func init() {
+	_ = apiextv1beta1.AddToScheme(conversionScheme)
+}
+
+func readCRDFromFile(file string) ([]*apiextv1beta1.CustomResourceDefinition, error) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	docs := [][]byte{}
+	reader := k8syaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(b)))
+	for {
+		// Read document
+		doc, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		docs = append(docs, doc)
+	}
+	var crds []*apiextv1beta1.CustomResourceDefinition
+	for _, doc := range docs {
+		crd := &apiextv1beta1.CustomResourceDefinition{}
+		if err = yaml.Unmarshal(doc, crd); err != nil {
+			return nil, err
+		}
+		crds = append(crds, crd)
+	}
+	return crds, nil
+}
+
 func New() (*TestHelpers, error) {
 	helpers := &TestHelpers{}
 	_, callerLine, _, ok := runtime.Caller(0)
@@ -67,12 +113,27 @@ func New() (*TestHelpers, error) {
 	}
 	crdPath := filepath.Join(callerLine, "..", "..", "..", "config", "crds")
 	poCrdPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "github.com", "coreos", "prometheus-operator", "example", "prometheus-operator-crd")
+	vpaPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "k8s.io", "autoscaler", "vertical-pod-autoscaler", "deploy")
+	vpaFile := filepath.Join(vpaPath, "vpa-v1-crd.yaml")
+	vpaCRDs, err := readCRDFromFile(vpaFile)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	// HACK: Need to make version be v1 instead of v1beta1, since we're using v1, but CRDS mashed them all together under v1beta1.
+	// Additionally, Versions first listed version must match Version. Sorting to make that so.
+	len := len(vpaCRDs)
+	for i := 0; i < len; i++ {
+		vpaCRDs[i].Spec.Version = "v1"
+		versions := vpaCRDs[i].Spec.Versions
+		sort.SliceStable(versions, func(i, j int) bool { return versions[i].Name < versions[j].Name })
+	}
+
 	helpers.Environment = &envtest.Environment{
 		CRDDirectoryPaths:  []string{crdPath, poCrdPath},
-		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
+		CRDs:               append([]*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()}, vpaCRDs...),
 		UseExistingCluster: os.Getenv("USE_EXISTING_CLUSTER") == "true",
 	}
-	err := apis.AddToScheme(scheme.Scheme)
+
+	err = apis.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// Initialze the RNG.

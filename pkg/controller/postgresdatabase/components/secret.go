@@ -16,15 +16,15 @@ limitations under the License.
 package components
 
 import (
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/shared_components/postgres"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/shared_components/postgres"
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type secretComponent struct{}
