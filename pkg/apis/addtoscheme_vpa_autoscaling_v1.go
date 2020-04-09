@@ -14,10 +14,10 @@ limitations under the License.
 package apis
 
 import (
-	autoscaling "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
+	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 )
 
 func init() {
 	// Register the types for postgres-operator so our code can use them.
-	AddToSchemes = append(AddToSchemes, autoscaling.AddToScheme)
+	AddToSchemes = append(AddToSchemes, autoscalingv1.AddToScheme)
 }

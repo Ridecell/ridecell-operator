@@ -1,8 +1,7 @@
-{{ define "componentName" }}daphne{{ end }}
+{{ define "componentName" }}businessportal{{ end }}
 {{ define "componentType" }}web{{ end }}
 {{ define "controller" }}
     apiVersion: "apps/v1"
     kind: Deployment
-    name: {{ .Instance.Name }}-daphne{{ end }}
-{{ define "updateMode" }}"Off"{{ end }}
+    name: {{ .Instance.Name }}-businessportal{{ end }}
 {{ template "verticalPodAutoscaler" . }}

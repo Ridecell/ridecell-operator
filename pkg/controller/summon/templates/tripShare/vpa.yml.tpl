@@ -1,8 +1,7 @@
-{{ define "componentName" }}businessportal{{ end }}
+{{ define "componentName" }}tripshare{{ end }}
 {{ define "componentType" }}web{{ end }}
 {{ define "controller" }}
     apiVersion: "apps/v1"
     kind: Deployment
-    name: {{ .Instance.Name }}-businessportal{{ end }}
-{{ define "updateMode" }}"Off"{{ end }}
+    name: {{ .Instance.Name }}-tripshare{{ end }}
 {{ template "verticalPodAutoscaler" . }}

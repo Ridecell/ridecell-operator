@@ -4,5 +4,4 @@
     apiVersion: "apps/v1"
     kind: Deployment
     name: {{ .Instance.Name }}-redis{{ end }}
-{{ define "updateMode" }}"Off"{{ end }}
 {{ template "verticalPodAutoscaler" . }}

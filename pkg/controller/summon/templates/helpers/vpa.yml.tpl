@@ -16,6 +16,6 @@ metadata:
 spec:
   targetRef: {{ block "controller" . }}{{ end }}
   updatePolicy:
-    updateMode: {{ block "updateMode" . }}{{ end }}
+    updateMode: {{ block "updateMode" . }}"Off"{{ end }}
   {{/* Leaving ResourcePolicy blank so autoscaler can compute recommended */ -}}
 {{ end }}

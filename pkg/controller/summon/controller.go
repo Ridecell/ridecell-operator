@@ -74,70 +74,70 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewPVC("redis/volumeclaim.yml.tpl"),
 		summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl"),
 		summoncomponents.NewService("redis/service.yml.tpl"),
-		summoncomponents.NewVPA("redis/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("redis/vpa.yml.tpl"),
 
 		// Web components.
 		summoncomponents.NewDeployment("web/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("web/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
-		summoncomponents.NewVPA("web/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("web/vpa.yml.tpl"),
 
 		// Daphne components.
 		summoncomponents.NewDeployment("daphne/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("daphne/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("daphne/service.yml.tpl"),
 		summoncomponents.NewIngress("daphne/ingress.yml.tpl"),
-		summoncomponents.NewVPA("daphne/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("daphne/vpa.yml.tpl"),
 
 		// Static file components.
 		summoncomponents.NewDeployment("static/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("static/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("static/service.yml.tpl"),
 		summoncomponents.NewIngress("static/ingress.yml.tpl"),
-		summoncomponents.NewVPA("static/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("static/vpa.yml.tpl"),
 
 		// Celery components.
 		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("celeryd/podDisruptionBudget.yml.tpl"),
-		summoncomponents.NewVPA("celeryd/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("celeryd/vpa.yml.tpl"),
 
 		// Celerybeat components.
 		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl"),
 		// Does not have a pod disruption budget intentionally
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
-		summoncomponents.NewVPA("celerybeat/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("celerybeat/vpa.yml.tpl"),
 
 		// Channelworker components.
 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("channelworker/podDisruptionBudget.yml.tpl"),
-		summoncomponents.NewVPA("channelworker/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("channelworker/vpa.yml.tpl"),
 
 		// Dispatch components.
 		summoncomponents.NewDeployment("dispatch/deployment.yml.tpl"),
 		summoncomponents.NewService("dispatch/service.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("dispatch/podDisruptionBudget.yml.tpl"),
-		summoncomponents.NewVPA("dispatch/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("dispatch/vpa.yml.tpl"),
 
 		// Business Portal components.
 		summoncomponents.NewDeployment("businessPortal/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("businessPortal/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("businessPortal/service.yml.tpl"),
 		summoncomponents.NewIngress("businessPortal/ingress.yml.tpl"),
-		summoncomponents.NewVPA("businessPortal/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("businessPortal/vpa.yml.tpl"),
 
 		// Trip Share components.
 		summoncomponents.NewDeployment("tripShare/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("tripShare/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("tripShare/service.yml.tpl"),
 		summoncomponents.NewIngress("tripShare/ingress.yml.tpl"),
-		summoncomponents.NewVPA("tripShare/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("tripShare/vpa.yml.tpl"),
 
 		// Hw Aux components.
 		summoncomponents.NewDeployment("hwAux/deployment.yml.tpl"),
 		summoncomponents.NewService("hwAux/service.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("hwAux/podDisruptionBudget.yml.tpl"),
-		summoncomponents.NewVPA("hwAux/vscaler.yml.tpl"),
+		summoncomponents.NewVPA("hwAux/vpa.yml.tpl"),
 
 		// Set Monitoring
 		summoncomponents.NewMonitoring(),

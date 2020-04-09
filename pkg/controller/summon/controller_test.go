@@ -31,7 +31,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	autoscaling "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
+	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
@@ -200,7 +200,7 @@ var _ = Describe("Summon controller", func() {
 		Expect(ingress.Spec.TLS[0].SecretName).To(Equal("foo-tls"))
 
 		// Check the web VPA object.
-		vpa := &autoscaling.VerticalPodAutoscaler{}
+		vpa := &autoscalingv1.VerticalPodAutoscaler{}
 		c.EventuallyGet(helpers.Name("foo-web"), vpa)
 		Expect(vpa.Spec.TargetRef.Name).To(Equal("foo-web"))
 

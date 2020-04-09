@@ -1,8 +1,7 @@
-{{ define "componentName" }}celeryd{{ end }}
+{{ define "componentName" }}channelworker{{ end }}
 {{ define "componentType" }}worker{{ end }}
 {{ define "controller" }}
     apiVersion: "apps/v1"
     kind: Deployment
-    name: {{ .Instance.Name }}-celeryd{{ end }}
-{{ define "updateMode" }}"Off"{{ end }}
+    name: {{ .Instance.Name }}-channelworker{{ end }}
 {{ template "verticalPodAutoscaler" . }}

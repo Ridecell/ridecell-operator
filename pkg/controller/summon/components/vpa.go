@@ -19,7 +19,7 @@ package components
 import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"k8s.io/apimachinery/pkg/runtime"
-	autoscaling "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
+	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 )
 
 type vpaComponent struct {
@@ -32,7 +32,7 @@ func NewVPA(templatePath string) *vpaComponent {
 
 func (comp *vpaComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&autoscaling.VerticalPodAutoscaler{},
+		&autoscalingv1.VerticalPodAutoscaler{},
 	}
 }
 
@@ -43,8 +43,8 @@ func (_ *vpaComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *vpaComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*autoscaling.VerticalPodAutoscaler)
-		existing := existingObj.(*autoscaling.VerticalPodAutoscaler)
+		goal := goalObj.(*autoscalingv1.VerticalPodAutoscaler)
+		existing := existingObj.(*autoscalingv1.VerticalPodAutoscaler)
 		existing.Spec = goal.Spec
 		return nil
 	})

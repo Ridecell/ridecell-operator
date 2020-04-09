@@ -5,5 +5,4 @@
     kind: Deployment
     name: {{ .Instance.Name }}-web
 {{ end }}
-{{ define "updateMode" }}"Off"{{ end }}
 {{ template "verticalPodAutoscaler" . }}
