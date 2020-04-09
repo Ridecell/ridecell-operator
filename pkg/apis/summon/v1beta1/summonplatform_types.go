@@ -68,7 +68,7 @@ type CelerySpec struct {
 
 // RedisSpec defines resource configuration for redis deployment.
 type RedisSpec struct {
-	// Setting for tuning redis memory request/limit in GB.
+	// Setting for tuning redis memory request/limit in MB (or GB if over 10).
 	// +optional
 	RAM int `json:"ram,omitempty"`
 }

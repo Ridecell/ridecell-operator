@@ -70,13 +70,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	// If the persistentVolumeClaim for redis changes this integer should as well.
-	if instance.Spec.Redis.RAM > 10 {
+	if instance.Spec.Redis.RAM > 10*1024 {
 		return components.Result{}, errors.New("redis memory limit cannot surpass available disk space")
 	}
 
 	// Set redis defaults
 	if instance.Spec.Redis.RAM == 0 {
-		instance.Spec.Redis.RAM = 1
+		instance.Spec.Redis.RAM = 200
 	}
 
 	// Helper method to set a string value if not already set.
