@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -201,6 +202,11 @@ var _ = Describe("Summon controller", func() {
 		// Delete the Deployment and expect it to come back.
 		c.Delete(deploy)
 		c.EventuallyGet(helpers.Name("foo-web"), deploy)
+
+		// Check the celery object has an hpa.
+		hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
+		c.EventuallyGet(helpers.Name("foo-celeryd"), hpa)
+		Expect(hpa.Spec.ScaleTargetRef.Kind).To(Equal("Deployment"))
 
 		// Check that component deployments are at 0 replicas by default.
 		c.EventuallyGet(helpers.Name("foo-dispatch"), deploy)

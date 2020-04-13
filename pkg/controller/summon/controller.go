@@ -96,6 +96,7 @@ func Add(mgr manager.Manager) error {
 		// Celery components.
 		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("celeryd/podDisruptionBudget.yml.tpl"),
+		summoncomponents.NewHPA("celeryd/hpa.yml.tpl"),
 
 		// Celerybeat components.
 		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl"),
