@@ -20,11 +20,11 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 
-	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
-
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 )
 
 var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
@@ -37,7 +37,7 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 		})
 
 		It("creates an celeryd-hpa", func() {
-			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl")
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
 			Expect(comp).To(ReconcileContext(ctx))
 
 			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
@@ -51,7 +51,7 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 
 	Context("when ReplicaSpecs.<component>Auto is false (default)", func() {
 		It("does not create celeryd-hpa", func() {
-			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl")
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
 			Expect(comp).To(ReconcileContext(ctx))
 			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, hpa)

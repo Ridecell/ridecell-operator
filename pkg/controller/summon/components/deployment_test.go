@@ -262,7 +262,7 @@ var _ = Describe("deployment Component", func() {
 		var configMap *corev1.ConfigMap
 		var appSecrets *corev1.Secret
 		BeforeEach(func() {
-			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
+			comp = summoncomponents.NewDeploymentWithAutoscaling("celeryd/deployment.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
 			configMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
 				Data:       map[string]string{"summon-platform.yml": "{}\n"},

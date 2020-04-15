@@ -355,25 +355,6 @@ type SummonPlatform struct {
 	Status SummonPlatformStatus `json:"status,omitempty"`
 }
 
-type summonPlatform interface {
-	IsAutoscaled(component string) bool
-}
-
-func (summonplatform SummonPlatform) IsAutoscaled(component string) bool {
-	switch component {
-	case "celeryd":
-		return summonplatform.Spec.Replicas.CelerydAuto
-	/* TODO: fill in later when we expand out
-	case "businessPortal":
-		return summonplatform.Spec.Replicas.BuisnessPortalAuto
-	case "channelworker":
-		return summonplatform.Spec.Replicas.ChannelWorkerAuto
-	*/
-	default:
-		return false
-	}
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // SummonPlatformList contains a list of SummonPlatform

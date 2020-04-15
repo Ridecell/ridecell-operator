@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -37,10 +36,15 @@ import (
 
 type deploymentComponent struct {
 	templatePath string
+	isAutoscaled func(summonv1beta1.SummonPlatform) bool
 }
 
 func NewDeployment(templatePath string) *deploymentComponent {
-	return &deploymentComponent{templatePath: templatePath}
+	return &deploymentComponent{templatePath: templatePath, isAutoscaled: func(summonv1beta1.SummonPlatform) bool { return false }}
+}
+
+func NewDeploymentWithAutoscaling(templatePath string, isAutoscaled func(summonv1beta1.SummonPlatform) bool) *deploymentComponent {
+	return &deploymentComponent{templatePath: templatePath, isAutoscaled: isAutoscaled}
 }
 
 func (comp *deploymentComponent) WatchTypes() []runtime.Object {
@@ -112,8 +116,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		if ok {
 			existing := existingObj.(*appsv1.Deployment)
 			// Check if autoscaling was enabled and keep existing deployment replicas setting set by HPA
-			component := strings.Split(comp.templatePath, "/")[0]
-			if instance.IsAutoscaled(component) {
+			if comp.isAutoscaled(*instance) {
 				goalDeployment.Spec.Replicas = existing.Spec.Replicas
 			}
 			existing.Spec = goalDeployment.Spec
