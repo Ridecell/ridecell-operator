@@ -14,7 +14,7 @@ metadata:
 spec:
   scaleTargetRef: {{ block "target" . }}{{ end }}
   minReplicas: {{ block "minReplicas" . }}1{{ end }}
-  maxReplicas: {{ block "maxReplicas" . }}5{{ end }}
+  maxReplicas: {{ block "maxReplicas" . }}10{{ end }}
   metrics:
   - type: External
     external:

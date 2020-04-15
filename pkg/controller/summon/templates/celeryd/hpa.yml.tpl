@@ -12,5 +12,5 @@
             queue: "celery"{{ end }}
 {{ define "mTarget" }}
         type: Value
-        value: 2000{{ end }}
+        value: 1000{{ end }}
 {{ template "hpa" . }}
