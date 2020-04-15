@@ -2,7 +2,7 @@
 apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .Instance.Name }}-{{block "componentName" . }}{{ end }}
+  name: {{ .Instance.Name }}-{{block "componentName" . }}{{ end }}-hpa
   namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: {{ block "componentName" . }}{{ end }}

@@ -30,15 +30,40 @@ import (
 var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 	var comp components.Component
 
-	It("creates a HPA for celeryd component", func() {
-		comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl")
-		Expect(comp).To(ReconcileContext(ctx))
+	Context("when ReplicaSpecs.<component>Auto is true", func() {
+		BeforeEach(func() {
+			// since default doesn't run, pretend we had celerydAuto set.
+			instance.Spec.Replicas.CelerydAuto = true
+		})
 
-		hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, hpa)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(hpa.Spec.ScaleTargetRef.Kind).To(Equal("Deployment"))
-		Expect(hpa.Spec.ScaleTargetRef.Name).To(Equal("foo-dev-celeryd"))
-		Expect(hpa.Spec.Metrics[0].External.Metric.Name).To(Equal("ridecell:rabbitmq_summon_queue_messages_ready"))
+		It("creates an celeryd-hpa", func() {
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+
+			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, hpa)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(hpa.Spec.ScaleTargetRef.Kind).To(Equal("Deployment"))
+			Expect(hpa.Spec.ScaleTargetRef.Name).To(Equal("foo-dev-celeryd"))
+			Expect(hpa.Spec.Metrics[0].External.Metric.Name).To(Equal("ridecell:rabbitmq_summon_queue_messages_ready"))
+		})
 	})
+
+	Context("when ReplicaSpecs.<component>Auto is false (default)", func() {
+		It("does not create celeryd-hpa", func() {
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl")
+			Expect(comp).To(ReconcileContext(ctx))
+			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, hpa)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	/* TODO: Test finalizer logic
+	Context("when ReplicaSpecs.<component>Auto was true, but set to false", func() {
+		It("cleans up hpa component", func() {
+
+		})
+	})
+	*/
 })

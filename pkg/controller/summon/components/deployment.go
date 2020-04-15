@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -110,6 +111,11 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		goalDeployment, ok := goalObj.(*appsv1.Deployment)
 		if ok {
 			existing := existingObj.(*appsv1.Deployment)
+			// Check if autoscaling was enabled and keep existing deployment replicas setting set by HPA
+			component := strings.Split(comp.templatePath, "/")[0]
+			if instance.IsAutoscaled(component) {
+				goalDeployment.Spec.Replicas = existing.Spec.Replicas
+			}
 			existing.Spec = goalDeployment.Spec
 			return nil
 		}

@@ -14,6 +14,10 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+	"strings"
+
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,12 +42,19 @@ func (_ *hpaComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *hpaComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*autoscalingv2beta2.HorizontalPodAutoscaler)
-		existing := existingObj.(*autoscalingv2beta2.HorizontalPodAutoscaler)
-		existing.Spec = goal.Spec
-		return nil
-	})
-	return res, err
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	component := strings.Split(comp.templatePath, "/")[0]
+	// Only reconcile if HPA autoscaling enabled. (<comp>Auto flag in ReplicaSpecs)
+	if instance.IsAutoscaled(component) {
+		res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+			goal := goalObj.(*autoscalingv2beta2.HorizontalPodAutoscaler)
+			existing := existingObj.(*autoscalingv2beta2.HorizontalPodAutoscaler)
+			existing.Spec = goal.Spec
+			fmt.Printf("HPA name: %s\n", goal.ObjectMeta.Name)
+			return nil
+		})
+		return res, err
+	}
+	// TODO: check if autoscaling was turned off and have Finalizer logic to clean up HPA component
+	return components.Result{}, nil
 }

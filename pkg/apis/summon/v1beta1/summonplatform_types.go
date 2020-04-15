@@ -115,6 +115,9 @@ type ReplicasSpec struct {
 	// Number of celeryd pods to run. Defaults to 1 for dev/qa/uat, 4 for prod.
 	// +optional
 	Celeryd *int32 `json:"celeryd,omitempty"`
+	// Use horizontal pod autoscaling instead of a set replica.
+	// +optional
+	CelerydAuto bool `json:"celerydAuto,omitempty"`
 	// Number of celerybeat pods to run. Defaults to 1. Must be exactly 0 or 1.
 	// +optional
 	CeleryBeat *int32 `json:"celeryBeat,omitempty"`
@@ -350,6 +353,25 @@ type SummonPlatform struct {
 
 	Spec   SummonPlatformSpec   `json:"spec,omitempty"`
 	Status SummonPlatformStatus `json:"status,omitempty"`
+}
+
+type summonPlatform interface {
+	IsAutoscaled(component string) bool
+}
+
+func (summonplatform SummonPlatform) IsAutoscaled(component string) bool {
+	switch component {
+	case "celeryd":
+		return summonplatform.Spec.Replicas.CelerydAuto
+	/* TODO: fill in later when we expand out
+	case "businessPortal":
+		return summonplatform.Spec.Replicas.BuisnessPortalAuto
+	case "channelworker":
+		return summonplatform.Spec.Replicas.ChannelWorkerAuto
+	*/
+	default:
+		return false
+	}
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
