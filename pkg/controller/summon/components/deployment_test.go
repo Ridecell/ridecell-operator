@@ -44,7 +44,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("runs a basic reconcile", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -71,7 +71,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("runs a basic web deployment reconcile", func() {
-		comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+		comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -95,7 +95,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("makes sure keys are sorted before hash", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -121,7 +121,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("updates existing hashes for deployments", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
 
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
@@ -165,7 +165,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("updates existing hashes for statefulsets", func() {
-		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl")
+		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil)
 
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
@@ -209,7 +209,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("creates an statefulset object using celerybeat template", func() {
-		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl")
+		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil)
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -232,7 +232,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("sets celerybeat to 0 if NoCelerybeat is true", func() {
-		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl")
+		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil)
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -262,7 +262,7 @@ var _ = Describe("deployment Component", func() {
 		var configMap *corev1.ConfigMap
 		var appSecrets *corev1.Secret
 		BeforeEach(func() {
-			comp = summoncomponents.NewDeploymentWithAutoscaling("celeryd/deployment.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
+			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
 			configMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
 				Data:       map[string]string{"summon-platform.yml": "{}\n"},
@@ -357,7 +357,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag true on web deployment", func() {
-			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
 			trueBool := true
 			instance.Spec.Metrics.Web = &trueBool
 			Expect(comp).To(ReconcileContext(ctx))
@@ -371,7 +371,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag false on web deployment", func() {
-			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
 			falseBool := false
 			instance.Spec.Metrics.Web = &falseBool
 			Expect(comp).To(ReconcileContext(ctx))
@@ -385,7 +385,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag nil on web deployment", func() {
-			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
 			instance.Spec.Metrics.Web = nil
 			Expect(comp).To(ReconcileContext(ctx))
 
@@ -398,7 +398,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag true on static deployment", func() {
-			comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
+			comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
 			trueBool := true
 			instance.Spec.Metrics.Web = &trueBool
 			Expect(comp).To(ReconcileContext(ctx))
@@ -411,7 +411,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag true on celeryd deployment", func() {
-			comp := summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
+			comp := summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", nil)
 			trueBool := true
 			instance.Spec.Metrics.Web = &trueBool
 			Expect(comp).To(ReconcileContext(ctx))

@@ -39,11 +39,7 @@ type deploymentComponent struct {
 	isAutoscaled func(summonv1beta1.SummonPlatform) bool
 }
 
-func NewDeployment(templatePath string) *deploymentComponent {
-	return &deploymentComponent{templatePath: templatePath, isAutoscaled: func(summonv1beta1.SummonPlatform) bool { return false }}
-}
-
-func NewDeploymentWithAutoscaling(templatePath string, isAutoscaled func(summonv1beta1.SummonPlatform) bool) *deploymentComponent {
+func NewDeployment(templatePath string, isAutoscaled func(summonv1beta1.SummonPlatform) bool) *deploymentComponent {
 	return &deploymentComponent{templatePath: templatePath, isAutoscaled: isAutoscaled}
 }
 
@@ -116,7 +112,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		if ok {
 			existing := existingObj.(*appsv1.Deployment)
 			// Check if autoscaling was enabled and keep existing deployment replicas setting set by HPA
-			if comp.isAutoscaled(*instance) {
+			if comp.isAutoscaled != nil && comp.isAutoscaled(*instance) {
 				goalDeployment.Spec.Replicas = existing.Spec.Replicas
 			}
 			existing.Spec = goalDeployment.Spec

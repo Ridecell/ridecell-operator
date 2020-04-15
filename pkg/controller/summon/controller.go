@@ -76,56 +76,56 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewService("redis/service.yml.tpl"),
 
 		// Web components.
-		summoncomponents.NewDeployment("web/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("web/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("web/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
 
 		// Daphne components.
-		summoncomponents.NewDeployment("daphne/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("daphne/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("daphne/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("daphne/service.yml.tpl"),
 		summoncomponents.NewIngress("daphne/ingress.yml.tpl"),
 
 		// Static file components.
-		summoncomponents.NewDeployment("static/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("static/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("static/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("static/service.yml.tpl"),
 		summoncomponents.NewIngress("static/ingress.yml.tpl"),
 
 		// Celery components.
-		summoncomponents.NewDeploymentWithAutoscaling("celeryd/deployment.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto }),
+		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto }),
 		summoncomponents.NewPodDisruptionBudget("celeryd/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto }),
 
 		// Celerybeat components.
-		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl"),
+		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil),
 		// Does not have a pod disruption budget intentionally
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
 		// Channelworker components.
-		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("channelworker/podDisruptionBudget.yml.tpl"),
 
 		// Dispatch components.
-		summoncomponents.NewDeployment("dispatch/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("dispatch/deployment.yml.tpl", nil),
 		summoncomponents.NewService("dispatch/service.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("dispatch/podDisruptionBudget.yml.tpl"),
 
 		// Business Portal components.
-		summoncomponents.NewDeployment("businessPortal/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("businessPortal/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("businessPortal/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("businessPortal/service.yml.tpl"),
 		summoncomponents.NewIngress("businessPortal/ingress.yml.tpl"),
 
 		// Trip Share components.
-		summoncomponents.NewDeployment("tripShare/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("tripShare/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("tripShare/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("tripShare/service.yml.tpl"),
 		summoncomponents.NewIngress("tripShare/ingress.yml.tpl"),
 
 		// Hw Aux components.
-		summoncomponents.NewDeployment("hwAux/deployment.yml.tpl"),
+		summoncomponents.NewDeployment("hwAux/deployment.yml.tpl", nil),
 		summoncomponents.NewService("hwAux/service.yml.tpl"),
 		summoncomponents.NewPodDisruptionBudget("hwAux/podDisruptionBudget.yml.tpl"),
 

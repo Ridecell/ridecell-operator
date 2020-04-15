@@ -45,7 +45,7 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(hpa.Spec.ScaleTargetRef.Kind).To(Equal("Deployment"))
 			Expect(hpa.Spec.ScaleTargetRef.Name).To(Equal("foo-dev-celeryd"))
-			Expect(hpa.Spec.Metrics[0].External.Metric.Name).To(Equal("ridecell:rabbitmq_summon_queue_messages_ready"))
+			Expect(hpa.Spec.Metrics[0].External.Metric.Name).To(Equal("ridecell:rabbitmq_summon_celery_queue_scaler"))
 		})
 	})
 

@@ -8,7 +8,7 @@
         name: ridecell:rabbitmq_summon_celery_queue_scaler
         selector:
           matchLabels: 
-            vhost: {{ .Instance.Name | quote }}
+            vhost: {{ .Instance.Name | quote }}{{ end }}
 {{ define "mTarget" }}
         type: Value
         value: 1000{{ end }}
