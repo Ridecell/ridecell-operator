@@ -5,11 +5,10 @@
     kind: Deployment
     name: {{ .Instance.Name }}-celeryd{{ end }}
 {{ define "metric" }}
-        name: ridecell:rabbitmq_summon_queue_messages_ready
+        name: ridecell:rabbitmq_summon_celery_queue_scaler
         selector:
           matchLabels: 
             vhost: {{ .Instance.Name | quote }}
-            queue: "celery"{{ end }}
 {{ define "mTarget" }}
         type: Value
         value: 1000{{ end }}
