@@ -224,7 +224,8 @@ var _ = Describe("Summon controller", func() {
 		instance.Spec.Dispatch.Version = "1234"
 		instance.Spec.TripShare.Version = "5678"
 		// Enable HPA for celeryd
-		instance.Spec.Replicas.CelerydAuto = true
+		bVal := true
+		instance.Spec.Replicas.CelerydAuto = &bVal
 		c.Update(instance)
 		Eventually(func() error {
 			c.Get(helpers.Name("foo-dispatch"), deploy)

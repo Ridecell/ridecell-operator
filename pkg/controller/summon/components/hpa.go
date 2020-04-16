@@ -22,10 +22,10 @@ import (
 
 type hpaComponent struct {
 	templatePath string
-	isAutoscaled func(summonv1beta1.SummonPlatform) bool
+	isAutoscaled func(*summonv1beta1.SummonPlatform) bool
 }
 
-func NewHPA(templatePath string, isAutoscaled func(summonv1beta1.SummonPlatform) bool) *hpaComponent {
+func NewHPA(templatePath string, isAutoscaled func(*summonv1beta1.SummonPlatform) bool) *hpaComponent {
 	return &hpaComponent{templatePath: templatePath, isAutoscaled: isAutoscaled}
 }
 
@@ -42,7 +42,7 @@ func (_ *hpaComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *hpaComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Only reconcile if HPA autoscaling enabled. (<comp>Auto flag in ReplicaSpecs)
-	if comp.isAutoscaled(*instance) {
+	if comp.isAutoscaled(instance) {
 		res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 			goal := goalObj.(*autoscalingv2beta2.HorizontalPodAutoscaler)
 			existing := existingObj.(*autoscalingv2beta2.HorizontalPodAutoscaler)

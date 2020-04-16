@@ -33,11 +33,12 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 	Context("when ReplicaSpecs.<component>Auto is true", func() {
 		BeforeEach(func() {
 			// since default doesn't run, pretend we had celerydAuto set.
-			instance.Spec.Replicas.CelerydAuto = true
+			boolVal := true
+			instance.Spec.Replicas.CelerydAuto = &boolVal
 		})
 
 		It("creates an celeryd-hpa", func() {
-			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
 			Expect(comp).To(ReconcileContext(ctx))
 
 			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
@@ -50,8 +51,14 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 	})
 
 	Context("when ReplicaSpecs.<component>Auto is false (default)", func() {
+		BeforeEach(func() {
+			// since default doesn't run, pretend we had celerydAuto set.
+			boolVal := false
+			instance.Spec.Replicas.CelerydAuto = &boolVal
+		})
+
 		It("does not create celeryd-hpa", func() {
-			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
 			Expect(comp).To(ReconcileContext(ctx))
 			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, hpa)
@@ -61,6 +68,12 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 
 	/* TODO: Test finalizer logic
 	Context("when ReplicaSpecs.<component>Auto was true, but set to false", func() {
+		BeforeEach(func() {
+			// since default doesn't run, pretend we had celerydAuto set.
+			boolVal := true
+			instance.Spec.Replicas.CelerydAuto = &boolVal
+		})
+
 		It("cleans up hpa component", func() {
 
 		})

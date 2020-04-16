@@ -262,7 +262,10 @@ var _ = Describe("deployment Component", func() {
 		var configMap *corev1.ConfigMap
 		var appSecrets *corev1.Secret
 		BeforeEach(func() {
-			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s summonv1beta1.SummonPlatform) bool { return s.Spec.Replicas.CelerydAuto })
+			// default component would run first and default celerydAuto to false.
+			bVal := false
+			instance.Spec.Replicas.CelerydAuto = &bVal
+			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
 			configMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
 				Data:       map[string]string{"summon-platform.yml": "{}\n"},
@@ -320,7 +323,8 @@ var _ = Describe("deployment Component", func() {
 			Expect(target.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
 
 			// Simulate HPA modifying replica count of existing deployment object
-			instance.Spec.Replicas.CelerydAuto = true
+			bValue := true
+			instance.Spec.Replicas.CelerydAuto = &bValue
 			celerydReplicas = int32(2)
 			target.Spec.Replicas = &celerydReplicas
 			err = ctx.Client.Update(ctx.Context, target)
