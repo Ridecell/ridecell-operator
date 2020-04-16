@@ -16,7 +16,9 @@ package components
 import (
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -51,7 +53,16 @@ func (comp *hpaComponent) Reconcile(ctx *components.ComponentContext) (component
 		})
 		return res, err
 	}
-	// TODO: check if autoscaling was turned off and have Finalizer logic to clean up HPA component
-
+	// autoscale may have been turned off. Check if HPA object is still around and delete it.
+	obj, err := ctx.GetTemplate(comp.templatePath, nil)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "hpa: error rendering template %s", comp.templatePath)
+	}
+	hpa := obj.(*autoscalingv2beta2.HorizontalPodAutoscaler)
+	err = ctx.Delete(ctx.Context, hpa)
+	if err != nil && !kerrors.IsNotFound(err) {
+		// HPA object doesn't exist. Probably never enabled, or already deleted.
+		return components.Result{}, errors.Wrapf(err, "hpa: error deleting existing hpa %s/%s", hpa.Namespace, hpa.Name)
+	}
 	return components.Result{}, nil
 }
