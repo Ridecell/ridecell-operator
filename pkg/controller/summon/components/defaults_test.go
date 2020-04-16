@@ -132,7 +132,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		instance.Spec.Version = "1.2.3"
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Replicas.CelerydAuto).To(PointTo(BeEquivalentTo(false)))
-		// Expect(instance.Spec.Replicas.Web).To(PointTo(BeEquivalentTo(false)))
 	})
 
 	It("allows 0 web replicas", func() {
