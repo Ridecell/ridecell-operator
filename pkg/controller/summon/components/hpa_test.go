@@ -15,7 +15,6 @@ package components_test
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -88,14 +87,11 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 			// Turn off autocaling and check that reconcile results in deleted HPA object.
 			bVal := false
 			instance.Spec.Replicas.CelerydAuto = &bVal
-			err := ctx.Client.Update(ctx.Context, instance)
-			Expect(err).NotTo(HaveOccurred())
-
+			ctx.Client.Update(ctx.Context, instance)
 			Expect(comp).To(ReconcileContext(ctx))
 			celerydHpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
-			Eventually(func() error {
-				return ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, celerydHpa)
-			}, time.Second*30).ShouldNot(Succeed())
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, celerydHpa)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

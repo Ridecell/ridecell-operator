@@ -19,7 +19,6 @@ package components_test
 import (
 	"context"
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -327,18 +326,14 @@ var _ = Describe("deployment Component", func() {
 			instance.Spec.Replicas.CelerydAuto = &bValue
 			celerydReplicas = int32(2)
 			target.Spec.Replicas = &celerydReplicas
-			err = ctx.Client.Update(ctx.Context, target)
-			Expect(err).ToNot(HaveOccurred())
+			ctx.Client.Update(ctx.Context, target)
 
 			// Reconcile Deployment Object and refetch.
 			Expect(comp).To(ReconcileContext(ctx))
 			// Check that after reconciling, reconciled deployment object keeps existing replicas.
-			Eventually(func() int32 {
-				target = &appsv1.Deployment{}
-				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
-				Expect(err).ToNot(HaveOccurred())
-				return *target.Spec.Replicas
-			}, time.Second*30).Should(Equal(int32(2)))
+			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(target.Spec.Replicas).Should(PointTo(BeEquivalentTo(int32(2))))
 		})
 	})
 
