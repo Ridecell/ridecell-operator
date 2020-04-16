@@ -313,18 +313,16 @@ var _ = Describe("deployment Component", func() {
 			instance.Spec.Replicas.Celeryd = intp(1)
 			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 			Expect(comp).To(ReconcileContext(ctx))
+
 			target := &appsv1.Deployment{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			// Initial reconcile for celeryd replicas is 1 for dev
-			celerydReplicas := int32(1)
-			instance.Spec.Replicas.Celeryd = &celerydReplicas
 			Expect(target.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
 
 			// Simulate HPA modifying replica count of existing deployment object
 			bValue := true
 			instance.Spec.Replicas.CelerydAuto = &bValue
-			celerydReplicas = int32(2)
+			celerydReplicas := int32(2)
 			target.Spec.Replicas = &celerydReplicas
 			err = ctx.Client.Update(ctx.Context, target)
 			Expect(err).ToNot(HaveOccurred())
