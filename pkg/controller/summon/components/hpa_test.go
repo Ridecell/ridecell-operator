@@ -87,7 +87,6 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 			// Turn off autocaling and check that reconcile results in deleted HPA object.
 			bVal := false
 			instance.Spec.Replicas.CelerydAuto = &bVal
-			ctx.Client.Update(ctx.Context, instance)
 			Expect(comp).To(ReconcileContext(ctx))
 			celerydHpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, celerydHpa)
