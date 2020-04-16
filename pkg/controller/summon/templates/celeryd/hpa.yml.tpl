@@ -11,5 +11,5 @@
             vhost: {{ .Instance.Name | quote }}{{ end }}
 {{ define "mTarget" }}
         type: Value
-        value: 1000{{ end }}
+        value: 1{{ end }}
 {{ template "hpa" . }}
