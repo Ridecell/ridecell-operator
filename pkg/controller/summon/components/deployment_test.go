@@ -326,7 +326,6 @@ var _ = Describe("deployment Component", func() {
 			instance.Spec.Replicas.CelerydAuto = &bValue
 			celerydReplicas = int32(2)
 			target.Spec.Replicas = &celerydReplicas
-			ctx.Client.Update(ctx.Context, target)
 
 			// Reconcile Deployment Object and refetch.
 			Expect(comp).To(ReconcileContext(ctx))
