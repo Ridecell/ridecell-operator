@@ -128,6 +128,12 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
 	})
 
+	It("sets default component autoscaling to false", func() {
+		instance.Spec.Version = "1.2.3"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Replicas.CelerydAuto).To(PointTo(BeEquivalentTo(false)))
+	})
+
 	It("allows 0 web replicas", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",

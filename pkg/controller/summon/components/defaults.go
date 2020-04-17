@@ -292,6 +292,10 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	if replicas.Celeryd == nil {
 		replicas.Celeryd = defaultsForEnv(1, 1, 1, 4)
 	}
+	if replicas.CelerydAuto == nil {
+		bValue := false
+		replicas.CelerydAuto = &bValue
+	}
 	if replicas.Daphne == nil {
 		replicas.Daphne = defaultsForEnv(1, 1, 2, 2)
 	}
