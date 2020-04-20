@@ -57,7 +57,7 @@ spec:
             memory: 25M
             cpu: 5m
           limits:
-            memory: 40M
+            memory: 160M
         env:
         - name: SUMMON_COMPONENT
           valueFrom:
