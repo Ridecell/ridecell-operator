@@ -131,7 +131,20 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("sets default component autoscaling to false", func() {
 		instance.Spec.Version = "1.2.3"
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.Replicas.CelerydAuto).To(PointTo(BeEquivalentTo(false)))
+		Expect(instance.Spec.Replicas.CelerydAuto.HpaEnabled).To(PointTo(BeEquivalentTo(false)))
+		Expect(instance.Spec.Replicas.CelerydAuto.Min).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.CelerydAuto.Max).To(PointTo(BeEquivalentTo(10)))
+	})
+
+	It("sets default component autoscaling min max replicas if none provided", func() {
+		instance.Spec.Version = "1.2.3"
+		instance.Namespace = "summon-prod"
+		boolVal := true
+		instance.Spec.Replicas.CelerydAuto.HpaEnabled = &boolVal
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Replicas.CelerydAuto.HpaEnabled).To(PointTo(BeEquivalentTo(true)))
+		Expect(instance.Spec.Replicas.CelerydAuto.Min).To(PointTo(BeEquivalentTo(1)))
+		Expect(instance.Spec.Replicas.CelerydAuto.Max).To(PointTo(BeEquivalentTo(32)))
 	})
 
 	It("allows 0 web replicas", func() {

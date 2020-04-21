@@ -32,15 +32,22 @@ import (
 var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 	var comp components.Component
 
+	BeforeEach(func() {
+		// Templates can't handle nil pointer value. Setting some min max replicas.
+		num := int32(3)
+		instance.Spec.Replicas.CelerydAuto.Min = &num
+		instance.Spec.Replicas.CelerydAuto.Max = &num
+	})
+
 	Context("when ReplicaSpecs.<component>Auto is true", func() {
 		BeforeEach(func() {
-			// since default doesn't run, pretend we had celerydAuto set.
+			// Since default doesn't run, pretend we had celerydAuto set.
 			boolVal := true
-			instance.Spec.Replicas.CelerydAuto = &boolVal
+			instance.Spec.Replicas.CelerydAuto.HpaEnabled = &boolVal
 		})
 
 		It("creates an celeryd-hpa", func() {
-			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto.HpaEnabled })
 			Expect(comp).To(ReconcileContext(ctx))
 
 			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
@@ -56,11 +63,11 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 		BeforeEach(func() {
 			// since default doesn't run, pretend we had celerydAuto set.
 			boolVal := false
-			instance.Spec.Replicas.CelerydAuto = &boolVal
+			instance.Spec.Replicas.CelerydAuto.HpaEnabled = &boolVal
 		})
 
 		It("does not create celeryd-hpa", func() {
-			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto.HpaEnabled })
 			Expect(comp).To(ReconcileContext(ctx))
 			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, hpa)
@@ -69,24 +76,23 @@ var _ = Describe("HorizontalPodAutoscaler (hpa) Component", func() {
 	})
 
 	Context("when ReplicaSpecs.<component>Auto was true, but set to false", func() {
-		//var hpa *autoscalingv2beta2.HorizontalPodAutoscaler
 		BeforeEach(func() {
 			// ReplicaSpecs.*Auto are true
 			boolVal := true
-			instance.Spec.Replicas.CelerydAuto = &boolVal
+			instance.Spec.Replicas.CelerydAuto.HpaEnabled = &boolVal
 		})
 
 		It("cleans up celeryd hpa component", func() {
 			hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace},
 			}
-			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
+			comp = summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto.HpaEnabled })
 			// Simulate HPA object already existing.
 			ctx.Client = fake.NewFakeClient(instance, hpa)
 
 			// Turn off autocaling and check that reconcile results in deleted HPA object.
 			bVal := false
-			instance.Spec.Replicas.CelerydAuto = &bVal
+			instance.Spec.Replicas.CelerydAuto.HpaEnabled = &bVal
 			Expect(comp).To(ReconcileContext(ctx))
 			celerydHpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd-hpa", Namespace: instance.Namespace}, celerydHpa)

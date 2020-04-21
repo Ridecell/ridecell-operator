@@ -285,17 +285,26 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 		}
 	}
 
-	// Fill in defaults based on environment.
+	setAutoConfigDefaults := func(component *summonv1beta1.AutoConfigSpec) {
+		if component.HpaEnabled == nil {
+			boolVal := false
+			component.HpaEnabled = &boolVal
+		}
+		if component.Min == nil {
+			component.Min = defaultsForEnv(1, 1, 1, 1)
+		}
+		if component.Max == nil {
+			component.Max = defaultsForEnv(10, 10, 32, 32)
+		}
+	}
+
 	if replicas.Web == nil {
 		replicas.Web = defaultsForEnv(1, 1, 2, 4)
 	}
 	if replicas.Celeryd == nil {
 		replicas.Celeryd = defaultsForEnv(1, 1, 1, 4)
 	}
-	if replicas.CelerydAuto == nil {
-		bValue := false
-		replicas.CelerydAuto = &bValue
-	}
+	setAutoConfigDefaults(&replicas.CelerydAuto)
 	if replicas.Daphne == nil {
 		replicas.Daphne = defaultsForEnv(1, 1, 2, 2)
 	}
