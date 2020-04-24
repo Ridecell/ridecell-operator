@@ -41,10 +41,10 @@ spec:
           mountPath: /data
         resources:
           requests:
-            memory: {{ .Instance.Spec.Redis.RAM }}{{ if le .Instance.Spec.Redis.RAM 10 }}G{{ else }}M{{ end }}
+            memory: {{ .Instance.Spec.Redis.RAM }}M
             cpu: 25m
           limits:
-            memory: {{ .Instance.Spec.Redis.RAM }}{{ if le .Instance.Spec.Redis.RAM 10 }}G{{ else }}M{{ end }}
+            memory: {{ .Instance.Spec.Redis.RAM }}M
         readinessProbe:
           exec:
             command:

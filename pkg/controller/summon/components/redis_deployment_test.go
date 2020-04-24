@@ -44,18 +44,6 @@ var _ = Describe("redis_deployment Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("sets the RAM when given in GB", func() {
-		instance.Status.Status = summonv1beta1.StatusDeploying
-		instance.Spec.Redis.RAM = 2
-		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
-		Expect(comp).To(ReconcileContext(ctx))
-
-		deployment := &appsv1.Deployment{}
-		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()).To(PointTo(Equal(resource.MustParse("2G"))))
-	})
-
 	It("sets the RAM when given in MB", func() {
 		instance.Status.Status = summonv1beta1.StatusDeploying
 		instance.Spec.Redis.RAM = 300
