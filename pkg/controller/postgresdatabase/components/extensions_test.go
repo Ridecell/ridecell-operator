@@ -48,7 +48,7 @@ var _ = Describe("PostgresDatabase Extensions Component", func() {
 		instance.Spec.Extensions = map[string]string{
 			"postgis":          "",
 			"postgis_topology": "",
-			"pg_trgm": "",
+			"pg_trgm":          "",
 		}
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -63,7 +63,6 @@ var _ = Describe("PostgresDatabase Extensions Component", func() {
 		err = ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-postgis-topology", Namespace: "summon-dev"}, ext)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis_topology"))
-
 
 		err = ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-pg-trgm", Namespace: "summon-dev"}, ext)
 		Expect(err).ToNot(HaveOccurred())
