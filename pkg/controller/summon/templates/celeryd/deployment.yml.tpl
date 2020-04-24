@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/component: worker
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
-    metrics-enabled: {{ .Instance.Spec.Metrics.Celeryd | quote }}
+    metrics-enabled: "{{ .Instance.Spec.Metrics.Celeryd | default "false" }}"
 spec:
   replicas: {{ .Instance.Spec.Replicas.Celeryd | default 0 }}
   selector:
@@ -25,7 +25,7 @@ spec:
         app.kubernetes.io/component: worker
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
-        metrics-enabled: {{ .Instance.Spec.Metrics.Celeryd | quote }}
+        metrics-enabled: "{{ .Instance.Spec.Metrics.Celeryd | default "false" }}"
       annotations:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
