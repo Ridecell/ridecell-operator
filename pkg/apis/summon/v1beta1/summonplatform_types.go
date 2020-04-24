@@ -150,6 +150,8 @@ type MonitoringSpec struct {
 type MetricsSpec struct {
 	// Enables metrics exporting for web pods
 	Web *bool `json:"web,omitempty"`
+	// Enables metrics exporting for celeryd pods
+	Celeryd *bool `json:"web,omitempty"`
 }
 
 // CompDispatchSpec defines settings for comp-dispatch.
