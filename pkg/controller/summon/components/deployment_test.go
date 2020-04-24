@@ -420,5 +420,18 @@ var _ = Describe("deployment Component", func() {
 			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
 			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("false"))
 		})
+
+		It("Celeryd flag true on celeryd deployment", func() {
+			comp := summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", nil)
+			trueBool := true
+			instance.Spec.Metrics.Celeryd = &trueBool
+			Expect(comp).To(ReconcileContext(ctx))
+
+			deployment := &appsv1.Deployment{}
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, deployment)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
+			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
+		})
 	})
 })
