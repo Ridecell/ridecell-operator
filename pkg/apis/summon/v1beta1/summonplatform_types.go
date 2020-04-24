@@ -106,7 +106,7 @@ type MigrationOverridesSpec struct {
 
 type AutoConfigSpec struct {
 	// Control if Horizontal Pod Autoscaling is used to manage replica counts.
-	HpaEnabled *bool `json:"enabled,omitempty"`
+	HpaEnabled *bool `json:"hpaEnabled,omitempty"`
 	// Sets minimum number of replicas HPA can scale down to.
 	//+optional
 	Min *int32 `json:"min,omitempty"`

@@ -301,10 +301,20 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	if replicas.Web == nil {
 		replicas.Web = defaultsForEnv(1, 1, 2, 4)
 	}
-	if replicas.Celeryd == nil {
-		replicas.Celeryd = defaultsForEnv(1, 1, 1, 4)
+	// Error if both are set, so we don't end up ignoring one.
+	if replicas.Celeryd != nil && *replicas.CelerydAuto.HpaEnabled {
+		return fmt.Errorf("Cannot have both Spec.Replicas.Celeryd and Spec.Replicas.CelerydAuto.HpaEnabled set")
 	}
 	setAutoConfigDefaults(&replicas.CelerydAuto)
+	if replicas.Celeryd == nil {
+		if *replicas.CelerydAuto.HpaEnabled {
+			// We need at least 1 replica to start for HPA to work
+			replicas.Celeryd = intp(1)
+		} else {
+			replicas.Celeryd = defaultsForEnv(1, 1, 1, 4)
+		}
+	}
+
 	if replicas.Daphne == nil {
 		replicas.Daphne = defaultsForEnv(1, 1, 2, 2)
 	}

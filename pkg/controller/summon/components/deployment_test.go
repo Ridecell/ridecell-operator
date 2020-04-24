@@ -308,7 +308,7 @@ var _ = Describe("deployment Component", func() {
 			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "30", "--pool", "solo"}))
 		})
 
-		It("uses existing Spec.Replicas if celerydAuto is set", func() {
+		It("uses existing Spec.Replicas set by HPA during reconciles when celerydAuto.HpaEnabled", func() {
 			// Defaults component would set celeryd to 1 for dev instances.
 			instance.Spec.Replicas.Celeryd = intp(1)
 			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
