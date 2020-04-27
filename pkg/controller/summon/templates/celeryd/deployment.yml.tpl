@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/component: worker
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
-    metrics-enabled: "false"
+    metrics-enabled: "{{ .Instance.Spec.Metrics.Celeryd | default "false" }}"
 spec:
   replicas: {{ .Instance.Spec.Replicas.Celeryd | default 0 }}
   selector:
@@ -25,7 +25,7 @@ spec:
         app.kubernetes.io/component: worker
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
-        metrics-enabled: "false"
+        metrics-enabled: "{{ .Instance.Spec.Metrics.Celeryd | default "false" }}"
       annotations:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
@@ -65,14 +65,13 @@ spec:
         - "--pool"
         - {{ .Instance.Spec.Celery.Pool | default "eventlet" | quote }}
         ports:
-        - containerPort: 8000
+        - containerPort: 9000
         resources:
           requests:
-            memory: 512M
+            memory: 1G
             cpu: 500m
           limits:
-            memory: 3G
-            cpu: 1000m
+            memory: 1.5G
         env:
         - name: SUMMON_COMPONENT
           valueFrom:

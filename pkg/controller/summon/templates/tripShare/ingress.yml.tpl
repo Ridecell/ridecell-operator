@@ -1,4 +1,4 @@
 {{ define "componentName" }}tripshare{{ end }}
 {{ define "componentType" }}web{{ end }}
-{{ define "ingressPath" }}/tripshare{{ end }}
+{{ define "ingressPath" }}/trip_share{{ end }}
 {{ template "ingress" . }}

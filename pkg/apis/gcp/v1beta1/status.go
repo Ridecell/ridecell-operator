@@ -32,3 +32,16 @@ func (sa *GCPServiceAccount) SetErrorStatus(errorMsg string) {
 	sa.Status.Status = StatusError
 	sa.Status.Message = errorMsg
 }
+
+func (gp *GCPProject) GetStatus() components.Status {
+	return gp.Status
+}
+
+func (gp *GCPProject) SetStatus(status components.Status) {
+	gp.Status = status.(GCPProjectStatus)
+}
+
+func (gp *GCPProject) SetErrorStatus(errorMsg string) {
+	gp.Status.Status = StatusError
+	gp.Status.Message = errorMsg
+}

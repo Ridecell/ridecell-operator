@@ -54,12 +54,7 @@ spec:
         imagePullPolicy: Always
         command: {{ block "command" . }}[]{{ end }}
         ports: {{ block "deploymentPorts" . }}[{containerPort: 8000}]{{ end }}
-        resources:
-          requests:
-            memory: 512M
-            cpu: 500m
-          limits:
-            memory: {{ block "memory_limit" . }}1G{{ end }}
+        resources: {{ block "resources" . }}{}{{ end }}
         env:
         - name: SUMMON_COMPONENT
           valueFrom:

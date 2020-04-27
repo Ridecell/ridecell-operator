@@ -63,14 +63,20 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		return components.Result{}, errors.New("Spec.Version and Spec.AutoDeploy are both set. Must specify only one.")
 	}
 
+	// Enable web prometheus metrics exporting everywhere.
+	if instance.Spec.Metrics.Web == nil {
+		val := true
+		instance.Spec.Metrics.Web = &val
+	}
+
 	// If the persistentVolumeClaim for redis changes this integer should as well.
-	if instance.Spec.Redis.RAM > 10 {
+	if instance.Spec.Redis.RAM > 10*1024 {
 		return components.Result{}, errors.New("redis memory limit cannot surpass available disk space")
 	}
 
 	// Set redis defaults
 	if instance.Spec.Redis.RAM == 0 {
-		instance.Spec.Redis.RAM = 1
+		instance.Spec.Redis.RAM = 200
 	}
 
 	// Helper method to set a string value if not already set.
@@ -79,6 +85,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		if !ok {
 			value := fmt.Sprintf(valueTemplate, args...)
 			instance.Spec.Config[key] = summonv1beta1.ConfigValue{String: &value}
+		}
+	}
+	// and the same for a bool.
+	defBoolVal := func(key string, value bool) {
+		_, ok := instance.Spec.Config[key]
+		if !ok {
+			instance.Spec.Config[key] = summonv1beta1.ConfigValue{Bool: &value}
 		}
 	}
 
@@ -210,8 +223,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defVal("AWS_REGION", "%s", instance.Spec.AwsRegion)
 	defVal("AWS_STORAGE_BUCKET_NAME", "ridecell-%s-static", instance.Name)
 	defVal("DATA_PIPELINE_SQS_QUEUE_NAME", "%s", instance.Spec.SQSQueue)
-	defVal("DISPATCH_BASE_URL", "http://%s-dispatch:8000/", instance.Name)
 	defVal("HWAUX_BASE_URL", "http://%s-hwaux:8000/", instance.Name)
+	// NOTE: For now, only set the dispatch URL if the component is enabled. This was a miscommunication with
+	// the backend team and can be removed some time after PCR 2020-6 goes out. Confirm with the Ridesharing
+	// team before putting this back to always being set as a default.
+	if instance.Spec.Replicas.Dispatch != nil && *instance.Spec.Replicas.Dispatch > 0 {
+		defVal("DISPATCH_BASE_URL", "http://%s-dispatch:8000/", instance.Name)
+	}
+
+	// Indicator flags for if each component is enabled or not.
+	defBoolVal("DISPATCH_ENABLED", instance.Spec.Replicas.Dispatch != nil && *instance.Spec.Replicas.Dispatch > 0)
+	defBoolVal("HWAUX_ENABLED", instance.Spec.Replicas.HwAux != nil && *instance.Spec.Replicas.HwAux > 0)
+	defBoolVal("BUSINESSPORTAL_ENABLED", instance.Spec.Replicas.BusinessPortal != nil && *instance.Spec.Replicas.BusinessPortal > 0)
+	defBoolVal("TRIPSHARE_ENABLED", instance.Spec.Replicas.TripShare != nil && *instance.Spec.Replicas.TripShare > 0)
 
 	// Translate our aws region into a usable region
 	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
@@ -225,11 +249,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
-		val := true
-		instance.Spec.Config["DEBUG"] = summonv1beta1.ConfigValue{Bool: &val}
-
+		defBoolVal("DEBUG", true)
+		defBoolVal("ENABLE_JSON_LOGGING", true)
 		gatewayEnv = "master"
 	}
+
+	// Set debug to false globally if not already set.
+	defBoolVal("DEBUG", false)
+
 	// Use our translated region and gateway env to set GATEWAY_BASE_URL
 	defVal("GATEWAY_BASE_URL", "https://global.%s.%s.svc.ridecell.io/", translatedRegion, gatewayEnv)
 
@@ -264,6 +291,10 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	}
 	if replicas.Celeryd == nil {
 		replicas.Celeryd = defaultsForEnv(1, 1, 1, 4)
+	}
+	if replicas.CelerydAuto == nil {
+		bValue := false
+		replicas.CelerydAuto = &bValue
 	}
 	if replicas.Daphne == nil {
 		replicas.Daphne = defaultsForEnv(1, 1, 2, 2)
@@ -356,7 +387,6 @@ ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
 	defConfig("CONN_MAX_AGE", float64(60))
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
-	defConfig("DEBUG", false)
 	defConfig("ENABLE_NEW_RELIC", false)
 	defConfig("ENABLE_SENTRY", false)
 	defConfig("FACEBOOK_AUTHENTICATION_EMPLOYEE_PERMISSION_REQUIRED", false)

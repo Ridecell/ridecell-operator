@@ -128,6 +128,12 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
 	})
 
+	It("sets default component autoscaling to false", func() {
+		instance.Spec.Version = "1.2.3"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Replicas.CelerydAuto).To(PointTo(BeEquivalentTo(false)))
+	})
+
 	It("allows 0 web replicas", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
@@ -236,5 +242,19 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 			Expect(instance.Spec.Replicas.Static).To(PointTo(BeEquivalentTo(1)))
 			Expect(instance.Spec.Replicas.CeleryBeat).To(PointTo(BeEquivalentTo(1)))
 		})
+	})
+
+	It("sets DISPATCH_ENABLED if the dispatch component is enabled", func() {
+		instance.Spec.Dispatch.Version = "foo"
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Config["DISPATCH_ENABLED"].Bool).To(PointTo(BeTrue()))
+		Expect(instance.Spec.Config["DISPATCH_BASE_URL"].String).To(PointTo(Equal("http://foo-dev-dispatch:8000/")))
+	})
+
+	It("does not DISPATCH_ENABLED if the dispatch component is not enabled", func() {
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.Config["DISPATCH_ENABLED"].Bool).To(PointTo(BeFalse()))
+		// NOTE: This assertion will be removed when #269 is put back so DISPATCH_BASE_URL is always set.
+		Expect(instance.Spec.Config).ToNot(ContainElement("DISPATCH_BASE_URL"))
 	})
 })

@@ -22,7 +22,9 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -40,5 +42,17 @@ var _ = Describe("redis_deployment Component", func() {
 		deployment := &appsv1.Deployment{}
 		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("sets the RAM when given in MB", func() {
+		instance.Status.Status = summonv1beta1.StatusDeploying
+		instance.Spec.Redis.RAM = 300
+		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+
+		deployment := &appsv1.Deployment{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()).To(PointTo(Equal(resource.MustParse("300M"))))
 	})
 })

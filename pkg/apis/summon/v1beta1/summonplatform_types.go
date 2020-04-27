@@ -68,7 +68,7 @@ type CelerySpec struct {
 
 // RedisSpec defines resource configuration for redis deployment.
 type RedisSpec struct {
-	// Setting for tuning redis memory request/limit in GB.
+	// Setting for tuning redis memory request/limit in MB.
 	// +optional
 	RAM int `json:"ram,omitempty"`
 }
@@ -115,6 +115,9 @@ type ReplicasSpec struct {
 	// Number of celeryd pods to run. Defaults to 1 for dev/qa/uat, 4 for prod.
 	// +optional
 	Celeryd *int32 `json:"celeryd,omitempty"`
+	// Use horizontal pod autoscaling for celeryd instead of a set replica.
+	// +optional
+	CelerydAuto *bool `json:"celerydAuto,omitempty"`
 	// Number of celerybeat pods to run. Defaults to 1. Must be exactly 0 or 1.
 	// +optional
 	CeleryBeat *int32 `json:"celeryBeat,omitempty"`
@@ -147,6 +150,8 @@ type MonitoringSpec struct {
 type MetricsSpec struct {
 	// Enables metrics exporting for web pods
 	Web *bool `json:"web,omitempty"`
+	// Enables metrics exporting for celeryd pods
+	Celeryd *bool `json:"celeryd,omitempty"`
 }
 
 // CompDispatchSpec defines settings for comp-dispatch.

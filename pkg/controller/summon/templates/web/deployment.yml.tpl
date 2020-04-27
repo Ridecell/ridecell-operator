@@ -16,7 +16,7 @@
 {{ end }}
 {{ define "metricsEnabled" }}"{{ .Instance.Spec.Metrics.Web | default false }}"{{ end }}
 {{ define "replicas" }}{{ .Instance.Spec.Replicas.Web | default 0 }}{{ end }}
-{{ define "memory_limit" }}2G{{ end }}
+{{ define "resources" }}{requests: {memory: "800M", cpu: "50m"}, limits: {memory: "1365M"}}{{ end }}
 {{ define "containerExtra" }}
         readinessProbe:
           httpGet:
