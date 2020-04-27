@@ -18,6 +18,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -88,6 +89,45 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 		return components.Result{}, err
 	}
 
+	if os.Getenv("ENABLE_NEW_STATUS_CHECK") == "true" {
+		dispatch := &appsv1.Deployment{}
+		businessPortal := &appsv1.Deployment{}
+		tripShare := &appsv1.Deployment{}
+		hwAux := &appsv1.Deployment{}
+
+		err = comp.get(ctx, "dispatch", dispatch)
+		if err != nil {
+			return components.Result{}, err
+		}
+		err = comp.get(ctx, "businessportal", businessPortal)
+		if err != nil {
+			return components.Result{}, err
+		}
+		err = comp.get(ctx, "tripshare", tripShare)
+		if err != nil {
+			return components.Result{}, err
+		}
+		err = comp.get(ctx, "hwaux", hwAux)
+		if err != nil {
+			return components.Result{}, err
+		}
+
+		// the bigger newer check
+		if comp.isReady(web) && comp.isReady(daphne) &&
+			comp.isReady(celeryd) && comp.isReady(channelworker) &&
+			comp.isReady(static) && comp.isReady(celerybeat) &&
+			comp.isReady(dispatch) && comp.isReady(businessPortal) &&
+			comp.isReady(tripShare) && comp.isReady(hwAux) {
+			return components.Result{StatusModifier: func(obj runtime.Object) error {
+				instance := obj.(*summonv1beta1.SummonPlatform)
+				instance.Status.Status = summonv1beta1.StatusReady
+				instance.Status.Message = fmt.Sprintf("Cluster %s ready", instance.Name)
+				return nil
+			}}, nil
+		}
+		return components.Result{}, nil
+	}
+
 	// The big check!
 	if web.Spec.Replicas != nil && web.Status.AvailableReplicas == *web.Spec.Replicas &&
 		daphne.Spec.Replicas != nil && daphne.Status.AvailableReplicas == *daphne.Spec.Replicas &&
@@ -119,4 +159,21 @@ func (comp *statusComponent) get(ctx *components.ComponentContext, part string, 
 		return errors.Wrapf(err, "status: unable to get Deployment or StatefulSet %s for %s subsystem", name, part)
 	}
 	return nil
+}
+
+func (comp *statusComponent) isReady(robject runtime.Object) bool {
+	statefulset, ok := robject.(*appsv1.StatefulSet)
+	if ok {
+		if statefulset.Spec.Replicas != nil && statefulset.Status.ReadyReplicas == *statefulset.Spec.Replicas && statefulset.Status.UpdatedReplicas == *statefulset.Spec.Replicas {
+			return true
+		}
+		return false
+	}
+
+	// if it's neither thing panic
+	deployment := robject.(*appsv1.Deployment)
+	if deployment.Spec.Replicas != nil && deployment.Status.UpdatedReplicas == *deployment.Spec.Replicas && deployment.Status.ReadyReplicas == *deployment.Spec.Replicas && deployment.Status.UnavailableReplicas == 0 {
+		return true
+	}
+	return false
 }
