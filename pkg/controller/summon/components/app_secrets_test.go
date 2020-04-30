@@ -17,6 +17,7 @@ limitations under the License.
 package components_test
 
 import (
+	"encoding/json"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -362,6 +363,37 @@ var _ = Describe("app_secrets Component", func() {
 		data := map[string]interface{}{}
 		err = yaml.Unmarshal(fetchSecret.Data["hwaux.yml"], &data)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("creates a comp-trip-share secret", func() {
+		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.tripshare", Namespace: "summon-dev"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		data := map[string]interface{}{}
+		err = json.Unmarshal(fetchSecret.Data["config.json"], &data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data).To(HaveKeyWithValue("google_api_key", "asdf1234"))
+	})
+
+	It("creates a comp-trip-share secret with a tripshare specific key", func() {
+		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
+		inSecret.Data["GOOGLE_MAPS_TRIPSHARE_API_KEY"] = []byte("qwer5678")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.tripshare", Namespace: "summon-dev"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		data := map[string]interface{}{}
+		err = json.Unmarshal(fetchSecret.Data["config.json"], &data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data).To(HaveKeyWithValue("google_api_key", "qwer5678"))
 	})
 
 })
