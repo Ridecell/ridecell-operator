@@ -77,7 +77,7 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		return components.Result{}, nil
 	}
 
-	// TODO 2020-01-06 After cm+secret merges to just secret, support varying the input names in the component config so comp-dispatch can get just the hash of its config.
+	// TODO 2020-01-06 After cm+secret merges to just secret, support varying the input names in the component config so comp-dispatch and comp-trip-share can get just the hash of their config.
 	rawAppSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
 	if err != nil {

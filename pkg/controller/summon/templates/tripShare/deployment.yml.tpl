@@ -26,6 +26,9 @@ spec:
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
         metrics-enabled: "false"
+      annotations:
+        summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
+        summon.ridecell.io/configHash: {{ .Extra.configHash }}
     spec:
       affinity:
         podAntiAffinity:
@@ -42,8 +45,6 @@ spec:
               labelSelector:
                 matchLabels:
                   app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
-      imagePullSecrets:
-      - name: pull-secret
       containers:
       - name: default
         image: "us.gcr.io/ridecell-1/comp-trip-share:{{ .Instance.Spec.TripShare.Version }}"
@@ -70,3 +71,11 @@ spec:
             path: /
             port: 8000
           initialDelaySeconds: 60
+        volumeMounts:
+        - name: config
+          mountPath: /app/_site/trip_share/config.json
+          subPath: config.json
+      volumes:
+      - name: config
+        secret:
+          secretName: {{ .Instance.Name }}.tripshare

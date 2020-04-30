@@ -18,6 +18,7 @@ package components
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -237,6 +238,14 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	// Set up secrets for comp-hw-aux.
 	hwauxSecretsData := map[string]interface{}{}
 
+	// Set up secrets for comp-trip-share.
+	tripshareSecretsData := map[string]interface{}{}
+	if appSecretsData["GOOGLE_MAPS_TRIPSHARE_API_KEY"] != nil {
+		tripshareSecretsData["google_api_key"] = appSecretsData["GOOGLE_MAPS_TRIPSHARE_API_KEY"]
+	} else {
+		tripshareSecretsData["google_api_key"] = appSecretsData["GOOGLE_MAPS_BACKEND_API_KEY"]
+	}
+
 	// Serialize the app secrets YAML and put it in a secret.
 	yamlData, err := yaml.Marshal(appSecretsData)
 	if err != nil {
@@ -306,6 +315,23 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	})
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update comp-hw-aux secret object")
+	}
+
+	// Create the comp-trip-share secret.
+	tripshareJsonData, err := json.Marshal(tripshareSecretsData)
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: json.Marshal failed for comp-trip-share")
+	}
+
+	_, _, err = ctx.CreateOrUpdate("secrets/tripshare.yml.tpl", nil, func(_, existingObj runtime.Object) error {
+		existing := existingObj.(*corev1.Secret)
+		existing.Data = map[string][]byte{
+			"config.json": tripshareJsonData,
+		}
+		return nil
+	})
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update comp-trip-share secret object")
 	}
 
 	return components.Result{}, nil
