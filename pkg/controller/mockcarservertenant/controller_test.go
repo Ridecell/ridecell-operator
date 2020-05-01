@@ -80,6 +80,6 @@ var _ = Describe("mockcarservertenant controller", func() {
 		secret := &corev1.Secret{}
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), helpers.Name("foo-sample.tenant-otakeys"), secret)
-		}).ShouldNot(Succeed())
+		}, 10*time.Second).ShouldNot(Succeed())
 	})
 })
