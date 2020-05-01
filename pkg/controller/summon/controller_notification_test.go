@@ -66,9 +66,15 @@ var _ = Describe("Summon controller notifications", func() {
 				Secrets: []string{"testsecret"},
 			},
 		}
+
+		// Increase the default EventuallyGet timeout.
+		test_helpers.DefaultTimeout = 60 * time.Second
 	})
 
 	AfterEach(func() {
+		// Restore the default EventuallyGet timeout.
+		test_helpers.DefaultTimeout = 30 * time.Second
+
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			summons := &summonv1beta1.SummonPlatformList{}
@@ -352,7 +358,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 			// Check that things are ready.
 			fetchInstance := &summonv1beta1.SummonPlatform{}
-			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady), c.EventuallyTimeout(60*time.Second))
+			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 			// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
 			c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
