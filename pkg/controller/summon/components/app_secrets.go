@@ -167,6 +167,9 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// Find the RabbitMQ data.
 	rabbitmqConnection := instance.Status.RabbitMQConnection
+	if rabbitmqSecret.Data == nil {
+		return components.Result{}, errors.New("app_secrets: RabbitMQ secret not initialized")
+	}
 	rabbitmqPassword, ok := rabbitmqSecret.Data[rabbitmqConnection.PasswordSecretRef.Key]
 	if !ok {
 		return components.Result{}, errors.Errorf("app_secrets: RabbitMQ password not found in secret %s[%s]", rabbitmqConnection.PasswordSecretRef.Name, rabbitmqConnection.PasswordSecretRef.Key)
