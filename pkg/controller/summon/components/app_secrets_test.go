@@ -136,7 +136,7 @@ var _ = Describe("app_secrets Component", func() {
 		postgresSecret.Data["foo"] = []byte("other")
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		_, err := comp.Reconcile(ctx)
-		Expect(err).To(MatchError("app_secrets: PPostgres password not found in secret"))
+		Expect(err).To(MatchError("app_secrets: Postgres password not found in secret"))
 	})
 
 	It("Sets postgres password and checks reconcile output", func() {
