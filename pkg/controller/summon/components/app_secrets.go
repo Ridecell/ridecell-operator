@@ -143,6 +143,9 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	mockCarServerSecret := dynamicInputSecrets[5]
 
 	postgresConnection := instance.Status.PostgresConnection
+	if postgresSecret.Data == nil {
+		return components.Result{}, errors.New("app_secrets: Postgres secret not initialized")
+	}
 	postgresPassword, ok := postgresSecret.Data[postgresConnection.PasswordSecretRef.Key]
 	if !ok {
 		return components.Result{}, errors.New("app_secrets: Postgres password not found in secret")
