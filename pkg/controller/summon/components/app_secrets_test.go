@@ -133,7 +133,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("Run reconcile with a missing postgres password and other fields", func() {
 		delete(postgresSecret.Data, "password")
-		postgresSecret.Data["foo"] = "other"
+		postgresSecret.Data["foo"] = []byte("other")
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("app_secrets: PPostgres password not found in secret"))
