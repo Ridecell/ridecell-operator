@@ -278,8 +278,9 @@ var _ = Describe("Summon controller notifications", func() {
 			historyParams.Oldest = lastMessage.Timestamp
 			history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
 			Expect(err).ToNot(HaveOccurred())
-			// TODO Fix this, it's a flaky test because of race conditions.
-			//Expect(history.Messages).To(HaveLen(1))
+			// TODO Fix this, it's a flaky test because of race conditions. We should actually check for a message
+			// matching this test run.
+			Expect(len(history.Messages)).To(BeNumerically(">=", 1))
 		})
 
 		It("sends two success notifications for two different clusters", func() {
