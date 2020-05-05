@@ -86,16 +86,16 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 
 		It("sends a success notification on a new deployment", func() {
 			instance.Spec.Version = "1234-eb6b515-master"
-			instance.Status.Notification.NotifyVersion = ""
+			instance.Status.Notification.SummonVersion = ""
 			instance.Status.Status = summonv1beta1.StatusReady
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
 			post := mockedSlackClient.PostMessageCalls()[0]
 			Expect(post.In1).To(Equal("#test-channel"))
-			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
-			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us summon-platform Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed summon-platform version 1234-eb6b515-master successfully"))
 			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
-			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
+			Expect(instance.Status.Notification.SummonVersion).To(Equal("1234-eb6b515-master"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
 			Expect(deployPost.Name).To(Equal("foo"))
@@ -103,49 +103,108 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(deployPost.Tag).To(Equal("1234-eb6b515-master"))
 		})
 
+		It("sends a notification for the summon deployment and one for its tripshare component", func() {
+			instance.Spec.Version = "1234-eb6b515-master"
+			instance.Spec.TripShare.Version = "123-ababcdc-tripshare-master"
+			instance.Status.Notification.SummonVersion = ""
+			instance.Status.Status = summonv1beta1.StatusReady
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
+			// Notifies for summon platform.
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us summon-platform Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed summon-platform version 1234-eb6b515-master successfully"))
+			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
+			Expect(instance.Status.Notification.SummonVersion).To(Equal("1234-eb6b515-master"))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(2))
+			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
+			Expect(deployPost.Name).To(Equal("foo"))
+			Expect(deployPost.Env).To(Equal("dev"))
+			Expect(deployPost.Tag).To(Equal("1234-eb6b515-master"))
+			//Notifies for TripShare.
+			post = mockedSlackClient.PostMessageCalls()[1]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us comp-trip-share Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed comp-trip-share version 123-ababcdc-tripshare-master successfully"))
+			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/comp-trip-share/tree/ababcdc|ababcdc>"))
+			Expect(instance.Status.Notification.TripShareVersion).To(Equal("123-ababcdc-tripshare-master"))
+			deployPost = mockedDeployStatusClient.PostStatusCalls()[1]
+			Expect(deployPost.Name).To(Equal("foo comp-trip-share"))
+			Expect(deployPost.Env).To(Equal("dev"))
+			Expect(deployPost.Tag).To(Equal("123-ababcdc-tripshare-master"))
+		})
+
+		It("sends a success notification for a summon component (hwAux) deployment", func() {
+			instance.Spec.Version = "1234-eb6b515-master"
+			instance.Spec.HwAux.Version = "123-cdcdababa-hwaux-master"
+			instance.Status.Notification.SummonVersion = "1234-eb6b515-master"
+			instance.Status.Status = summonv1beta1.StatusReady
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+			// Notifies for summon platform.
+			post := mockedSlackfieldsient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us comp-hw-aux Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed comp-hw-aux version 123-cdcdababa-hwaux-master successfully"))
+			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/comp-hw-aux/tree/cdcdababa|cdcdababa>"))
+			Expect(instance.Status.Notification.HwAuxVersion).To(Equal("123-cdcdababa-hwaux-master"))
+			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
+			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
+			Expect(deployPost.Name).To(Equal("foo comp-hw-aux"))
+			Expect(deployPost.Env).To(Equal("dev"))
+			Expect(deployPost.Tag).To(Equal("123-cdcdababa-hwaux-master"))
+		})
+
 		It("sends a success notification on a new deployment to additional slack channels", func() {
 			instance.Spec.Notifications.SlackChannels = []string{"#test-channel-2"}
 			instance.Spec.Version = "1234-eb6b515-master"
-			instance.Status.Notification.NotifyVersion = ""
+			instance.Status.Notification.SummonVersion = ""
 			instance.Status.Status = summonv1beta1.StatusReady
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
 			post := mockedSlackClient.PostMessageCalls()[0]
 			Expect(post.In1).To(Equal("#test-channel"))
-			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
-			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us summon-platform Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed summon-platform version 1234-eb6b515-master successfully"))
 			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
 			post2 := mockedSlackClient.PostMessageCalls()[1]
 			Expect(post2.In1).To(Equal("#test-channel-2"))
-			Expect(post2.In2.Title).To(Equal("foo.ridecell.us Deployment"))
-			Expect(post2.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+			Expect(post2.In2.Title).To(Equal("foo.ridecell.us summon-platform Deployment"))
+			Expect(post2.In2.Fallback).To(Equal("foo.ridecell.us deployed summon-platform version 1234-eb6b515-master successfully"))
 			Expect(post2.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
-			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
+			Expect(instance.Status.Notification.SummonVersion).To(Equal("1234-eb6b515-master"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 		})
 
-		It("does not send a success notification on an existing deployment", func() {
+		It("does not send a success notification on existing deployments", func() {
 			instance.Spec.Notifications.SlackChannels = []string{"#test-channel-2", "#test-channel-3"}
 			instance.Spec.Version = "1234-eb6b515-master"
-			instance.Status.Notification.NotifyVersion = "1234-eb6b515-master"
+			instance.Status.Notification.SummonVersion = "1234-eb6b515-master"
+			instance.Spec.Dispatch.Version = "1234-eb6b515-dispatch"
+			instance.Status.Notification.DispatchVersion = "1234-eb6b515-dispatch"
+			instance.Spec.BusinessPortal.Version = "1234-eb6b515-businessportal"
+			instance.Status.Notification.BusinessPortalVersion = "1234-eb6b515-businessportal"
 			instance.Status.Status = summonv1beta1.StatusReady
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
-			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
+			Expect(instance.Status.Notification.SummonVersion).To(Equal("1234-eb6b515-master"))
+			Expect(instance.Status.Notification.DispatchVersion).To(Equal("1234-eb6b515-dispatch"))
+			Expect(instance.Status.Notification.BusinessPortalVersion).To(Equal("1234-eb6b515-businessportal"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 
 		It("does not set fields on a non-standard version", func() {
 			// More importantly, it doesn't choke.
 			instance.Spec.Version = "1234"
-			instance.Status.Notification.NotifyVersion = ""
+			instance.Status.Notification.SummonVersion = ""
 			instance.Status.Status = summonv1beta1.StatusReady
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
 			post := mockedSlackClient.PostMessageCalls()[0]
-			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234 successfully"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed summon-platform version 1234 successfully"))
 			Expect(post.In2.Fields).To(HaveLen(0))
-			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234"))
+			Expect(instance.Status.Notification.SummonVersion).To(Equal("1234"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(1))
 			deployPost := mockedDeployStatusClient.PostStatusCalls()[0]
 			Expect(deployPost.Name).To(Equal("foo"))

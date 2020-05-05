@@ -286,7 +286,19 @@ type SummonPlatformSpec struct {
 type NotificationStatus struct {
 	// The last version we posted a deploy success notification for.
 	// +optional
-	NotifyVersion string `json:"notifyVersion,omitempty"`
+	SummonVersion string `json:"summonVersion,omitempty"`
+	// The last version notification posted for dispatch deploy.
+	// +optional
+	DispatchVersion string `json:"dispatchVersion,omitempty"`
+	// The last version notification posted for businessPortal deploy.
+	// +optional
+	BusinessPortalVersion string `json:"businessPortalVersion,omitempty"`
+	// The last version notification posted for TripShare deploy.
+	// +optional
+	TripShareVersion string `json:"tripShareVersion,omitempty"`
+	// The last version notification posted for HwAux deploy.
+	// +optional
+	HwAuxVersion string `json:"hwAuxVersion,omitempty"`
 }
 
 // MIVStatus is the output information for the Manual Identity Verification system.
