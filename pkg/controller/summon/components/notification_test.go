@@ -143,7 +143,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
 			// Notifies for summon platform.
-			post := mockedSlackfieldsient.PostMessageCalls()[0]
+			post := mockedSlackClient.PostMessageCalls()[0]
 			Expect(post.In1).To(Equal("#test-channel"))
 			Expect(post.In2.Title).To(Equal("foo.ridecell.us comp-hw-aux Deployment"))
 			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed comp-hw-aux version 123-cdcdababa-hwaux-master successfully"))
