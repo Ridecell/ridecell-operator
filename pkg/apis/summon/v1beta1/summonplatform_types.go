@@ -286,7 +286,7 @@ type SummonPlatformSpec struct {
 type NotificationStatus struct {
 	// The last version we posted a deploy success notification for.
 	// +optional
-	SummonVersion string `json:"summonVersion,omitempty"`
+	SummonVersion string `json:"notifyVersion,omitempty"`
 	// The last version notification posted for dispatch deploy.
 	// +optional
 	DispatchVersion string `json:"dispatchVersion,omitempty"`
