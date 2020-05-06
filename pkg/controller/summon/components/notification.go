@@ -38,11 +38,11 @@ import (
 var versionRegex *regexp.Regexp
 
 // Types to identify which component we handle notifications for. These map to their github repo names.
-const SummonComp = "summon-platform"
-const DispatchComp = "comp-dispatch"
-const BusinessPortalComp = "comp-business-portal"
-const HwAuxComp = "comp-hw-aux"
-const TripShareComp = "comp-trip-share"
+const CompSummonStr = "summon-platform"
+const CompDispatchStr = "comp-dispatch"
+const CompBusinessPortalStr = "comp-business-portal"
+const CompHwAuxStr = "comp-hw-aux"
+const CompTripShareStr = "comp-trip-share"
 
 func init() {
 	versionRegex = regexp.MustCompile(`^(\d+)-([0-9a-fA-F]+)-(\S+)$`)
@@ -170,45 +170,36 @@ func (c *notificationComponent) ReconcileError(ctx *components.ComponentContext,
 
 // Checks each summon component and send a deploy notification if needed.
 func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlatform) (components.Result, error) {
-	// Check if all deployment objects have the latest notification sent already.
-	if instance.Spec.Version == instance.Status.Notification.SummonVersion &&
-		instance.Spec.Dispatch.Version == instance.Status.Notification.DispatchVersion &&
-		instance.Spec.BusinessPortal.Version == instance.Status.Notification.BusinessPortalVersion &&
-		instance.Spec.TripShare.Version == instance.Status.Notification.TripShareVersion &&
-		instance.Spec.HwAux.Version == instance.Status.Notification.HwAuxVersion {
-		// Already notified about these versions, we're good.
-		return components.Result{}, nil
-	}
 
 	// Accumulate errors to be dealt with at the end so no component notifications
 	// are blocked on another's error.
 	var errs error
 	if instance.Spec.Version != instance.Status.Notification.SummonVersion {
-		err := c.notifyAndPostStatus(instance, SummonComp, instance.Spec.Version)
+		err := c.notifyAndPostStatus(instance, CompSummonStr, instance.Spec.Version)
 		if err != nil {
 			errs = err
 		}
 	}
 	if instance.Spec.Dispatch.Version != instance.Status.Notification.DispatchVersion {
-		err := c.notifyAndPostStatus(instance, DispatchComp, instance.Spec.Dispatch.Version)
+		err := c.notifyAndPostStatus(instance, CompDispatchStr, instance.Spec.Dispatch.Version)
 		if err != nil {
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
 	}
 	if instance.Spec.BusinessPortal.Version != instance.Status.Notification.BusinessPortalVersion {
-		err := c.notifyAndPostStatus(instance, BusinessPortalComp, instance.Spec.BusinessPortal.Version)
+		err := c.notifyAndPostStatus(instance, CompBusinessPortalStr, instance.Spec.BusinessPortal.Version)
 		if err != nil {
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
 	}
 	if instance.Spec.HwAux.Version != instance.Status.Notification.HwAuxVersion {
-		err := c.notifyAndPostStatus(instance, HwAuxComp, instance.Spec.HwAux.Version)
+		err := c.notifyAndPostStatus(instance, CompHwAuxStr, instance.Spec.HwAux.Version)
 		if err != nil {
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
 	}
 	if instance.Spec.TripShare.Version != instance.Status.Notification.TripShareVersion {
-		err := c.notifyAndPostStatus(instance, TripShareComp, instance.Spec.TripShare.Version)
+		err := c.notifyAndPostStatus(instance, CompTripShareStr, instance.Spec.TripShare.Version)
 		if err != nil {
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
@@ -260,7 +251,7 @@ func (c *notificationComponent) notifyAndPostStatus(instance *summonv1beta1.Summ
 
 	// Send to Deployment Status Tool
 	instanceName := strings.TrimSuffix(instance.Name, "-"+instance.Spec.Environment)
-	if component != SummonComp {
+	if component != CompSummonStr {
 		// Modify format if we're dealing with summon component (not the platform).
 		instanceName = instanceName + " " + component
 	}
