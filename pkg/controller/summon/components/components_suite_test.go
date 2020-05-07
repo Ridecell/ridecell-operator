@@ -49,7 +49,7 @@ var _ = ginkgo.BeforeEach(func() {
 			Version:  "1.2.3",
 		},
 		Status: summonv1beta1.SummonPlatformStatus{
-			Notification: summonv1beta1.NotificationStatus{NotifyVersion: "1.2.3"}},
+			Notification: summonv1beta1.NotificationStatus{SummonVersion: "1.2.3"}},
 	}
 	instance.Spec.Secrets = []string{"testsecret"}
 	ctx = components.NewTestContext(instance, summon.Templates)
