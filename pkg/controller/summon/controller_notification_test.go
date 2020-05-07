@@ -68,7 +68,7 @@ var _ = Describe("Summon controller notifications", func() {
 		}
 
 		// Increase the default EventuallyGet timeout.
-		test_helpers.DefaultTimeout = 60 * time.Second
+		test_helpers.DefaultTimeout = 90 * time.Second
 	})
 
 	AfterEach(func() {
