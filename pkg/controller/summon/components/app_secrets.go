@@ -143,8 +143,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	mockCarServerSecret := dynamicInputSecrets[5]
 
 	postgresConnection := instance.Status.PostgresConnection
-	if postgresSecret.Data == nil {
-		return components.Result{}, errors.New("app_secrets: Postgres secret not initialized")
+	if postgresSecret == nil || postgresSecret.Data == nil {
+		return components.Result{}, errors.NoNotify(errors.New("app_secrets: Postgres secret not initialized"))
 	}
 	postgresPassword, ok := postgresSecret.Data[postgresConnection.PasswordSecretRef.Key]
 	if !ok {
@@ -167,8 +167,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// Find the RabbitMQ data.
 	rabbitmqConnection := instance.Status.RabbitMQConnection
-	if rabbitmqSecret.Data == nil {
-		return components.Result{}, errors.New("app_secrets: RabbitMQ secret not initialized")
+	if rabbitmqSecret == nil || rabbitmqSecret.Data == nil {
+		return components.Result{}, errors.NoNotify(errors.New("app_secrets: RabbitMQ secret not initialized"))
 	}
 	rabbitmqPassword, ok := rabbitmqSecret.Data[rabbitmqConnection.PasswordSecretRef.Key]
 	if !ok {
