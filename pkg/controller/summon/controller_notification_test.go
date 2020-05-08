@@ -62,11 +62,14 @@ var _ = Describe("Summon controller notifications", func() {
 		history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
 		Expect(err).ToNot(HaveOccurred())
 		filteredMsgs := []slack.Message{}
+		// Get messages pertaining only to testRunId.
 		for _, msg := range history.Messages {
 			if strings.Contains(msg.Attachments[0].Text, testRunId) {
 				filteredMsgs = append(filteredMsgs, msg)
 			}
 		}
+		// Replace the history messages with the filtered one.
+		history.Messages = filteredMsgs
 		return *history
 	}
 
@@ -333,7 +336,7 @@ var _ = Describe("Summon controller notifications", func() {
 				Expect(len(history.Messages)).To(Equal(2))
 			})
 
-			FIt("sends a single error notification on something going wrong", func() {
+			It("sends a single error notification on something going wrong", func() {
 				c := helpers.TestClient
 
 				instance.Name = testRunId + "-notifytest"
