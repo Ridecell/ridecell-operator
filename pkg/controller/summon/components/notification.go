@@ -37,6 +37,13 @@ import (
 
 var versionRegex *regexp.Regexp
 
+// Types to identify which component we handle notifications for. These map to their github repo names.
+const CompSummonStr = "summon-platform"
+const CompDispatchStr = "comp-dispatch"
+const CompBusinessPortalStr = "comp-business-portal"
+const CompHwAuxStr = "comp-hw-aux"
+const CompTripShareStr = "comp-trip-share"
+
 func init() {
 	versionRegex = regexp.MustCompile(`^(\d+)-([0-9a-fA-F]+)-(\S+)$`)
 }
@@ -161,59 +168,104 @@ func (c *notificationComponent) ReconcileError(ctx *components.ComponentContext,
 	return c.handleError(instance, fmt.Sprintf("%s", err))
 }
 
-// Send a deploy notification if needed.
+// Checks each summon component and send a deploy notification if needed.
 func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlatform) (components.Result, error) {
-	if instance.Spec.Version == instance.Status.Notification.NotifyVersion {
-		// Already notified about this version, we're good.
-		return components.Result{}, nil
+
+	// Accumulate errors to be dealt with at the end so no component notifications
+	// are blocked on another's error.
+	var errs error
+	if instance.Spec.Version != instance.Status.Notification.SummonVersion {
+		err := c.notifyAndPostStatus(instance, CompSummonStr, instance.Spec.Version)
+		if err != nil {
+			errs = err
+		}
+	}
+	if instance.Spec.Dispatch.Version != instance.Status.Notification.DispatchVersion {
+		err := c.notifyAndPostStatus(instance, CompDispatchStr, instance.Spec.Dispatch.Version)
+		if err != nil {
+			errs = fmt.Errorf("%s; %s", errs, err)
+		}
+	}
+	if instance.Spec.BusinessPortal.Version != instance.Status.Notification.BusinessPortalVersion {
+		err := c.notifyAndPostStatus(instance, CompBusinessPortalStr, instance.Spec.BusinessPortal.Version)
+		if err != nil {
+			errs = fmt.Errorf("%s; %s", errs, err)
+		}
+	}
+	if instance.Spec.HwAux.Version != instance.Status.Notification.HwAuxVersion {
+		err := c.notifyAndPostStatus(instance, CompHwAuxStr, instance.Spec.HwAux.Version)
+		if err != nil {
+			errs = fmt.Errorf("%s; %s", errs, err)
+		}
+	}
+	if instance.Spec.TripShare.Version != instance.Status.Notification.TripShareVersion {
+		err := c.notifyAndPostStatus(instance, CompTripShareStr, instance.Spec.TripShare.Version)
+		if err != nil {
+			errs = fmt.Errorf("%s; %s", errs, err)
+		}
+	}
+	if errs != nil {
+		return components.Result{}, errs
 	}
 
+	// no errors, update notification statuses.
+	return components.Result{
+		StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta1.SummonPlatform)
+			instance.Status.Notification.SummonVersion = instance.Spec.Version
+			instance.Status.Notification.DispatchVersion = instance.Spec.Dispatch.Version
+			instance.Status.Notification.BusinessPortalVersion = instance.Spec.BusinessPortal.Version
+			instance.Status.Notification.HwAuxVersion = instance.Spec.HwAux.Version
+			instance.Status.Notification.TripShareVersion = instance.Spec.TripShare.Version
+			return nil
+		}}, nil
+}
+
+func (c *notificationComponent) notifyAndPostStatus(instance *summonv1beta1.SummonPlatform, component string, version string) error {
+
 	// Check if this is a duplicate slipping through due to concurrency.
-	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+	dupCacheKey := fmt.Sprintf("%s/%s-%s", instance.Namespace, instance.Name, component)
 	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
-	dupCacheValue := fmt.Sprintf("SUCCESS %s", instance.Spec.Version)
+	dupCacheValue := fmt.Sprintf("SUCCESS %s", version)
 	if ok && lastdupCacheValue == dupCacheValue {
-		return components.Result{}, nil
+		return nil
 	}
 
 	// Send to Slack.
 	if instance.Spec.Notifications.SlackChannel != "" {
-		attachment := c.formatSuccessNotification(instance)
+		attachment := c.formatSuccessNotification(instance, component, version)
 		_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
 		if err != nil {
-			return components.Result{}, err
+			return err
 		}
 	}
 
 	// Send to additional slack channels.
 	for _, channel := range instance.Spec.Notifications.SlackChannels {
-		attachment := c.formatSuccessNotification(instance)
+		attachment := c.formatSuccessNotification(instance, component, version)
 		_, _, err := c.slackClient.PostMessage(channel, attachment)
 		if err != nil {
-			return components.Result{}, err
+			return err
 		}
 	}
 
 	// Send to Deployment Status Tool
 	instanceName := strings.TrimSuffix(instance.Name, "-"+instance.Spec.Environment)
+	if component != CompSummonStr {
+		// Modify format if we're dealing with summon component (not the platform).
+		instanceName = instanceName + " " + component
+	}
 
 	deploymentStatusUrl := os.Getenv("DEPLOY_STAT_URL")
 	if instance.Spec.Notifications.DeploymentStatusUrl != "" {
 		deploymentStatusUrl = instance.Spec.Notifications.DeploymentStatusUrl
 	}
-	err := c.deployStatusClient.PostStatus(deploymentStatusUrl, instanceName, instance.Spec.Environment, instance.Spec.Version)
+	err := c.deployStatusClient.PostStatus(deploymentStatusUrl, instanceName, instance.Spec.Environment, version)
 	if err != nil {
-		return components.Result{}, errors.Wrap(err, "notifications: error posting to deployment-status")
+		return errors.Wrap(err, fmt.Sprintf("notifications: error posting to deployment-status for %s", instanceName))
 	}
-
-	// Update status. Close over `version` in case it changes during a collision.
 	c.dupCache.Store(dupCacheKey, dupCacheValue)
-	version := instance.Spec.Version
-	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*summonv1beta1.SummonPlatform)
-		instance.Status.Notification.NotifyVersion = version
-		return nil
-	}}, nil
+	return nil
 }
 
 // Send an error notification if needed.
@@ -255,37 +307,37 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 	return components.Result{}, nil
 }
 
-// Render the nofiication attachement for a deploy notification.
-func (comp *notificationComponent) formatSuccessNotification(instance *summonv1beta1.SummonPlatform) slack.Attachment {
+// Render the notification attachement for a deploy notification.
+func (comp *notificationComponent) formatSuccessNotification(instance *summonv1beta1.SummonPlatform, component string, version string) slack.Attachment {
 	fields := []slack.AttachmentField{}
 	// Try to parse the version string using our usual conventions.
-	matches := versionRegex.FindStringSubmatch(instance.Spec.Version)
+	matches := versionRegex.FindStringSubmatch(version)
 	if matches != nil {
 		// Build fields for each thing.
 		buildField := slack.AttachmentField{
 			Title: "Build",
-			Value: fmt.Sprintf("<https://circleci.com/gh/Ridecell/summon-platform/%s|%s>", matches[1], matches[1]),
+			Value: fmt.Sprintf("<https://circleci.com/gh/Ridecell/%s/%s|%s>", component, matches[1], matches[1]),
 			Short: true,
 		}
 		shaField := slack.AttachmentField{
 			Title: "Commit",
-			Value: fmt.Sprintf("<https://github.com/Ridecell/summon-platform/tree/%s|%s>", matches[2], matches[2]),
+			Value: fmt.Sprintf("<https://github.com/Ridecell/%s/tree/%s|%s>", component, matches[2], matches[2]),
 			Short: true,
 		}
 		branchField := slack.AttachmentField{
 			Title: "Branch",
-			Value: fmt.Sprintf("<https://github.com/Ridecell/summon-platform/tree/%s|%s>", matches[3], matches[3]),
+			Value: fmt.Sprintf("<https://github.com/Ridecell/%s/tree/%s|%s>", component, matches[3], matches[3]),
 			Short: true,
 		}
 		fields = append(fields, shaField, branchField, buildField)
 	}
 
 	return slack.Attachment{
-		Title:     fmt.Sprintf("%s Deployment", instance.Spec.Hostname),
+		Title:     fmt.Sprintf("%s %s Deployment", instance.Spec.Hostname, component),
 		TitleLink: fmt.Sprintf("https://%s/", instance.Spec.Hostname),
 		Color:     "good",
-		Text:      fmt.Sprintf("<https://%s/|%s> deployed version %s successfully", instance.Spec.Hostname, instance.Spec.Hostname, instance.Spec.Version),
-		Fallback:  fmt.Sprintf("%s deployed version %s successfully", instance.Spec.Hostname, instance.Spec.Version),
+		Text:      fmt.Sprintf("<https://%s/|%s> deployed %s version %s successfully", instance.Spec.Hostname, instance.Spec.Hostname, component, version),
+		Fallback:  fmt.Sprintf("%s deployed %s version %s successfully", instance.Spec.Hostname, component, version),
 		Fields:    fields,
 	}
 }
