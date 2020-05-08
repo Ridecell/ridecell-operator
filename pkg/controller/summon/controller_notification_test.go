@@ -227,6 +227,8 @@ var _ = Describe("Summon controller notifications", func() {
 				Skip("$SLACK_API_KEY not set, skipping Slack tests")
 			}
 
+			os.Setenv("ENABLE_NEW_STATUS_CHECK", "true")
+
 			// Set up Slack client with the test user credentials and find the most recent message.
 			slackClient = slack.New(os.Getenv("SLACK_API_KEY"))
 			historyParams := slack.NewHistoryParameters()
@@ -475,7 +477,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// TODO Fix this, it's a flaky test because of race conditions. We should actually check for a message
 				// matching this test run.
-				Expect(len(history.Messages)).To(BeNumerically(">=4"))
+				Expect(len(history.Messages)).To(BeNumerically(">=", 4))
 				// One for platform one for dispatch, one for hwaux, and a new one for summon platform version change.
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
