@@ -73,6 +73,16 @@ var _ = Describe("Summon controller notifications", func() {
 		return *history
 	}
 
+	// Helper function to provide more insight into what slack messages were posted if the number of messages
+	// seen were not expected.
+	describeMsgs := func(msgs []slack.Message) string {
+		description := "Messages Seen:\n"
+		for _, msg := range msgs {
+			description += msg.Attachments[0].Text + "\n"
+		}
+		return description
+	}
+
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
 		pullSecret := &corev1.Secret{
@@ -242,7 +252,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 		// The ID of the private group to send to.
 		slackChannel := "CKEV56KKJ" // #rcoperator-test. Should only be used by circleci.
-		// slackChannel := "CKBMB2E3V" // #rcoperator-test2. Use this one for local testing!
+		//slackChannel := "CKBMB2E3V" // #rcoperator-test2. Use this one for local testing!
 
 		BeforeEach(func() {
 			// Check for Slack API key. If not present, don't run these tests.
@@ -285,8 +295,10 @@ var _ = Describe("Summon controller notifications", func() {
 				}))
 
 				// Find all messages since the start of the test.
+				// just for manual testing
+				time.Sleep(time.Second * 30)
 				history := getTestRelevantHistory(slackClient, slackChannel, lastMessage.Timestamp)
-				Expect(len(history.Messages)).To(Equal(1))
+				Expect(len(history.Messages)).To(Equal(1), describeMsgs(history.Messages))
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
 			})
@@ -317,7 +329,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Find all messages since the start of the test.
 				history := getTestRelevantHistory(slackClient, slackChannel, lastMessage.Timestamp)
-				Expect(len(history.Messages)).To(Equal(1))
+				Expect(len(history.Messages)).To(Equal(1), describeMsgs(history.Messages))
 			})
 
 			It("sends two success notifications for two different clusters", func() {
@@ -334,7 +346,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Find all messages since the start of the test.
 				history := getTestRelevantHistory(slackClient, slackChannel, lastMessage.Timestamp)
-				Expect(len(history.Messages)).To(Equal(2))
+				Expect(len(history.Messages)).To(Equal(2), describeMsgs(history.Messages))
 
 			})
 
@@ -357,7 +369,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Check that exactly one message happened
 				history := getTestRelevantHistory(slackClient, slackChannel, lastMessage.Timestamp)
-				Expect(len(history.Messages)).To(Equal(1))
+				Expect(len(history.Messages)).To(Equal(1), describeMsgs(history.Messages))
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("a30200"))
 			})
@@ -411,7 +423,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Find all messages since the start of the test.
 				history := getTestRelevantHistory(slackClient, slackChannel, lastMessage.Timestamp)
-				Expect(len(history.Messages)).To(Equal(2))
+				Expect(len(history.Messages)).To(Equal(2), describeMsgs(history.Messages))
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
 				Expect(history.Messages[0].Attachments[0].Title).To(Equal(testRunId + "-componentnotifytest.ridecell.us comp-business-portal Deployment"))
@@ -477,7 +489,7 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Find all messages since the start of the test.
 				history := getTestRelevantHistory(slackClient, slackChannel, lastMessage.Timestamp)
-				Expect(len(history.Messages)).To(Equal(4))
+				Expect(len(history.Messages)).To(Equal(4), describeMsgs(history.Messages))
 				// One for platform one for dispatch, one for hwaux, and a new one for summon platform version change.
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
