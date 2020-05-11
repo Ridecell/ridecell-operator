@@ -143,6 +143,10 @@ func (_ *notificationComponent) WatchTypes() []runtime.Object {
 }
 
 func (_ *notificationComponent) IsReconcilable(_ *components.ComponentContext) bool {
+	// Escape hatch created to avoid notifications during test teardowns. ._.
+	if os.Getenv("SILENCE_NOTIFY") == "true" {
+		return false
+	}
 	return true
 }
 

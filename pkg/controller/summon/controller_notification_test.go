@@ -119,9 +119,10 @@ var _ = Describe("Summon controller notifications", func() {
 				}
 			}
 		}
-		// Unset Slack Channel so weird errords during teardown don't get posted.
-		instance.Spec.Notifications.SlackChannel = ""
+		// Silence notifications before teardown so errors from teardown don't get posted.
+		os.Setenv("SILENCE_NOTIFY", "true")
 		helpers.TeardownTest()
+		os.Setenv("SILENCE_NOTIFY", "false")
 	})
 
 	deployInstance := func(name string) {
