@@ -74,8 +74,6 @@ var _ = Describe("Summon controller notifications", func() {
 	}
 
 	BeforeEach(func() {
-		// We're silencing notifications during afterEach test teardown. Make sure it's back up for next test case.
-		os.Setenv("SILENCE_NOTIFY", "false")
 		helpers = testHelpers.SetupTest()
 		pullSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace},
@@ -121,8 +119,6 @@ var _ = Describe("Summon controller notifications", func() {
 				}
 			}
 		}
-		// Silence notifications before teardown so errors from teardown don't get posted.
-		os.Setenv("SILENCE_NOTIFY", "true")
 		helpers.TeardownTest()
 	})
 
