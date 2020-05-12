@@ -156,9 +156,10 @@ func (helpers *TestHelpers) SetupTest() *PerTestHelpers {
 
 // Clean up any per test state. Call from AfterEach().
 func (helpers *PerTestHelpers) TeardownTest() {
-	err := helpers.Client.Delete(context.TODO(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: helpers.Namespace}})
+	deleteBackgroundPolicy := metav1.DeletionPropagation("Background")
+	err := helpers.Client.Delete(context.TODO(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: helpers.Namespace}}, client.PropagationPolicy(deleteBackgroundPolicy))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	err = helpers.Client.Delete(context.TODO(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: helpers.OperatorNamespace}})
+	err = helpers.Client.Delete(context.TODO(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: helpers.OperatorNamespace}}, client.PropagationPolicy(deleteBackgroundPolicy))
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
