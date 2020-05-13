@@ -304,8 +304,6 @@ var _ = Describe("Summon controller notifications", func() {
 				}))
 
 				// Find all messages since the start of the test.
-				// just for manual testing
-				time.Sleep(time.Second * 30)
 				history := getTestRelevantHistory(testIdentity, slackClient, slackChannel, lastMessage.Timestamp)
 				Expect(len(history.Messages)).To(Equal(1), describeMsgs(history.Messages))
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
