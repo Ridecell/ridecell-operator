@@ -111,7 +111,7 @@ var _ = Describe("rds controller", func() {
 		c.Delete(rdsInstance)
 
 		// Database deletion may take a long time
-		Eventually(func() bool { return dbInstanceExists() }, time.Minute*15, time.Second*30).Should(BeFalse())
+		Eventually(func() bool { return dbInstanceExists() }, time.Minute*20, time.Second*30).Should(BeFalse())
 		Eventually(func() bool { return dbParameterGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
 		Eventually(func() bool { return securityGroupExists() }, time.Minute*2, time.Second*10).Should(BeFalse())
 

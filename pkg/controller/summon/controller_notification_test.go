@@ -299,7 +299,6 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
 				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
-
 					return obj.(*summonv1beta1.SummonPlatform).Status.Notification.SummonVersion, nil
 				}))
 
@@ -467,7 +466,6 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Check the notification status updated.
 				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
-
 					return obj.(*summonv1beta1.SummonPlatform).Status.Notification.SummonVersion, nil
 				}))
 
