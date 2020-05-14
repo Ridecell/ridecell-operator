@@ -145,10 +145,17 @@ jobs:
     steps:
     - checkout
     # stop test_rds job if there were no rds file changes
-    - run: |
-        if [ $(git diff --name-only $(git merge-base --fork-point origin/master)..HEAD | grep rds | grep -v "snapshot" | wc -l) -le 0 ]; then
-          circleci-agent step halt
-        fi
+    - run:
+        name: Skip Testing if No RDS Changes
+        command: |
+          rds_changes=$(git diff --name-only $(git merge-base --fork-point master)..HEAD | grep rds | grep -v "snapshot")
+          if [ $(echo $rds_changes | wc -l) -le 0 ]
+            then
+              echo "No RDS related changes seen. Skipping RDS tests."
+              circleci-agent step halt
+            else
+              echo "RDS related changes found in: $rds_changes"
+          fi
     - rc_test:
         cover: rds
         aws: true
