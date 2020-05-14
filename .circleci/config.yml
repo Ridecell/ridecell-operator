@@ -148,7 +148,7 @@ jobs:
     - run:
         name: Skip Testing if No RDS Changes
         command: |
-          rds_changes=$(git diff --name-only $(git merge-base --fork-point master)..HEAD | grep rds | grep -v "snapshot")
+          rds_changes=$(git diff --name-only $(git merge-base --fork-point master)..HEAD | grep rds | grep -v "snapshot" || true)
           if [ $(echo $rds_changes | wc -l) -le 0 ]
             then
               echo "No RDS related changes seen. Skipping RDS tests."
