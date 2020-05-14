@@ -142,6 +142,7 @@ jobs:
     - *kube-controller-manager
     environment:
       GINKGO_ARGS: -focus @rds
+    working_directory: /go/src/github.com/Ridecell/ridecell-operator
     steps:
     # stop test_rds job if there were no rds file changes
     - run: |
