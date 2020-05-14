@@ -142,8 +142,8 @@ jobs:
     - *kube-controller-manager
     environment:
       GINKGO_ARGS: -focus @rds
-    working_directory: /go/src/github.com/Ridecell/ridecell-operator
     steps:
+    - checkout
     # stop test_rds job if there were no rds file changes
     - run: |
         if [ $(git diff --name-only $(git merge-base --fork-point origin/master)..HEAD | grep rds | grep -v "snapshot" | wc -l) -le 0 ]; then
