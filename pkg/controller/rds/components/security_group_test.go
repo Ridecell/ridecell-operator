@@ -133,14 +133,14 @@ var _ = Describe("rds security group Component", func() {
 		Expect(mockEC2.createdTag).To(BeFalse())
 	})
 
-	It("adds default sg rule when environment var not defined", func() {
-		os.Setenv("RDS_SG_RULES", "")
-		mockEC2.securityGroupExists = true
-		mockEC2.hasValidIpRange = false
-		Expect(comp).To(ReconcileContext(ctx))
-		Expect(mockEC2.createdSG).To(BeFalse())
-		Expect(mockEC2.authorizedDefaultRule).To(BeTrue())
-	})
+	// It("adds default sg rule when environment var not defined", func() {
+	// 	os.Setenv("RDS_SG_RULES", "")
+	// 	mockEC2.securityGroupExists = true
+	// 	mockEC2.hasValidIpRange = false
+	// 	Expect(comp).To(ReconcileContext(ctx))
+	// 	Expect(mockEC2.createdSG).To(BeFalse())
+	// 	Expect(mockEC2.authorizedDefaultRule).To(BeTrue())
+	// })
 
 	It("tests adding the finalizer", func() {
 		instance.ObjectMeta.Finalizers = []string{}
