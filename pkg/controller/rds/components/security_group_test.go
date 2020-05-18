@@ -118,19 +118,23 @@ var _ = Describe("rds security group Component", func() {
 		Expect(mockEC2.createdTag).To(BeFalse())
 	})
 
-	It("adds extra sg rule and revokes invalid sg rule", func() {
+	It("revokes invalid port sg rule", func() {
 		mockEC2.securityGroupExists = true
 		mockEC2.hasValidIpRange = true
-		mockEC2.hasInvalidExtraRule = true
 		mockEC2.hasInvalidPortRule = true
 		mockEC2.hasValidTags = true
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(mockEC2.createdSG).To(BeFalse())
 		Expect(mockEC2.revokedInvalidPortRule).To(BeTrue())
+	})
+
+	It("revokes invalid sg rule", func() {
+		mockEC2.securityGroupExists = true
+		mockEC2.hasValidIpRange = true
+		mockEC2.hasInvalidExtraRule = true
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(mockEC2.authorizedExtraRule).To(BeFalse())
+		Expect(mockEC2.createdSG).To(BeFalse())
 		Expect(mockEC2.revokedExtraRule).To(BeTrue())
-		Expect(mockEC2.createdTag).To(BeFalse())
 	})
 
 	// It("adds default sg rule when environment var not defined", func() {
