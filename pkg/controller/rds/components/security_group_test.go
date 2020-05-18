@@ -41,9 +41,12 @@ type mockEC2SGClient struct {
 	ec2iface.EC2API
 	securityGroupExists  bool
 	hasValidIpRange      bool
+	hasInvalidExtraRule  bool
 	hasValidTags         bool
 	createdSG            bool
 	authorizedSG         bool
+	authorizedExtraRule  bool
+	revokedExtraRule     bool
 	createdTag           bool
 	deletedSecurityGroup bool
 }
@@ -53,6 +56,7 @@ type mockRDSSGClient struct {
 }
 
 var _ = Describe("rds security group Component", func() {
+	os.Setenv("RDS_SG_EXTRA_RULES", "{\"1.2.3.4/32\":\"custom1\"}")
 	comp := rdscomponents.NewDBSecurityGroup()
 	var mockEC2 *mockEC2SGClient
 	var mockRDS *mockRDSSGClient
@@ -112,6 +116,19 @@ var _ = Describe("rds security group Component", func() {
 		Expect(mockEC2.createdTag).To(BeFalse())
 	})
 
+	It("adds extra sg rule and revokes invalid sg rule", func() {
+		mockEC2.securityGroupExists = true
+		mockEC2.hasValidIpRange = true
+		mockEC2.hasValidTags = true
+		mockEC2.hasInvalidExtraRule = true
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(mockEC2.createdSG).To(BeFalse())
+		Expect(mockEC2.authorizedSG).To(BeFalse())
+		Expect(mockEC2.authorizedExtraRule).To(BeTrue())
+		Expect(mockEC2.revokedExtraRule).To(BeTrue())
+		Expect(mockEC2.createdTag).To(BeFalse())
+	})
+
 	It("tests adding the finalizer", func() {
 		instance.ObjectMeta.Finalizers = []string{}
 		Expect(comp).To(ReconcileContext(ctx))
@@ -150,13 +167,18 @@ func (m *mockEC2SGClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGrou
 			GroupId: aws.String("abcdf-1293238923"),
 		}
 		if m.hasValidIpRange {
+			ipList := []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("10.0.0.0/8")}}
+			if m.authorizedExtraRule {
+				ipList = append(ipList, &ec2.IpRange{CidrIp: aws.String("1.2.3.4/32")})
+			}
+			if m.hasInvalidExtraRule {
+				ipList = append(ipList, &ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")})
+			}
 			securityGroup.IpPermissions = []*ec2.IpPermission{
 				&ec2.IpPermission{
 					FromPort: aws.Int64(int64(5432)),
 					ToPort:   aws.Int64(int64(5432)),
-					IpRanges: []*ec2.IpRange{
-						&ec2.IpRange{CidrIp: aws.String("10.0.0.0/8")},
-					},
+					IpRanges: ipList,
 				},
 			}
 		}
@@ -192,7 +214,19 @@ func (m *mockEC2SGClient) AuthorizeSecurityGroupIngress(input *ec2.AuthorizeSecu
 	if aws.StringValue(input.GroupId) != "abcdf-1293238923" {
 		return nil, errors.New("mock_ec2: input security group id did not match expected value")
 	}
-	m.authorizedSG = true
+	if input.CidrIp != nil {
+		m.authorizedSG = true
+	} else {
+		m.authorizedExtraRule = true
+	}
+	return nil, nil
+}
+
+func (m *mockEC2SGClient) RevokeSecurityGroupIngress(input *ec2.RevokeSecurityGroupIngressInput) (*ec2.RevokeSecurityGroupIngressOutput, error) {
+	if aws.StringValue(input.GroupId) != "abcdf-1293238923" {
+		return nil, errors.New("mock_ec2: input security group id did not match expected value")
+	}
+	m.revokedExtraRule = true
 	return nil, nil
 }
 
