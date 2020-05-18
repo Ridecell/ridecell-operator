@@ -131,48 +131,62 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	}
 	securityGroup := describeSecurityGroupsOutput.SecurityGroups[0]
 
-	var hasIngressRule bool
+	// Remove rules having port number other than 5432
+	var deletedInvalidRules bool
 	for _, ipPermission := range securityGroup.IpPermissions {
 		if aws.Int64Value(ipPermission.FromPort) != int64(5432) || aws.Int64Value(ipPermission.ToPort) != int64(5432) {
-			continue
+			_, err := comp.ec2API.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+				GroupId:       securityGroup.GroupId,
+				IpPermissions: []*ec2.IpPermission{ipPermission},
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "rds: failed to revoke SG rule with other ports")
+			}
+			deletedInvalidRules = true
 		}
-		for _, ipRange := range ipPermission.IpRanges {
-			if aws.StringValue(ipRange.CidrIp) == "10.0.0.0/8" {
-				hasIngressRule = true
-				break
+	}
+	if deletedInvalidRules {
+		return components.Result{Requeue: true}, nil
+	}
+	// Add default rule (allow all) if ENV var is not defined
+	if os.Getenv("RDS_SG_RULES") == "" {
+		var hasIngressRule bool
+		for _, ipPermission := range securityGroup.IpPermissions {
+			for _, ipRange := range ipPermission.IpRanges {
+				if aws.StringValue(ipRange.CidrIp) == "0.0.0.0/0" {
+					hasIngressRule = true
+					break
+				}
 			}
 		}
-	}
 
-	if !hasIngressRule {
-		_, err := comp.ec2API.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-			CidrIp:     aws.String("10.0.0.0/8"),
-			FromPort:   aws.Int64(int64(5432)),
-			ToPort:     aws.Int64(int64(5432)),
-			GroupId:    securityGroup.GroupId,
-			IpProtocol: aws.String("tcp"),
-		})
-		if err != nil {
-			return components.Result{}, errors.Wrap(err, "rds: failed to authorize security group ingress")
+		if !hasIngressRule {
+			_, err := comp.ec2API.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+				IpPermissions: []*ec2.IpPermission{
+					&ec2.IpPermission{
+						FromPort:   aws.Int64(int64(5432)),
+						ToPort:     aws.Int64(int64(5432)),
+						IpProtocol: aws.String("tcp"),
+						IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0"), Description: aws.String("default")}},
+					},
+				},
+				GroupId: securityGroup.GroupId,
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "rds: failed to authorize default security group ingress")
+			}
 		}
-	}
 
-	if os.Getenv("RDS_SG_EXTRA_RULES") != "" {
+	} else { // Add rules defined in RDS_SG_RULES ENV var
 		var extraRules map[string]string
-		err := json.Unmarshal([]byte(os.Getenv("RDS_SG_EXTRA_RULES")), &extraRules)
+		err := json.Unmarshal([]byte(os.Getenv("RDS_SG_RULES")), &extraRules)
 		if err != nil {
-			return components.Result{}, errors.Wrap(err, "rds: error in decoding RDS_SG_EXTRA_RULES environment variable json")
+			return components.Result{}, errors.Wrap(err, "rds: error in decoding RDS_SG_RULES environment variable json")
 		}
 
 		var revokeRules []string
 		for _, ipPermission := range securityGroup.IpPermissions {
-			if aws.Int64Value(ipPermission.FromPort) != int64(5432) || aws.Int64Value(ipPermission.ToPort) != int64(5432) {
-				continue
-			}
 			for _, ipRange := range ipPermission.IpRanges {
-				if aws.StringValue(ipRange.CidrIp) == "10.0.0.0/8" {
-					continue
-				}
 				if _, exists := extraRules[aws.StringValue(ipRange.CidrIp)]; !exists {
 					revokeRules = append(revokeRules, aws.StringValue(ipRange.CidrIp))
 				} else {
@@ -202,7 +216,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 				GroupId: securityGroup.GroupId,
 			})
 			if err != nil {
-				return components.Result{}, errors.Wrap(err, "rds: unable to add extra rules in security group")
+				return components.Result{}, errors.Wrap(err, "rds: unable to add rules in security group")
 			}
 		}
 
@@ -226,7 +240,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 				GroupId: securityGroup.GroupId,
 			})
 			if err != nil {
-				return components.Result{}, errors.Wrap(err, "rds: unable to remove invalid rules from security group")
+				return components.Result{}, errors.Wrap(err, "rds: unable to revoke invalid rules from security group")
 			}
 		}
 	}
