@@ -180,12 +180,12 @@ func (m *mockEC2SGClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGrou
 			GroupId: aws.String("abcdf-1293238923"),
 		}
 		if m.hasValidIpRange {
-			ipList := []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("1.2.3.4/32")},}
+			ipList := []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("1.2.3.4/32"),},}
 			if m.authorizedDefaultRule {
-				ipList = []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")}}
+				ipList = []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0"),},}
 			}
 			if m.hasInvalidExtraRule {
-				ipList = append(ipList, &ec2.IpRange{CidrIp: aws.String("1.0.0.0/0")})
+				ipList = append(ipList, &ec2.IpRange{CidrIp: aws.String("1.0.0.0/0"),})
 			}
 			securityGroup.IpPermissions = []*ec2.IpPermission{
 				&ec2.IpPermission{
