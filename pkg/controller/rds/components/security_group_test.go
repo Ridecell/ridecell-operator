@@ -246,7 +246,7 @@ func (m *mockEC2SGClient) RevokeSecurityGroupIngress(input *ec2.RevokeSecurityGr
 	if aws.StringValue(input.GroupId) != "abcdf-1293238923" {
 		return nil, errors.New("mock_ec2: input security group id did not match expected value")
 	}
-	if aws.Int64Value(input.IpPermissions[0].FromPort) != 5432 {
+	if aws.Int64Value(input.IpPermissions[0].FromPort) != int64(5432) {
 		m.revokedInvalidPortRule = true
 	} else {
 		m.revokedExtraRule = true
