@@ -54,7 +54,7 @@ var _ = Describe("rds controller", func() {
 
 	BeforeEach(func() {
 		os.Setenv("ENABLE_FINALIZERS", "true")
-		os.Setenv("RDS_SG_EXTRA_RULES", "{\"0.0.0.0/0\":\"for-testing\"}")
+		os.Setenv("RDS_SG_RULES", "{\"0.0.0.0/0\":\"for-testing\"}")
 		helpers = testHelpers.SetupTest()
 
 		if os.Getenv("AWS_TESTING_ACCOUNT_ID") == "" {
