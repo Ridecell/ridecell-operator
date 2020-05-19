@@ -243,8 +243,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
 		// Enable DEBUG automatically for dev/qa.
 		defBoolVal("DEBUG", true)
-		defBoolVal("ENABLE_JSON_LOGGING", true)
 		gatewayEnv = "master"
+	}
+	
+	if instance.Spec.Environment != "prod" {
+		defBoolVal("ENABLE_JSON_LOGGING", true)
 	}
 
 	// Set debug to false globally if not already set.
