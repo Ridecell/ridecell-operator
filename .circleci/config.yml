@@ -143,6 +143,21 @@ jobs:
     environment:
       GINKGO_ARGS: -focus @rds
     steps:
+    - checkout
+    # stop test_rds job if there were no rds file changes
+    - run:
+        name: Skip Testing if No RDS Changes
+        command: |
+          file_changes=$(git diff --name-only $(git merge-base --fork-point origin/master)..HEAD )
+          echo "Files changed: $file_changes"
+          rds_changes=$(echo "$file_changes"| grep rds | grep -v "snapshot" || true)
+          if [ $(echo $rds_changes | wc -w) -le 0 ]
+            then
+              echo "No RDS related changes seen. Skipping RDS tests."
+              circleci-agent step halt
+            else
+              echo "RDS related changes found in: $rds_changes"
+          fi
     - rc_test:
         cover: rds
         aws: true

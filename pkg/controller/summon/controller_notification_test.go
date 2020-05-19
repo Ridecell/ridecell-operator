@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	// Some slack methods deprecated Nov 25, 2020. Will need to update tests!
 	// See nlopes/slack readme and slack api:
@@ -40,11 +42,46 @@ import (
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
+// NOTE: To deal with flakey Slack notification history check failures resulting from concurrent test
+// runs, use testRunId in the instance name.
 var _ = Describe("Summon controller notifications", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.SummonPlatform
+	testRunId, err := utils.RandomString(6)
+	if err != nil {
+		Fail("Unable to setup testrun id")
+	}
+
+	// Helper function for slack notification test cases to retrieve only test case related slack history.
+	getTestRelevantHistory := func(testIdentity string, slackClient *slack.Client, slackChannel string, lastTimestamp string) slack.History {
+		historyParams := slack.NewHistoryParameters()
+		historyParams.Oldest = lastTimestamp
+		history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
+		Expect(err).ToNot(HaveOccurred())
+		filteredMsgs := []slack.Message{}
+		// Get messages pertaining only to testIdentity.
+		for _, msg := range history.Messages {
+			if strings.Contains(msg.Attachments[0].Text, testIdentity) {
+				filteredMsgs = append(filteredMsgs, msg)
+			}
+		}
+		// Replace the history messages with the filtered one.
+		history.Messages = filteredMsgs
+		return *history
+	}
+
+	// Helper function to provide more insight into what slack messages were posted if the number of messages
+	// seen were not expected.
+	describeMsgs := func(msgs []slack.Message) string {
+		description := "Messages Seen:\n"
+		for _, msg := range msgs {
+			description += msg.Attachments[0].Text + "\n"
+		}
+		return description
+	}
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
@@ -68,9 +105,15 @@ var _ = Describe("Summon controller notifications", func() {
 				Secrets: []string{"testsecret"},
 			},
 		}
+
+		// Increase the default EventuallyGet timeout.
+		test_helpers.DefaultTimeout = 60 * time.Second
 	})
 
 	AfterEach(func() {
+		// Restore the default EventuallyGet timeout.
+		test_helpers.DefaultTimeout = 30 * time.Second
+
 		// Display some debugging info if the test failed.
 		if CurrentGinkgoTestDescription().Failed {
 			summons := &summonv1beta1.SummonPlatformList{}
@@ -206,6 +249,7 @@ var _ = Describe("Summon controller notifications", func() {
 	Context("for Slack", func() {
 		var slackClient *slack.Client
 		var lastMessage slack.Message
+		var testIdentity string
 
 		// The ID of the private group to send to.
 		slackChannel := "CKEV56KKJ" // #rcoperator-test. Should only be used by circleci.
@@ -220,6 +264,8 @@ var _ = Describe("Summon controller notifications", func() {
 				Skip("$SLACK_API_KEY not set, skipping Slack tests")
 			}
 
+			os.Setenv("ENABLE_NEW_STATUS_CHECK", "true")
+
 			// Set up Slack client with the test user credentials and find the most recent message.
 			slackClient = slack.New(os.Getenv("SLACK_API_KEY"))
 			historyParams := slack.NewHistoryParameters()
@@ -230,6 +276,14 @@ var _ = Describe("Summon controller notifications", func() {
 
 			// Configure the instance.
 			instance.Spec.Notifications.SlackChannel = slackChannel
+
+			// Unique test case id to help filter out irrelevant teardown error notifications.
+			testCaseId, err := utils.RandomString(3)
+			if err != nil {
+				Fail("Unable to setup testCaseId")
+			}
+
+			testIdentity = testRunId + "-" + testCaseId
 		})
 
 		Context("Summon Platform", func() {
@@ -237,23 +291,20 @@ var _ = Describe("Summon controller notifications", func() {
 				c := helpers.TestClient
 
 				// Advance all the various things.
-				deployInstance("notifytest")
+				deployInstance(testIdentity + "-notifytest")
 
 				// Check that things are ready.
 				fetchInstance := &summonv1beta1.SummonPlatform{}
-				c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 				// Check that the notification state saved correctly. This is mostly to wait until the final reconcile before exiting the test.
-				c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
 					return obj.(*summonv1beta1.SummonPlatform).Status.Notification.SummonVersion, nil
 				}))
 
 				// Find all messages since the start of the test.
-				historyParams := slack.NewHistoryParameters()
-				historyParams.Oldest = lastMessage.Timestamp
-				history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(history.Messages).To(HaveLen(1))
+				history := getTestRelevantHistory(testIdentity, slackClient, slackChannel, lastMessage.Timestamp)
+				Expect(len(history.Messages)).To(Equal(1), describeMsgs(history.Messages))
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
 			})
@@ -262,77 +313,69 @@ var _ = Describe("Summon controller notifications", func() {
 				c := helpers.TestClient
 
 				// Advance all the various things.
-				deployInstance("notifytest")
+				deployInstance(testIdentity + "-notifytest")
 
 				// Check that things are ready.
 				fetchInstance := &summonv1beta1.SummonPlatform{}
-				c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 				// Simulate a pod delete.
 				deployment := &appsv1.Deployment{}
-				c.Get(helpers.Name("notifytest-web"), deployment)
+				c.Get(helpers.Name(testIdentity+"-notifytest-web"), deployment)
 				deployment.Status.ReadyReplicas = 0
 				deployment.Status.UpdatedReplicas = 0
 				deployment.Status.AvailableReplicas = 0
 				c.Status().Update(deployment)
-				c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusDeploying))
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusDeploying))
 				deployment.Status.ReadyReplicas = 1
 				deployment.Status.UpdatedReplicas = 1
 				deployment.Status.AvailableReplicas = 1
 				c.Status().Update(deployment)
-				c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 				// Find all messages since the start of the test.
-				historyParams := slack.NewHistoryParameters()
-				historyParams.Oldest = lastMessage.Timestamp
-				history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(history.Messages).To(HaveLen(1))
+				history := getTestRelevantHistory(testIdentity, slackClient, slackChannel, lastMessage.Timestamp)
+				Expect(len(history.Messages)).To(Equal(1), describeMsgs(history.Messages))
 			})
 
 			It("sends two success notifications for two different clusters", func() {
 				c := helpers.TestClient
 
 				// Advance all the various things.
-				deployInstance("notifytest")
-				deployInstance("notifytest2")
+				deployInstance(testIdentity + "-notifytest")
+				deployInstance(testIdentity + "-notifytest2")
 
 				// Check that things are ready.
 				fetchInstance := &summonv1beta1.SummonPlatform{}
-				c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
-				c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 				// Find all messages since the start of the test.
-				historyParams := slack.NewHistoryParameters()
-				historyParams.Oldest = lastMessage.Timestamp
-				history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(history.Messages).To(HaveLen(2))
+				history := getTestRelevantHistory(testIdentity, slackClient, slackChannel, lastMessage.Timestamp)
+				Expect(len(history.Messages)).To(Equal(2), describeMsgs(history.Messages))
+
 			})
 
 			It("sends a single error notification on something going wrong", func() {
 				c := helpers.TestClient
-
+				instance.Name = testIdentity + "-notifytest"
 				// Create the SummonPlatform.
 				c.Create(instance)
 
 				// Simulate a Postgres error.
 				postgres := &dbv1beta1.PostgresDatabase{}
-				c.EventuallyGet(helpers.Name("notifytest"), postgres)
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), postgres)
 				postgres.Status.Status = dbv1beta1.StatusError
 				postgres.Status.Message = "Simulated DB error"
 				c.Status().Update(postgres)
 
 				// Wait.
 				fetchInstance := &summonv1beta1.SummonPlatform{}
-				c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusError))
+				c.EventuallyGet(helpers.Name(testIdentity+"-notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusError))
 
 				// Check that exactly one message happened
-				historyParams := slack.NewHistoryParameters()
-				historyParams.Oldest = lastMessage.Timestamp
-				history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(history.Messages).To(HaveLen(1))
+				history := getTestRelevantHistory(testIdentity, slackClient, slackChannel, lastMessage.Timestamp)
+				Expect(len(history.Messages)).To(Equal(1), describeMsgs(history.Messages))
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("a30200"))
 			})
@@ -345,26 +388,28 @@ var _ = Describe("Summon controller notifications", func() {
 				// Include BusinessPortal in deploy.
 				instance.Spec.BusinessPortal.Version = "123-abc123-businessportal"
 				// Create instance.
-				deployInstance("componentnotifytest")
+				deployInstance(testIdentity + "-componentnotifytest")
 				// handle businessportal deployment
 				deployment := &appsv1.Deployment{}
-				c.EventuallyGet(helpers.Name("componentnotifytest-businessportal"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-componentnotifytest-businessportal"), deployment)
 				deployment.Status.Replicas = 1
 				deployment.Status.ReadyReplicas = 1
 				deployment.Status.UpdatedReplicas = 1
 				c.Status().Update(deployment)
 				// For ENABLE_NEW_STATUS_CHECK
-				c.EventuallyGet(helpers.Name("componentnotifytest-dispatch"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-componentnotifytest-dispatch"), deployment)
+
 				deployment.Status.Replicas = 0
 				deployment.Status.ReadyReplicas = 0
 				deployment.Status.UpdatedReplicas = 0
 				c.Status().Update(deployment)
-				c.EventuallyGet(helpers.Name("componentnotifytest-tripshare"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-componentnotifytest-tripshare"), deployment)
+
 				deployment.Status.Replicas = 0
 				deployment.Status.ReadyReplicas = 0
 				deployment.Status.UpdatedReplicas = 0
 				c.Status().Update(deployment)
-				c.EventuallyGet(helpers.Name("componentnotifytest-hwaux"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-componentnotifytest-hwaux"), deployment)
 				deployment.Status.Replicas = 0
 				deployment.Status.ReadyReplicas = 0
 				deployment.Status.UpdatedReplicas = 0
@@ -372,28 +417,25 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Check that components are ready.
 				fetchInstance := &summonv1beta1.SummonPlatform{}
-				c.EventuallyGet(helpers.Name("componentnotifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-componentnotifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 				// Check the notification statuses. This is mostly to wait until the final reconcile before exiting the test.
-				c.EventuallyGet(helpers.Name("componentnotifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
+				c.EventuallyGet(helpers.Name(testIdentity+"-componentnotifytest"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
 					return obj.(*summonv1beta1.SummonPlatform).Status.Notification.SummonVersion, nil
 				}))
-				c.EventuallyGet(helpers.Name("componentnotifytest"), fetchInstance, c.EventuallyValue(Equal("123-abc123-businessportal"), func(obj runtime.Object) (interface{}, error) {
+				c.EventuallyGet(helpers.Name(testIdentity+"-componentnotifytest"), fetchInstance, c.EventuallyValue(Equal("123-abc123-businessportal"), func(obj runtime.Object) (interface{}, error) {
 					return obj.(*summonv1beta1.SummonPlatform).Status.Notification.BusinessPortalVersion, nil
 				}))
 
 				// Find all messages since the start of the test.
-				historyParams := slack.NewHistoryParameters()
-				historyParams.Oldest = lastMessage.Timestamp
-				history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(history.Messages).To(HaveLen(2))
+				history := getTestRelevantHistory(testIdentity, slackClient, slackChannel, lastMessage.Timestamp)
+				Expect(len(history.Messages)).To(Equal(2), describeMsgs(history.Messages))
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
-				Expect(history.Messages[0].Attachments[0].Title).To(Equal("componentnotifytest.ridecell.us comp-business-portal Deployment"))
+				Expect(history.Messages[0].Attachments[0].Title).To(Equal(testIdentity + "-componentnotifytest.ridecell.us comp-business-portal Deployment"))
 				Expect(history.Messages[1].Attachments).To(HaveLen(1))
 				Expect(history.Messages[1].Attachments[0].Color).To(Equal("2eb886"))
-				Expect(history.Messages[1].Attachments[0].Title).To(Equal("componentnotifytest.ridecell.us summon-platform Deployment"))
+				Expect(history.Messages[1].Attachments[0].Title).To(Equal(testIdentity + "-componentnotifytest.ridecell.us summon-platform Deployment"))
 			})
 
 			It("sends a single success notification per unique deploy, even with subsequent reconciles", func() {
@@ -403,16 +445,16 @@ var _ = Describe("Summon controller notifications", func() {
 				instance.Spec.Dispatch.Version = "75-63a9598-master"
 				instance.Spec.HwAux.Version = "25-ccb55f7-master"
 				// Create instance.
-				deployInstance("summon-dispatch-hwaux-test")
+				deployInstance(testIdentity + "-summon-dispatch-hwaux-test")
 
 				// handle dispatch and hwaux deployment
 				deployment := &appsv1.Deployment{}
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test-dispatch"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test-dispatch"), deployment)
 				deployment.Status.Replicas = 1
 				deployment.Status.ReadyReplicas = 1
 				deployment.Status.UpdatedReplicas = 1
 				c.Status().Update(deployment)
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test-hwaux"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test-hwaux"), deployment)
 				deployment.Status.Replicas = 1
 				deployment.Status.ReadyReplicas = 1
 				deployment.Status.UpdatedReplicas = 1
@@ -420,10 +462,10 @@ var _ = Describe("Summon controller notifications", func() {
 
 				// Check that things are ready.
 				fetchInstance := &summonv1beta1.SummonPlatform{}
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 				// Check the notification status updated.
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyValue(Equal("80813-eb6b515-master"), func(obj runtime.Object) (interface{}, error) {
 					return obj.(*summonv1beta1.SummonPlatform).Status.Notification.SummonVersion, nil
 				}))
 
@@ -431,47 +473,42 @@ var _ = Describe("Summon controller notifications", func() {
 				fetchInstance.Spec.Version = "456-abababc-master"
 				c.Update(fetchInstance)
 				// Simulate old web deployment getting replaced with the new version.
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test-web"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test-web"), deployment)
 				deployment.Status.ReadyReplicas = 0
 				deployment.Status.UpdatedReplicas = 0
 				deployment.Status.AvailableReplicas = 0
 				c.Status().Update(deployment)
 
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusMigrating))
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusMigrating))
 				job := &batchv1.Job{}
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test-migrations"), job)
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test-migrations"), job)
 				job.Status.Succeeded = 1
 				c.Status().Update(job)
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusDeploying))
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test-web"), deployment)
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusDeploying))
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test-web"), deployment)
 				deployment.Status.ReadyReplicas = 1
 				deployment.Status.UpdatedReplicas = 1
 				deployment.Status.AvailableReplicas = 1
 				c.Status().Update(deployment)
-				c.EventuallyGet(helpers.Name("summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+				c.EventuallyGet(helpers.Name(testIdentity+"-summon-dispatch-hwaux-test"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
 
 				// Find all messages since the start of the test.
-				historyParams := slack.NewHistoryParameters()
-				historyParams.Oldest = lastMessage.Timestamp
-				history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(history.Messages).To(HaveLen(4))
+				history := getTestRelevantHistory(testIdentity, slackClient, slackChannel, lastMessage.Timestamp)
+				Expect(len(history.Messages)).To(Equal(4), describeMsgs(history.Messages))
 				// One for platform one for dispatch, one for hwaux, and a new one for summon platform version change.
 				Expect(history.Messages[0].Attachments).To(HaveLen(1))
 				Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
-				Expect(history.Messages[0].Attachments[0].Title).To(Equal("summon-dispatch-hwaux-test.ridecell.us summon-platform Deployment"))
+				Expect(history.Messages[0].Attachments[0].Title).To(Equal(testIdentity + "-summon-dispatch-hwaux-test.ridecell.us summon-platform Deployment"))
 				Expect(history.Messages[1].Attachments).To(HaveLen(1))
 				Expect(history.Messages[1].Attachments[0].Color).To(Equal("2eb886"))
-				Expect(history.Messages[1].Attachments[0].Title).To(Equal("summon-dispatch-hwaux-test.ridecell.us comp-hw-aux Deployment"))
+				Expect(history.Messages[1].Attachments[0].Title).To(Equal(testIdentity + "-summon-dispatch-hwaux-test.ridecell.us comp-hw-aux Deployment"))
 				Expect(history.Messages[2].Attachments).To(HaveLen(1))
 				Expect(history.Messages[2].Attachments[0].Color).To(Equal("2eb886"))
-				Expect(history.Messages[2].Attachments[0].Title).To(Equal("summon-dispatch-hwaux-test.ridecell.us comp-dispatch Deployment"))
+				Expect(history.Messages[2].Attachments[0].Title).To(Equal(testIdentity + "-summon-dispatch-hwaux-test.ridecell.us comp-dispatch Deployment"))
 				Expect(history.Messages[3].Attachments).To(HaveLen(1))
 				Expect(history.Messages[3].Attachments[0].Color).To(Equal("2eb886"))
-				Expect(history.Messages[3].Attachments[0].Title).To(Equal("summon-dispatch-hwaux-test.ridecell.us summon-platform Deployment"))
+				Expect(history.Messages[3].Attachments[0].Title).To(Equal(testIdentity + "-summon-dispatch-hwaux-test.ridecell.us summon-platform Deployment"))
 			})
-
 		})
 	})
 
