@@ -173,6 +173,21 @@ jobs:
     environment:
       GINKGO_ARGS: -focus @elasticsearch
     steps:
+    - checkout
+    # stop test_elasticsearch job if there were no elasticsearch file changes
+    - run:
+        name: Skip elasticsearch Testing if No elasticsearch Changes
+        command: |
+          file_changes=$(git diff --name-only $(git merge-base --fork-point origin/master)..HEAD )
+          echo "Files changed: $file_changes"
+          es_changes=$(echo "$file_changes"| grep elasticsearch || true)
+          if [ $(echo $es_changes | wc -w) -le 0 ]
+            then
+              echo "No elasticsearch related changes seen. Skipping elasticsearch tests."
+              circleci-agent step halt
+            else
+              echo "elasticsearch related changes found in: $es_changes"
+          fi
     - rc_test:
         cover: elasticsearch
         aws: true
@@ -188,6 +203,21 @@ jobs:
     environment:
       GINKGO_ARGS: -focus @snapshot
     steps:
+    - checkout
+    # stop test_rdssnapshot job if there were no rdssnapshot file changes
+    - run:
+        name: Skip Testing if No RDS Snapshot Changes
+        command: |
+          file_changes=$(git diff --name-only $(git merge-base --fork-point origin/master)..HEAD )
+          echo "Files changed: $file_changes"
+          ss_changes=$(echo "$file_changes"| grep rdssnapshot || true)
+          if [ $(echo $ss_changes | wc -w) -le 0 ]
+            then
+              echo "No RDS Snapshot related changes seen. Skipping RDS Snapshot tests."
+              circleci-agent step halt
+            else
+              echo "RDS Snapshot related changes found in: $ss_changes"
+          fi
     - rc_test:
         cover: rdssnapshot
         aws: true
