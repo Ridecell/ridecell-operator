@@ -46,7 +46,7 @@ func (_ *cloudamqpFirewallRuleComponent) IsReconcilable(_ *components.ComponentC
 func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 
 	// Get all Node objects
-	nodeList := &corev1.Node{}
+	nodeList := &corev1.NodeList{}
 	err := ctx.List(ctx.Context, &client.ListOptions{}, nodeList)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "failed to list Node objects")
