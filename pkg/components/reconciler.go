@@ -158,17 +158,22 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// fmt.Printf("$$$ Reconcile took %s\n", time.Since(start))
 	if err != nil {
 		// fmt.Printf("@@@@ Reconcile error %v\n", err)
-		ctx.Top.(Statuser).SetErrorStatus(err.Error())
+		if _, ok := interface{}(ctx.Top).(Statuser); ok {
+			ctx.Top.(Statuser).SetErrorStatus(err.Error())
+		}
 	}
 
-	// Check if an update to the status subresource is required.
-	if !reflect.DeepEqual(ctx.Top.(Statuser).GetStatus(), cleanTop.(Statuser).GetStatus()) {
-		// Update the top object status.
-		glog.V(2).Infof("[%s] Reconcile: Updating Status\n", request.NamespacedName)
-		err = cr.modifyStatus(ctx, result.statusModifiers)
-		if err != nil {
-			result.result.Requeue = true
-			return result.result, err
+	// Check if Object has Status methods
+	if _, ok := interface{}(ctx.Top).(Statuser); ok {
+		// Check if an update to the status subresource is required.
+		if !reflect.DeepEqual(ctx.Top.(Statuser).GetStatus(), cleanTop.(Statuser).GetStatus()) {
+			// Update the top object status.
+			glog.V(2).Infof("[%s] Reconcile: Updating Status\n", request.NamespacedName)
+			err = cr.modifyStatus(ctx, result.statusModifiers)
+			if err != nil {
+				result.result.Requeue = true
+				return result.result, err
+			}
 		}
 	}
 
