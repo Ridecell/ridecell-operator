@@ -59,14 +59,8 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 	if _, ok := cr.top.(*corev1.Node); ok {
 		// Process only create and delete event for corev1.Node object - special case for cloudamqpFirewallRuleComponent
 		p := predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				return true
-			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-        return false
-      },
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				return true
+				return false
 			},
 			GenericFunc: func(e event.GenericEvent) bool {
 				return false
