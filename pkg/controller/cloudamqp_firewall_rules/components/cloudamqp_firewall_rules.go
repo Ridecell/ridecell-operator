@@ -19,7 +19,6 @@ package components
 import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/golang/glog"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
