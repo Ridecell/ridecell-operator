@@ -24,6 +24,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -53,12 +55,27 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 	}
 	cr.Controller = c
 
-	// Watch for changes in the Top object.
-	err = c.Watch(&source.Kind{Type: cr.top}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return nil, fmt.Errorf("unable to create top-level watch: %v", err)
+	if _, ok := cr.top.(*corev1.Node); ok {
+		// Process only create and delete event for corev1.Node object - special case for cloudamqpFirewallRuleComponent
+		p := predicate.Funcs{
+			DeleteFunc: func(e event.UpdateEvent) bool {
+				return true
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				return true
+			},
+		}
+		err = c.Watch(&source.Kind{Type: cr.top}, &handler.EnqueueRequestForObject{}, p)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create top-level watch: %v", err)
+		}
+	} else {
+		// Watch for changes in the Top object.
+		err = c.Watch(&source.Kind{Type: cr.top}, &handler.EnqueueRequestForObject{})
+		if err != nil {
+			return nil, fmt.Errorf("unable to create top-level watch: %v", err)
+		}
 	}
-
 	// Watch for changes in other objects.
 	watchedTypes := map[reflect.Type]bool{}
 	for _, comp := range cr.components {

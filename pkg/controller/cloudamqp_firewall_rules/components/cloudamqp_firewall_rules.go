@@ -35,7 +35,7 @@ func NewCloudamqpFirewallRule() *cloudamqpFirewallRuleComponent {
 
 func (_ *cloudamqpFirewallRuleComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&corev1.Node{},
+		//&corev1.Node{},
 	}
 }
 
@@ -45,30 +45,31 @@ func (_ *cloudamqpFirewallRuleComponent) IsReconcilable(_ *components.ComponentC
 
 func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 
+	// Get cloudamqp api key
+	// if os.Getenv("CLOUDAMQP_API_KEY") == "" {
+	// 	glog.Errorf("CLOUDAMQP_FIREWALL: No CLOUDAMQP_API_KEY found or variable is empty.")
+	// 	return components.Result{}, nil
+	// }
+
 	// Get all Node objects
 	nodeList := &corev1.NodeList{}
 	err := ctx.List(ctx.Context, &client.ListOptions{}, nodeList)
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "failed to list Node objects")
+		glog.Errorf("CLOUDAMQP_FIREWALL: failed to list Node objects")
+		return components.Result{}, nil
 	}
 
-	//var nodePublicIPList []string
-	//var nodePrivateIPList []string
-	var tmpPublicIp, tmpPrivateIp string
+	var nodePublicIPList []string
 
 	for _, node := range nodeList.Items {
 		for _, address := range node.Status.Addresses {
 			if address.Type == corev1.NodeExternalIP {
-				//nodePublicIPList = append(nodePublicIPList, address.Address)
-				tmpPublicIp = address.Address
-			}
-			if address.Type == corev1.NodeInternalIP {
-				//nodePrivateIPList = append(nodePrivateIPList, address.Address)
-				tmpPrivateIp = address.Address
+				nodePublicIPList = append(nodePublicIPList, address.Address)
 			}
 		}
-		glog.Infof("NodeIP: %s : %s", tmpPrivateIp, tmpPublicIp)
 	}
+
+	glog.Infof("CLOUDAMQP_FIREWALL: NodePublicIPs: %s", nodePublicIPList)
 
 	return components.Result{}, nil
 }

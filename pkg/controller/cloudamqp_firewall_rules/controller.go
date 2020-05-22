@@ -20,8 +20,8 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	corev1 "k8s.io/api/core/v1"
 	cfrcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/cloudamqp_firewall_rules/components"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Add creates a new decryptsecrets Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
