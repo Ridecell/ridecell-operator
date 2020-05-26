@@ -17,13 +17,24 @@ limitations under the License.
 package components
 
 import (
+	"encoding/json"
+	"os"
+	"time"
+
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	testcomponent "github.com/Ridecell/ridecell-operator/pkg/controller/cloudamqp_firewall_rules/components_test"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	corev1 "k8s.io/api/core/v1"
 )
+
+type Rule struct {
+	Services    []string `json:"services"`
+	IP          string   `json:"ip"`
+	Description string   `json:"description"`
+}
 
 type cloudamqpFirewallRuleComponent struct {
 }
@@ -33,9 +44,7 @@ func NewCloudamqpFirewallRule() *cloudamqpFirewallRuleComponent {
 }
 
 func (_ *cloudamqpFirewallRuleComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{
-		//&corev1.Node{},
-	}
+	return []runtime.Object{}
 }
 
 func (_ *cloudamqpFirewallRuleComponent) IsReconcilable(_ *components.ComponentContext) bool {
@@ -45,30 +54,83 @@ func (_ *cloudamqpFirewallRuleComponent) IsReconcilable(_ *components.ComponentC
 func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 
 	// Get cloudamqp api key
-	// if os.Getenv("CLOUDAMQP_API_KEY") == "" {
-	// 	glog.Errorf("CLOUDAMQP_FIREWALL: No CLOUDAMQP_API_KEY found or variable is empty.")
-	// 	return components.Result{}, nil
-	// }
-
-	// Get all Node objects
-	nodeList := &corev1.NodeList{}
-	err := ctx.List(ctx.Context, &client.ListOptions{}, nodeList)
-	if err != nil {
-		glog.Errorf("CLOUDAMQP_FIREWALL: failed to list Node objects")
+	if os.Getenv("CLOUDAMQP_API_KEY") == "" {
+		glog.Errorf("CLOUDAMQP_FIREWALL: No CLOUDAMQP_API_KEY found or variable is empty.")
 		return components.Result{}, nil
 	}
 
-	var nodePublicIPList []string
-
-	for _, node := range nodeList.Items {
-		for _, address := range node.Status.Addresses {
-			if address.Type == corev1.NodeExternalIP {
-				nodePublicIPList = append(nodePublicIPList, address.Address)
-			}
-		}
+	apiUrl := "https://api.cloudamqp.com/api/security/firewall"
+	// check for fake server url here
+	if os.Getenv("CLOUDAMQP_TEST_URL") != "" {
+		apiUrl = os.Getenv("CLOUDAMQP_TEST_URL")
 	}
 
-	glog.Infof("CLOUDAMQP_FIREWALL: NodePublicIPs: %s", nodePublicIPList)
+	var ipList []string
+	var data []Rule
+
+	if os.Getenv("CLOUDAMQP_FIREWALL") != "true" {
+		// Add allow_all rule
+		data = append(data, Rule{
+			IP:          "0.0.0.0/0",
+			Services:    []string{"STOMP", "AMQP", "MQTTS", "STOMPS", "MQTT", "AMQPS"},
+			Description: "Allow All",
+		})
+		ipList = append(ipList, "0.0.0.0/0")
+	} else {
+		// Get all Node objects
+		nodeList := &corev1.NodeList{}
+		// For unit tests, get node list from test function
+		if os.Getenv("CLOUDAMQP_TEST") == "true" {
+			nodeList = testcomponent.GetTestNodeList()
+		} else {
+			err := ctx.List(ctx.Context, &client.ListOptions{}, nodeList)
+			if err != nil {
+				glog.Errorf("CLOUDAMQP_FIREWALL: failed to list Node objects")
+				return components.Result{RequeueAfter: time.Second * 15}, nil
+			}
+		}
+
+		//--- add allow_all rule for now - will be removed after successful testing
+		data = append(data, Rule{
+			IP:          "0.0.0.0/0",
+			Services:    []string{"STOMP", "AMQP", "MQTTS", "STOMPS", "MQTT", "AMQPS"},
+			Description: "Allow All",
+		})
+		//---
+
+		nodeIP := ""
+		// Iterate over Node items and add public IP to rule list
+		for _, node := range nodeList.Items {
+			for _, address := range node.Status.Addresses {
+				if address.Type == corev1.NodeExternalIP {
+					ipList = append(ipList, address.Address)
+					nodeIP = address.Address
+				}
+			}
+			if nodeIP != "" {
+				data = append(data, Rule{
+					IP:          fmt.Sprintf("%s/32", nodeIP),
+					Services:    []string{"STOMP", "AMQP", "MQTTS", "STOMPS", "MQTT", "AMQPS"},
+					Description: "K8s Cluster Node IP",
+				})
+			}
+			nodeIP = ""
+		}
+	}
+	glog.Infof("CLOUDAMQP_FIREWALL: Whitelisted IPs: %s", ipList)
+
+	// convert data into json
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		glog.Errorf("CLOUDAMQP_FIREWALL: failed to marshal json data")
+		return components.Result{RequeueAfter: time.Second * 15}, nil
+	}
+	// apply the IP rules to CLOUDAMQP FIREWALL
+	err = utils.PutCloudamqpFirewallRules(apiUrl, apiKey, payloadBytes)
+	if err != nil {
+		glog.Errorf("CLOUDAMQP_FIREWALL: failed to put firewall rules: %s ", err)
+	}
+	glog.Infof("CLOUDAMQP_FIREWALL: firewall rules updated")
 
 	return components.Result{}, nil
 }
