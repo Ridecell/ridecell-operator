@@ -41,20 +41,3 @@ var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	ctx = components.NewTestContext(&corev1.Node{}, nil)
 })
-
-func GetTestNodeList() *corev1.NodeList {
-	return &corev1.NodeList{
-		Items: []corev1.Node{
-			&corev1.Node{
-				Status: &corev1.NodeStatus{
-					Addresses: []corev1.NodeAddress{
-						&corev1.NodeAddress{
-							Type:    corev1.NodeExternalIP,
-							Address: "1.2.3.4",
-						},
-					},
-				},
-			},
-		},
-	}
-}

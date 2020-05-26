@@ -23,6 +23,7 @@ import (
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	cfrcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/cloudamqp_firewall_rules/components"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_cloudamqp"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
@@ -32,6 +33,7 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	os.Setenv("CLOUDAMQP_FIREWALL", "true")
 	os.Setenv("CLOUDAMQP_TEST_URL", "http://localhost:9099/api/security/firewall")
 	os.Setenv("CLOUDAMQP_API_KEY", "1234567890")
+	fake_cloudamqp.Run()
 
 	BeforeEach(func() {
 		comp = cfrcomponents.NewCloudamqpFirewallRule()

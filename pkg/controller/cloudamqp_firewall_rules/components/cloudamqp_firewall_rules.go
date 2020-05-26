@@ -18,11 +18,12 @@ package components
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	testcomponent "github.com/Ridecell/ridecell-operator/pkg/controller/cloudamqp_firewall_rules/components_test"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_cloudamqp"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
@@ -59,6 +60,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		return components.Result{}, nil
 	}
 
+	apiKey := os.Getenv("CLOUDAMQP_API_KEY")
 	apiUrl := "https://api.cloudamqp.com/api/security/firewall"
 	// check for fake server url here
 	if os.Getenv("CLOUDAMQP_TEST_URL") != "" {
@@ -81,7 +83,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		nodeList := &corev1.NodeList{}
 		// For unit tests, get node list from test function
 		if os.Getenv("CLOUDAMQP_TEST") == "true" {
-			nodeList = testcomponent.GetTestNodeList()
+			nodeList = fake_cloudamqp.GetTestNodeList()
 		} else {
 			err := ctx.List(ctx.Context, &client.ListOptions{}, nodeList)
 			if err != nil {
