@@ -67,7 +67,7 @@ func firewall(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(201)
 	resp := `response`
-	_, err := w.Write([]byte(resp))
+	_, err = w.Write([]byte(resp))
 	if err != nil {
 		log.Fatal(err)
 	}
