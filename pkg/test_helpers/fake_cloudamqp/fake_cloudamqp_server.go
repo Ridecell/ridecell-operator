@@ -64,6 +64,7 @@ func firewall(w http.ResponseWriter, r *http.Request) {
 	for _, rule := range rules {
 		IPList = append(IPList, rule.IP)
 	}
+	log.Printf("IPList:\t\t%s", IPList)
 
 	w.WriteHeader(201)
 	resp := `response`
