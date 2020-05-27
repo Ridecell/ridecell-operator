@@ -18,10 +18,19 @@ package fake_cloudamqp
 
 import (
 	"log"
+	"encoding/json"
 	"net/http"
 	"os"
 	"time"
 )
+
+type Rule struct {
+	Services    []string `json:"services"`
+	IP          string	 `json:"ip"`
+	Description string	 `json:"description"`
+}
+
+var IPList []string
 
 func RequestLogger(targetMux http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,10 +52,20 @@ func RequestLogger(targetMux http.Handler) http.Handler {
 }
 
 func firewall(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		// add rules
-		w.WriteHeader(201)
+
+	var rules []Rule
+	err := json.NewDecoder(r.Body).Decode(&rules)
+	if err != nil {
+			w.WriteHeader(400)
+			return
 	}
+
+	IPList = nil
+	for _, rule := range rules {
+		IPList = append(IPList, rule.IP)
+	}
+
+	w.WriteHeader(201)
 	resp := `response`
 	_, err := w.Write([]byte(resp))
 	if err != nil {
