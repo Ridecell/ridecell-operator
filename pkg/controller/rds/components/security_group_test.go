@@ -155,7 +155,7 @@ func (m *mockEC2SGClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGrou
 					FromPort: aws.Int64(int64(5432)),
 					ToPort:   aws.Int64(int64(5432)),
 					IpRanges: []*ec2.IpRange{
-						&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")},
+						&ec2.IpRange{CidrIp: aws.String("10.0.0.0/8")},
 					},
 				},
 			}
