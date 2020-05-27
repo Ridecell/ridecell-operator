@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// Add creates a new decryptsecrets Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("cloudamqp_firewall_rules-controller", mgr, &corev1.Node{}, nil, []components.Component{

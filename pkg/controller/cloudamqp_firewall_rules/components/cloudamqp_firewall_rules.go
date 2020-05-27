@@ -59,12 +59,12 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		glog.Errorf("CLOUDAMQP_FIREWALL: No CLOUDAMQP_API_KEY found or variable is empty.")
 		return components.Result{}, nil
 	}
-
 	apiKey := os.Getenv("CLOUDAMQP_API_KEY")
+
 	apiUrl := "https://api.cloudamqp.com/api/security/firewall"
-	// check for fake server url here
-	if os.Getenv("CLOUDAMQP_TEST_URL") != "" {
-		apiUrl = os.Getenv("CLOUDAMQP_TEST_URL")
+	// check for server url in env variable
+	if os.Getenv("CLOUDAMQP_API_URL") != "" {
+		apiUrl = os.Getenv("CLOUDAMQP_API_URL")
 	}
 
 	var ipList []string

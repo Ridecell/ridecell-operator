@@ -30,8 +30,7 @@ import (
 var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	var comp components.Component
 	os.Setenv("CLOUDAMQP_TEST", "true")
-	os.Setenv("CLOUDAMQP_FIREWALL", "true")
-	os.Setenv("CLOUDAMQP_TEST_URL", "http://localhost:9099/api/security/firewall")
+	os.Setenv("CLOUDAMQP_API_URL", "http://localhost:9099/api/security/firewall")
 	os.Setenv("CLOUDAMQP_API_KEY", "1234567890")
 	fake_cloudamqp.Run()
 
@@ -40,16 +39,17 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	})
 
 	It("puts firewall rules to cloudamqp", func() {
+		os.Setenv("CLOUDAMQP_FIREWALL", "true")
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(fake_cloudamqp.IPList).To(ContainElement("0.0.0.0/0"))
 		Expect(fake_cloudamqp.IPList).To(ContainElement("1.2.3.4/32"))
 	})
 
-	// It("puts default firewall rule if CLOUDAMQP_FIREWALL is false", func() {
-	// 	os.Setenv("CLOUDAMQP_FIREWALL", "false")
-	// 	Expect(comp).To(ReconcileContext(ctx))
-	// 	Expect(fake_cloudamqp.IPList).To(ContainElement("0.0.0.0/0"))
-	// 	Expect(fake_cloudamqp.IPList).ToNot(ContainElement("1.2.3.4/32"))
-	// })
+	It("puts default firewall rule if CLOUDAMQP_FIREWALL is false", func() {
+		os.Setenv("CLOUDAMQP_FIREWALL", "false")
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(fake_cloudamqp.IPList).To(ContainElement("0.0.0.0/0"))
+		Expect(fake_cloudamqp.IPList).ToNot(ContainElement("1.2.3.4/32"))
+	})
 
 })
