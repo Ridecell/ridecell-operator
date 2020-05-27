@@ -46,6 +46,7 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	})
 
 	It("puts default firewall rule if CLOUDAMQP_FIREWALL is false", func() {
+		os.Setenv("CLOUDAMQP_FIREWALL", "false")
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(fake_cloudamqp.IPList).To(ContainElement("0.0.0.0/0"))
 	})
