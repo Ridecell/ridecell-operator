@@ -136,7 +136,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 			continue
 		}
 		for _, ipRange := range ipPermission.IpRanges {
-			if aws.StringValue(ipRange.CidrIp) == "0.0.0.0/0" {
+			if aws.StringValue(ipRange.CidrIp) == "10.0.0.0/8" {
 				hasIngressRule = true
 				break
 			}
@@ -145,7 +145,7 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 
 	if !hasIngressRule {
 		_, err := comp.ec2API.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-			CidrIp:     aws.String("0.0.0.0/0"),
+			CidrIp:     aws.String("10.0.0.0/8"),
 			FromPort:   aws.Int64(int64(5432)),
 			ToPort:     aws.Int64(int64(5432)),
 			GroupId:    securityGroup.GroupId,
