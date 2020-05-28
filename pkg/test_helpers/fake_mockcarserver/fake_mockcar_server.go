@@ -42,21 +42,30 @@ func RequestLogger(targetMux http.Handler) http.Handler {
 	})
 }
 
-func tenant(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		// create tenant
+func firewall(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		responseBytes, err := json.Marshal(rules)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+		w.WriteHeader(200)
+		_, err = w.Write(responseBytes)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if r.Method == "POST" {
+		err := json.NewDecoder(r.Body).Decode(&rules)
+		if err != nil {
+			w.WriteHeader(400)
+			return
+		}
+		IPList = nil
+		for _, rule := range rules {
+			IPList = append(IPList, rule.IP)
+		}
+		log.Printf("IPList:\t\t%s", IPList)
 		w.WriteHeader(201)
-	} else if r.Method == "GET" {
-		// update tenant
-		w.WriteHeader(200)
-	} else if r.Method == "DELETE" {
-		// delete tenant
-		w.WriteHeader(200)
-	}
-	resp := `response`
-	_, err := w.Write([]byte(resp))
-	if err != nil {
-		log.Fatal(err)
 	}
 }
 func Run() {
