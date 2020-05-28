@@ -58,17 +58,17 @@ func GetCloudamqpFirewallRules(apiUrl string, apiKey string) ([]Rule, error) {
 
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.SetBasicAuth("", apiKey)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return errors.Errorf("CLOUDAMQP firewall response code HTTP %d", resp.StatusCode)
+		return nil, errors.Errorf("CLOUDAMQP firewall response code HTTP %d", resp.StatusCode)
 	}
 
 	var rules []Rule
