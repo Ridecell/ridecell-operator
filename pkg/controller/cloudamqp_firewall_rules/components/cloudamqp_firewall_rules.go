@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -30,12 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-type Rule struct {
-	Services    []string `json:"services"`
-	IP          string   `json:"ip"`
-	Description string   `json:"description"`
-}
 
 type cloudamqpFirewallRuleComponent struct {
 }
@@ -68,11 +63,11 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 	}
 
 	var ipList []string
-	var data []Rule
+	var data []utils.Rule
 
 	if os.Getenv("CLOUDAMQP_FIREWALL") != "true" {
 		// Add allow_all rule
-		data = append(data, Rule{
+		data = append(data, utils.Rule{
 			IP:          "0.0.0.0/0",
 			Services:    []string{"AMQP", "AMQPS"},
 			Description: "Allow All",
@@ -93,7 +88,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		}
 
 		//--- add allow_all rule for now - will be removed after successful testing
-		data = append(data, Rule{
+		data = append(data, utils.Rule{
 			IP:          "0.0.0.0/0",
 			Services:    []string{"AMQP", "AMQPS"},
 			Description: "Allow All",
@@ -110,7 +105,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 				}
 			}
 			if nodeIP != "" {
-				data = append(data, Rule{
+				data = append(data, utils.Rule{
 					IP:          fmt.Sprintf("%s/32", nodeIP),
 					Services:    []string{"AMQP", "AMQPS"},
 					Description: "K8s Cluster Node IP",
@@ -121,8 +116,8 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 	}
 	glog.Infof("CLOUDAMQP_FIREWALL: Whitelisted IPs: %s", ipList)
 
-	// convert data into json
-	payloadBytes, err := json.Marshal(data)
+	// apply the IP rules to CLOUDAMQP FIREWALL
+	err := utils.PutCloudamqpFirewallRules(apiUrl, apiKey, data)
 	if err != nil {
 		glog.Errorf("CLOUDAMQP_FIREWALL: failed to marshal json data")
 		return components.Result{RequeueAfter: time.Second * 15}, nil
