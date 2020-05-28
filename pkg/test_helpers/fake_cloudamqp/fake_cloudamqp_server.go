@@ -17,8 +17,8 @@ limitations under the License.
 package fake_cloudamqp
 
 import (
-	"log"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -26,10 +26,11 @@ import (
 
 type Rule struct {
 	Services    []string `json:"services"`
-	IP          string	 `json:"ip"`
-	Description string	 `json:"description"`
+	IP          string   `json:"ip"`
+	Description string   `json:"description"`
 }
 
+var rules []Rule
 var IPList []string
 
 func RequestLogger(targetMux http.Handler) http.Handler {
@@ -53,24 +54,29 @@ func RequestLogger(targetMux http.Handler) http.Handler {
 
 func firewall(w http.ResponseWriter, r *http.Request) {
 
-	var rules []Rule
-	err := json.NewDecoder(r.Body).Decode(&rules)
-	if err != nil {
+	if r.Method == "GET" {
+		responseBytes, err := json.Marshal(rules)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+		w.WriteHeader(200)
+		_, err = w.Write([]byte(resp))
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if r.Method == "POST" {
+		err := json.NewDecoder(r.Body).Decode(&rules)
+		if err != nil {
 			w.WriteHeader(400)
 			return
-	}
-
-	IPList = nil
-	for _, rule := range rules {
-		IPList = append(IPList, rule.IP)
-	}
-	log.Printf("IPList:\t\t%s", IPList)
-
-	w.WriteHeader(201)
-	resp := `response`
-	_, err = w.Write([]byte(resp))
-	if err != nil {
-		log.Fatal(err)
+		}
+		IPList = nil
+		for _, rule := range rules {
+			IPList = append(IPList, rule.IP)
+		}
+		log.Printf("IPList:\t\t%s", IPList)
+		w.WriteHeader(201)
 	}
 }
 func Run() {

@@ -18,12 +18,23 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"net/http"
 )
 
-func PutCloudamqpFirewallRules(apiUrl string, apiKey string, payloadBytes []byte) error {
+type Rule struct {
+	Services    []string `json:"services"`
+	IP          string   `json:"ip"`
+	Description string   `json:"description"`
+}
 
+func PutCloudamqpFirewallRules(apiUrl string, apiKey string, data []Rule) error {
+
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
 	body := bytes.NewReader(payloadBytes)
 	req, err := http.NewRequest("POST", apiUrl, body)
 	if err != nil {
@@ -41,4 +52,29 @@ func PutCloudamqpFirewallRules(apiUrl string, apiKey string, payloadBytes []byte
 		return errors.Errorf("CLOUDAMQP firewall response code HTTP %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func GetCloudamqpFirewallRules(apiUrl string, apiKey string) ([]Rule, error) {
+
+	req, err := http.NewRequest("GET", apiUrl, nil)
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth("", apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return errors.Errorf("CLOUDAMQP firewall response code HTTP %d", resp.StatusCode)
+	}
+
+	var rules []Rule
+	err = json.NewDecoder(resp.Body).Decode(&rules)
+	if err != nil {
+		return nil, err
+	}
+	return rules, nil
 }
