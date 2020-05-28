@@ -74,7 +74,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		// Add allow_all rule
 		data = append(data, Rule{
 			IP:          "0.0.0.0/0",
-			Services:    []string{"STOMP", "AMQP", "MQTTS", "STOMPS", "MQTT", "AMQPS"},
+			Services:    []string{"AMQP", "AMQPS"},
 			Description: "Allow All",
 		})
 		ipList = append(ipList, "0.0.0.0/0")
@@ -95,7 +95,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		//--- add allow_all rule for now - will be removed after successful testing
 		data = append(data, Rule{
 			IP:          "0.0.0.0/0",
-			Services:    []string{"STOMP", "AMQP", "MQTTS", "STOMPS", "MQTT", "AMQPS"},
+			Services:    []string{"AMQP", "AMQPS"},
 			Description: "Allow All",
 		})
 		//---
@@ -112,7 +112,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 			if nodeIP != "" {
 				data = append(data, Rule{
 					IP:          fmt.Sprintf("%s/32", nodeIP),
-					Services:    []string{"STOMP", "AMQP", "MQTTS", "STOMPS", "MQTT", "AMQPS"},
+					Services:    []string{"AMQP", "AMQPS"},
 					Description: "K8s Cluster Node IP",
 				})
 			}
