@@ -17,7 +17,6 @@ limitations under the License.
 package components
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -119,11 +118,15 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 	// apply the IP rules to CLOUDAMQP FIREWALL
 	err := utils.PutCloudamqpFirewallRules(apiUrl, apiKey, desiredRules)
 	if err != nil {
-		glog.Errorf("CLOUDAMQP_FIREWALL: failed to marshal json data")
+		glog.Errorf("CLOUDAMQP_FIREWALL: failed to put firewall rules: %s ", err)
 		return components.Result{RequeueAfter: time.Second * 15}, nil
 	}
-	// apply the IP rules to CLOUDAMQP FIREWALL
-	err = utils.PutCloudamqpFirewallRules(apiUrl, apiKey, payloadBytes)
+
+	// Wait for rules to take effect
+	time.Sleep(time.Second * 15)
+
+	// Verify the whitelisted IPs by GET request
+	rules, err := utils.GetCloudamqpFirewallRules(apiUrl, apiKey)
 	if err != nil {
 		glog.Errorf("CLOUDAMQP_FIREWALL: failed to get firewall rules: %s ", err)
 		return components.Result{RequeueAfter: time.Second * 15}, nil
@@ -136,7 +139,6 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		glog.Errorf("CLOUDAMQP_FIREWALL: Not all IPs are whitelisted, retry in 30 seconds")
 		return components.Result{RequeueAfter: time.Second * 30}, nil
 	}
-	glog.Infof("CLOUDAMQP_FIREWALL: firewall rules updated")
 
 	return components.Result{}, nil
 }
