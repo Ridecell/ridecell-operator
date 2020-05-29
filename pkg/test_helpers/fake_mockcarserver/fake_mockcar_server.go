@@ -23,6 +23,15 @@ import (
 	"time"
 )
 
+type CloudamqpFirewallRule struct {
+	Services    []string `json:"services"`
+	IP          string   `json:"ip"`
+	Description string   `json:"description"`
+}
+
+var rules []CloudamqpFirewallRule
+var IPList []string
+
 func RequestLogger(targetMux http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

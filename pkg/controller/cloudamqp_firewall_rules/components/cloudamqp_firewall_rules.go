@@ -63,11 +63,11 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 	}
 
 	var ipList []string
-	var data []utils.Rule
+	var desiredRules []utils.CloudamqpFirewallRule
 
 	if os.Getenv("CLOUDAMQP_FIREWALL") != "true" {
 		// Add allow_all rule
-		data = append(data, utils.Rule{
+		desiredRules = append(desiredRules, utils.CloudamqpFirewallRule{
 			IP:          "0.0.0.0/0",
 			Services:    []string{"AMQP", "AMQPS"},
 			Description: "Allow All",
@@ -88,7 +88,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 		}
 
 		//--- add allow_all rule for now - will be removed after successful testing
-		data = append(data, utils.Rule{
+		desiredRules = append(desiredRules, utils.CloudamqpFirewallRule{
 			IP:          "0.0.0.0/0",
 			Services:    []string{"AMQP", "AMQPS"},
 			Description: "Allow All",
@@ -105,7 +105,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 				}
 			}
 			if nodeIP != "" {
-				data = append(data, utils.Rule{
+				desiredRules = append(desiredRules, utils.CloudamqpFirewallRule{
 					IP:          fmt.Sprintf("%s/32", nodeIP),
 					Services:    []string{"AMQP", "AMQPS"},
 					Description: "K8s Cluster Node IP",
@@ -117,7 +117,7 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 	glog.Infof("CLOUDAMQP_FIREWALL: Whitelisted IPs: %s", ipList)
 
 	// apply the IP rules to CLOUDAMQP FIREWALL
-	err := utils.PutCloudamqpFirewallRules(apiUrl, apiKey, data)
+	err := utils.PutCloudamqpFirewallRules(apiUrl, apiKey, desiredRules)
 	if err != nil {
 		glog.Errorf("CLOUDAMQP_FIREWALL: failed to marshal json data")
 		return components.Result{RequeueAfter: time.Second * 15}, nil
@@ -125,7 +125,16 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 	// apply the IP rules to CLOUDAMQP FIREWALL
 	err = utils.PutCloudamqpFirewallRules(apiUrl, apiKey, payloadBytes)
 	if err != nil {
-		glog.Errorf("CLOUDAMQP_FIREWALL: failed to put firewall rules: %s ", err)
+		glog.Errorf("CLOUDAMQP_FIREWALL: failed to get firewall rules: %s ", err)
+		return components.Result{RequeueAfter: time.Second * 15}, nil
+	}
+
+	// DeepEqual is a heavy method, so first check if array length is equal and then call DeepEqual
+	if len(desiredRules) == len(rules) && reflect.DeepEqual(rules, desiredRules) {
+		glog.Infof("CLOUDAMQP_FIREWALL: firewall rules updated")
+	} else {
+		glog.Errorf("CLOUDAMQP_FIREWALL: Not all IPs are whitelisted, retry in 30 seconds")
+		return components.Result{RequeueAfter: time.Second * 30}, nil
 	}
 	glog.Infof("CLOUDAMQP_FIREWALL: firewall rules updated")
 
