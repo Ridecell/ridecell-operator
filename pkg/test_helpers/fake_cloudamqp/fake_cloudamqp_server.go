@@ -24,13 +24,13 @@ import (
 	"time"
 )
 
-type Rule struct {
+type CloudamqpFirewallRule struct {
 	Services    []string `json:"services"`
 	IP          string   `json:"ip"`
 	Description string   `json:"description"`
 }
 
-var rules []Rule
+var rules []CloudamqpFirewallRule
 var IPList []string
 
 func RequestLogger(targetMux http.Handler) http.Handler {

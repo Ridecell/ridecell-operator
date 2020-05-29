@@ -23,13 +23,13 @@ import (
 	"net/http"
 )
 
-type Rule struct {
+type CloudamqpFirewallRule struct {
 	Services    []string `json:"services"`
 	IP          string   `json:"ip"`
 	Description string   `json:"description"`
 }
 
-func PutCloudamqpFirewallRules(apiUrl string, apiKey string, data []Rule) error {
+func PutCloudamqpFirewallRules(apiUrl string, apiKey string, data []CloudamqpFirewallRule) error {
 
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
@@ -54,7 +54,7 @@ func PutCloudamqpFirewallRules(apiUrl string, apiKey string, data []Rule) error 
 	return nil
 }
 
-func GetCloudamqpFirewallRules(apiUrl string, apiKey string) ([]Rule, error) {
+func GetCloudamqpFirewallRules(apiUrl string, apiKey string) ([]CloudamqpFirewallRule, error) {
 
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
@@ -71,7 +71,7 @@ func GetCloudamqpFirewallRules(apiUrl string, apiKey string) ([]Rule, error) {
 		return nil, errors.Errorf("CLOUDAMQP firewall response code HTTP %d", resp.StatusCode)
 	}
 
-	var rules []Rule
+	var rules []CloudamqpFirewallRule
 	err = json.NewDecoder(resp.Body).Decode(&rules)
 	if err != nil {
 		return nil, err
