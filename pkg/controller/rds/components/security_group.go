@@ -17,6 +17,7 @@ limitations under the License.
 package components
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -130,29 +131,117 @@ func (comp *dbSecurityGroupComponent) Reconcile(ctx *components.ComponentContext
 	}
 	securityGroup := describeSecurityGroupsOutput.SecurityGroups[0]
 
-	var hasIngressRule bool
+	// Remove rules having port number other than 5432
+	var deletedInvalidRules bool
 	for _, ipPermission := range securityGroup.IpPermissions {
 		if aws.Int64Value(ipPermission.FromPort) != int64(5432) || aws.Int64Value(ipPermission.ToPort) != int64(5432) {
-			continue
-		}
-		for _, ipRange := range ipPermission.IpRanges {
-			if aws.StringValue(ipRange.CidrIp) == "0.0.0.0/0" {
-				hasIngressRule = true
-				break
+			_, err := comp.ec2API.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+				GroupId:       securityGroup.GroupId,
+				IpPermissions: []*ec2.IpPermission{ipPermission},
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "rds: failed to revoke SG rule with other ports")
 			}
+			deletedInvalidRules = true
 		}
 	}
+	if deletedInvalidRules {
+		return components.Result{Requeue: true}, nil
+	}
+	// Add default rule (allow all) if ENV var is not defined
+	if os.Getenv("RDS_SG_RULES") == "" {
+		var hasIngressRule bool
+		for _, ipPermission := range securityGroup.IpPermissions {
+			for _, ipRange := range ipPermission.IpRanges {
+				if aws.StringValue(ipRange.CidrIp) == "0.0.0.0/0" {
+					hasIngressRule = true
+					break
+				}
+			}
+		}
 
-	if !hasIngressRule {
-		_, err := comp.ec2API.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-			CidrIp:     aws.String("0.0.0.0/0"),
-			FromPort:   aws.Int64(int64(5432)),
-			ToPort:     aws.Int64(int64(5432)),
-			GroupId:    securityGroup.GroupId,
-			IpProtocol: aws.String("tcp"),
-		})
+		if !hasIngressRule {
+			_, err := comp.ec2API.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+				IpPermissions: []*ec2.IpPermission{
+					&ec2.IpPermission{
+						FromPort:   aws.Int64(int64(5432)),
+						ToPort:     aws.Int64(int64(5432)),
+						IpProtocol: aws.String("tcp"),
+						IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0"), Description: aws.String("default")}},
+					},
+				},
+				GroupId: securityGroup.GroupId,
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "rds: failed to authorize default security group ingress")
+			}
+		}
+
+	} else { // Add rules defined in RDS_SG_RULES ENV var
+		var extraRules map[string]string
+		err := json.Unmarshal([]byte(os.Getenv("RDS_SG_RULES")), &extraRules)
 		if err != nil {
-			return components.Result{}, errors.Wrap(err, "rds: failed to authorize security group ingress")
+			return components.Result{}, errors.Wrap(err, "rds: error in decoding RDS_SG_RULES environment variable json")
+		}
+
+		var revokeRules []string
+		for _, ipPermission := range securityGroup.IpPermissions {
+			for _, ipRange := range ipPermission.IpRanges {
+				if _, exists := extraRules[aws.StringValue(ipRange.CidrIp)]; !exists {
+					revokeRules = append(revokeRules, aws.StringValue(ipRange.CidrIp))
+				} else {
+					delete(extraRules, aws.StringValue(ipRange.CidrIp))
+				}
+			}
+		}
+
+		// add extra sg rules
+		if len(extraRules) > 0 {
+			ipList := []*ec2.IpRange{}
+			for ip, desc := range extraRules {
+				ipList = append(ipList, &ec2.IpRange{
+					CidrIp:      aws.String(ip),
+					Description: aws.String(desc),
+				})
+			}
+			_, err := comp.ec2API.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
+				IpPermissions: []*ec2.IpPermission{
+					&ec2.IpPermission{
+						FromPort:   aws.Int64(int64(5432)),
+						ToPort:     aws.Int64(int64(5432)),
+						IpProtocol: aws.String("tcp"),
+						IpRanges:   ipList,
+					},
+				},
+				GroupId: securityGroup.GroupId,
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "rds: unable to add rules in security group")
+			}
+		}
+
+		// remove invalid sg rules
+		if len(revokeRules) > 0 {
+			ipList := []*ec2.IpRange{}
+			for _, ip := range revokeRules {
+				ipList = append(ipList, &ec2.IpRange{
+					CidrIp: aws.String(ip),
+				})
+			}
+			_, err := comp.ec2API.RevokeSecurityGroupIngress(&ec2.RevokeSecurityGroupIngressInput{
+				IpPermissions: []*ec2.IpPermission{
+					&ec2.IpPermission{
+						FromPort:   aws.Int64(int64(5432)),
+						ToPort:     aws.Int64(int64(5432)),
+						IpProtocol: aws.String("tcp"),
+						IpRanges:   ipList,
+					},
+				},
+				GroupId: securityGroup.GroupId,
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrap(err, "rds: unable to revoke invalid rules from security group")
+			}
 		}
 	}
 
