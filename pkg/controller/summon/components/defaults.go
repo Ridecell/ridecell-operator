@@ -82,7 +82,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	// If no resource requests provided, set default requests/limits
-	if instance.Spec.Dispatch.Version != "" && *instance.Spec.Dispatch.Resources == nil {
+	if instance.Spec.Dispatch.Version != "" && instance.Spec.Dispatch.Resources.Size() == 0 {
 		instance.Spec.Dispatch.Resources = corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				corev1.ResourceMemory: resource.MustParse("160M"),
