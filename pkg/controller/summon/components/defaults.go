@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -84,11 +85,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.Dispatch.Version != "" && instance.Spec.Dispatch.Resources == nil {
 		instance.Spec.Dispatch.Resources = corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: "160M",
+				corev1.ResourceMemory: resource.MustParse("160M"),
 			},
 			Requests: corev1.ResourceList{
-				corev1.ResourceMemory: "25M",
-				corev1.ResourceCPU:    "5m",
+				corev1.ResourceMemory: resource.MustParse("25M"),
+				corev1.ResourceCPU:    resource.MustParse("5m"),
 			},
 		}
 	}
