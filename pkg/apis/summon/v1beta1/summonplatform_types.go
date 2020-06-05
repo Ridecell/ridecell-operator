@@ -158,6 +158,10 @@ type MetricsSpec struct {
 type CompDispatchSpec struct {
 	// Comp-dispatch image version to deploy.
 	Version string `json:"version"`
+	// Compute Resources required by this container.
+	// More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+	// +optional
+	Resources corev1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,8,opt,name=resources"`
 }
 
 // CompBusinessPortalSpec defines settings for comp-business-portal.
