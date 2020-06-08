@@ -249,6 +249,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Config["DISPATCH_ENABLED"].Bool).To(PointTo(BeTrue()))
 		Expect(instance.Spec.Config["DISPATCH_BASE_URL"].String).To(PointTo(Equal("http://foo-dev-dispatch:8000/")))
+		Expect(instance.Spec.Dispatch.Resources).ToNot(BeNil())
 	})
 
 	It("does not DISPATCH_ENABLED if the dispatch component is not enabled", func() {

@@ -52,12 +52,7 @@ spec:
         image: "us.gcr.io/ridecell-1/comp-dispatch:{{ .Instance.Spec.Dispatch.Version }}"
         ports:
         - containerPort: 8000
-        resources:
-          requests:
-            memory: 25M
-            cpu: 5m
-          limits:
-            memory: 160M
+        resources: {{ .Instance.Spec.Dispatch.Resources | toJson }}
         env:
         - name: SUMMON_COMPONENT
           valueFrom:

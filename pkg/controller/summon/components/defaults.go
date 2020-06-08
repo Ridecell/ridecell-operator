@@ -23,10 +23,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const defaultFernetKeysLifespan = "8760h"
@@ -77,6 +79,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	// Set redis defaults
 	if instance.Spec.Redis.RAM == 0 {
 		instance.Spec.Redis.RAM = 200
+	}
+
+	// If no resource requests provided, set default requests/limits
+	if instance.Spec.Dispatch.Version != "" && instance.Spec.Dispatch.Resources.Size() == 0 {
+		instance.Spec.Dispatch.Resources = corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("160M"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("25M"),
+				corev1.ResourceCPU:    resource.MustParse("5m"),
+			},
+		}
 	}
 
 	// Helper method to set a string value if not already set.
@@ -245,7 +260,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		defBoolVal("DEBUG", true)
 		gatewayEnv = "master"
 	}
-	
+
 	if instance.Spec.Environment != "prod" {
 		defBoolVal("ENABLE_JSON_LOGGING", true)
 	}
