@@ -46,25 +46,25 @@ var _ = Describe("SummonPlatform iamuser Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Context("LG policy", func() {
+	Context("Optimus policy", func() {
 		It("grants access to an external bucket", func() {
-			instance.Spec.LgBucketName = "asdf"
+			instance.Spec.OptimusBucketName = "asdf"
 			comp := summoncomponents.NewIAMUser("aws/iamuser.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.IAMUser{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.InlinePolicies["allow_s3_lg"]).To(ContainOrderedJSON(`{"Statement": [{"Resource": "arn:aws:s3:::asdf"}]}`))
+			Expect(target.Spec.InlinePolicies["allow_s3_optimus"]).To(ContainOrderedJSON(`{"Statement": [{"Resource": "arn:aws:s3:::asdf"}]}`))
 		})
 
 		It("adds no policy by default", func() {
-			instance.Spec.LgBucketName = ""
+			instance.Spec.OptimusBucketName = ""
 			comp := summoncomponents.NewIAMUser("aws/iamuser.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.IAMUser{}
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.InlinePolicies).ToNot(ContainElement("allow_s3_lg"))
+			Expect(target.Spec.InlinePolicies).ToNot(ContainElement("allow_s3_optimus"))
 		})
 	})
 

@@ -29,17 +29,17 @@ spec:
                 }
               ]
             }
-{{if .Extra.lgBucketName}}
-   allow_s3_lg: |
+{{if .Extra.optimusBucketName}}
+   allow_s3_optimus: |
             {
                "Version": "2012-10-17",
                "Statement": [
                 {
                    "Effect": "Allow",
                    "Action": [
-                      "s3:GetObject",
+                      "s3:GetObject"
                     ],
-                   "Resource": "arn:aws:s3:::{{ .Extra.lgBucketName }}/*"
+                   "Resource": "arn:aws:s3:::{{ .Extra.optimusBucketName }}/*"
                 }
               ]
             }

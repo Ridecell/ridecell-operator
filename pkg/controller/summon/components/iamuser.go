@@ -65,7 +65,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	extra := map[string]interface{}{}
 	extra["permissionsBoundaryArn"] = permissionsBoundaryArn
 	extra["accountId"] = accountID
-	extra["lgBucketName"] = instance.Spec.LgBucketName
+	extra["optimusBucketName"] = instance.Spec.OptimusBucketName
 	extra["mivBucket"] = fmt.Sprintf("ridecell-%s-miv", instance.Name)
 	if instance.Spec.MIV.ExistingBucket != "" {
 		extra["mivBucket"] = instance.Spec.MIV.ExistingBucket
