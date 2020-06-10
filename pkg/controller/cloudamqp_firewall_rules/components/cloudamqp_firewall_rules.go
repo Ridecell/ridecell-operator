@@ -86,14 +86,6 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 			}
 		}
 
-		//--- add allow_all rule for now - will be removed after successful testing
-		desiredRules = append(desiredRules, utils.CloudamqpFirewallRule{
-			IP:          "0.0.0.0/0",
-			Services:    []string{"AMQP", "AMQPS"},
-			Description: "Allow All",
-		})
-		//---
-
 		nodeIP := ""
 		// Iterate over Node items and add public IP to rule list
 		for _, node := range nodeList.Items {

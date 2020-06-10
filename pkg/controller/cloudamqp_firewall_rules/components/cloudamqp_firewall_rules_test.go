@@ -41,7 +41,7 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	It("puts firewall rules to cloudamqp", func() {
 		os.Setenv("CLOUDAMQP_FIREWALL", "true")
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(fake_cloudamqp.IPList).To(ContainElement("0.0.0.0/0"))
+		Expect(fake_cloudamqp.IPList).ToNot(ContainElement("0.0.0.0/0"))
 		Expect(fake_cloudamqp.IPList).To(ContainElement("1.2.3.4/32"))
 	})
 
