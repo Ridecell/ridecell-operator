@@ -29,6 +29,21 @@ spec:
                 }
               ]
             }
+{{if .Extra.lgBucketName}}
+   allow_s3_lg: |
+            {
+               "Version": "2012-10-17",
+               "Statement": [
+                {
+                   "Effect": "Allow",
+                   "Action": [
+                      "s3:GetObject",
+                    ],
+                   "Resource": "arn:aws:s3:::{{ .Extra.lgBucketName }}/*"
+                }
+              ]
+            }
+{{end}}
    allow_s3_miv: |
             {
                "Version": "2012-10-17",

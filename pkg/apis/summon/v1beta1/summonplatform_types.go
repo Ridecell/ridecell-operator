@@ -208,6 +208,9 @@ type SummonPlatformSpec struct {
 	// Settings for deploy and error notifications.
 	// +optional
 	Notifications NotificationsSpec `json:"notifications,omitempty"`
+	// Settings for LG integration.
+	// +optional
+	LgBucketName string `json:"lgBucketName,omitempty"`
 	// Fernet Key Rotation Time Setting
 	// +optional
 	FernetKeyLifetime time.Duration `json:"fernetKeyLifetime,omitempty"`
