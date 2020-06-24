@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
@@ -42,6 +43,13 @@ func (comp *pvcComponent) IsReconcilable(ctx *components.ComponentContext) bool 
 }
 
 func (comp *pvcComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// Don't create PVC when redis endpoint is provided
+	if instance.Spec.MigrationOverrides.RedisHostname != "" {
+		return components.Result{}, nil
+	}
+
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*corev1.PersistentVolumeClaim)
 		existing := existingObj.(*corev1.PersistentVolumeClaim)

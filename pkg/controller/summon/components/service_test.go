@@ -39,6 +39,15 @@ var _ = Describe("SummonPlatform service Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
+	It("doesn't create an service object using redis template", func() {
+		instance.Spec.MigrationOverrides.RedisHostname = "test.redis.aws.com"
+		comp := summoncomponents.NewService("redis/service.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &corev1.Service{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, target)
+		Expect(err).To(HaveOccurred())
+	})
+
 	It("creates an service object using static template", func() {
 		comp := summoncomponents.NewService("static/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))

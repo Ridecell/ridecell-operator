@@ -51,6 +51,12 @@ func (comp *redisDeploymentComponent) Reconcile(ctx *components.ComponentContext
 	if instance.Status.Status != summonv1beta1.StatusDeploying {
 		return components.Result{}, nil
 	}
+
+	// Don't create deployment when redis endpoint is provided
+	if instance.Spec.MigrationOverrides.RedisHostname != "" {
+		return components.Result{}, nil
+	}
+
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*appsv1.Deployment)
 		existing := existingObj.(*appsv1.Deployment)

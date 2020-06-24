@@ -55,4 +55,15 @@ var _ = Describe("redis_deployment Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory()).To(PointTo(Equal(resource.MustParse("300M"))))
 	})
+
+	It("does not creates redis deployment when redis endpoint is already provided", func() {
+		instance.Status.Status = summonv1beta1.StatusDeploying
+		instance.Spec.MigrationOverrides.RedisHostname = "test.redis.aws.com"
+		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+
+		deployment := &appsv1.Deployment{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
+		Expect(err).To(HaveOccurred())
+	})
 })
