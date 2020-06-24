@@ -42,4 +42,12 @@ var _ = Describe("SummonPlatform persistentvolumeclaim Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	It("doesn't create a pvc object using redis template", func() {
+		instance.Spec.MigrationOverrides.RedisHostname = "test.redis.aws.com"
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &corev1.PersistentVolumeClaim{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, target)
+		Expect(err).To(HaveOccurred())
+	})
 })

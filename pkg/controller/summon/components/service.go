@@ -19,7 +19,9 @@ package components
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
@@ -43,6 +45,13 @@ func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// Don't create service when redis endpoint is provided
+	if strings.HasPrefix(comp.templatePath, "redis") && instance.Spec.MigrationOverrides.RedisHostname != "" {
+		return components.Result{}, nil
+	}
+
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*corev1.Service)
 		existing := existingObj.(*corev1.Service)
