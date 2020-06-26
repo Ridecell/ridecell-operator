@@ -127,7 +127,7 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 
 	if elasticsearchNotExist {
 		// Domain access policy: It will allow all connections within the current VPC
-		accessPolicy := fmt.Sprintf("{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"es:*\",\"Resource\":\"arn:aws:es:us-west-2:439671274615:domain/%s/*\"}]}", esDomainName)
+		accessPolicy := fmt.Sprintf("{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"es:*\",\"Resource\":\"arn:aws:es:%s:439671274615:domain/%s/*\"}]}", os.Getenv("AWS_REGION"), esDomainName)
 
 		// ElasticSearch Cluster config
 		esClusterConfig := &es.ElasticsearchClusterConfig{
