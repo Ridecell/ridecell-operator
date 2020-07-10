@@ -102,6 +102,7 @@ type MigrationOverridesSpec struct {
 	PostgresUsername  string `json:"postgresUsername,omitempty"`
 	RabbitMQVhost     string `json:"rabbitmqVhost,omitempty"`
 	RedisHostname     string `json:"redisHostname,omitempty"`
+	CeleryBokerUrl    string `json:"celeryBokerUrl,omitempty"`
 }
 
 // ReplicasSpec defines the number of replicas of various types of pods to run.

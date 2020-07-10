@@ -181,11 +181,15 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s/%s", postgresConnection.Username, postgresPassword, postgresConnection.Host, postgresConnection.Database)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
-	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
 	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
 	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
+	if instance.Spec.MigrationOverrides.CeleryBokerUrl != "" {
+		appSecretsData["CELERY_BROKER_URL"] = instance.Spec.MigrationOverrides.CeleryBokerUrl
+	} else {
+		appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
+	}
 
 	// Insert input secret overrides in the correct order.
 	for _, secret := range specInputSecrets {
