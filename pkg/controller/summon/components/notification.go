@@ -222,7 +222,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 					"tenant-name": instance.Name,
 				},
 			}
-			err = utils.callCircleCiWebhook("https://circleci.com/api/v2/project/github/Ridecell/Ridecell_qa_automation/pipeline", apiKey, postData)
+			err := utils.CallCircleCiWebhook("https://circleci.com/api/v2/project/github/Ridecell/Ridecell_qa_automation/pipeline", apiKey, postData)
 			if err != nil {
 				webhookStatus = fmt.Sprintf("%s", err)
 			}

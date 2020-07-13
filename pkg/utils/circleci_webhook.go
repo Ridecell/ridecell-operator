@@ -23,7 +23,7 @@ import (
 	"net/http"
 )
 
-func callCircleCiWebhook(apiUrl string, apiKey string, data map[string]interface{}) error {
+func CallCircleCiWebhook(apiUrl string, apiKey string, data map[string]interface{}) error {
 
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
