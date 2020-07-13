@@ -33,6 +33,7 @@ import (
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
 var versionRegex *regexp.Regexp
@@ -208,6 +209,28 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		return components.Result{}, errs
 	}
 
+	// Trigger CircleCi Regression Test Webhook, if set true
+	webhookStatus := "Triggered"
+	if instance.Spec.Notifications.CircleciRegressionTestWebhook {
+		apiKey := os.Getenv("CIRCLECI_TEST_API_KEY")
+		if apiKey != "" {
+			postData := map[string]interface{}{
+				"branch": "master",
+				"parameters": map[string]interface{}{
+					"deployment-regression-tests": true,
+					"framework-tests":false,
+					"tenant-name": instance.Name,
+				},
+			}
+			err = utils.callCircleCiWebhook("https://circleci.com/api/v2/project/github/Ridecell/Ridecell_qa_automation/pipeline", apiKey, postData)
+			if err != nil {
+				webhookStatus = fmt.Sprintf("%s", err)
+			}
+		} else {
+			webhookStatus = "CIRCLECI_TEST_API_KEY environment variable not defined"
+		}
+	}
+
 	// no errors, update notification statuses.
 	return components.Result{
 		StatusModifier: func(obj runtime.Object) error {
@@ -217,6 +240,9 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 			instance.Status.Notification.BusinessPortalVersion = instance.Spec.BusinessPortal.Version
 			instance.Status.Notification.HwAuxVersion = instance.Spec.HwAux.Version
 			instance.Status.Notification.TripShareVersion = instance.Spec.TripShare.Version
+			if instance.Spec.Notifications.CircleciRegressionTestWebhook {
+				instance.Status.Notification.CircleciRegressionTestWebhook = webhookStatus
+			}
 			return nil
 		}}, nil
 }
