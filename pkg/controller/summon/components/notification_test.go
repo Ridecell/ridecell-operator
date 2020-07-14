@@ -321,5 +321,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(post4.In2.Fallback).To(Equal("foo.ridecell.us has error: You have no chance to survive"))
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
+
+		// TODO: Add Circleci Webhook test cases
 	})
 })

@@ -112,10 +112,41 @@ func (c *realDeployStatusClient) PostStatus(url string, name string, env string,
 	return nil
 }
 
+// Interface for Circleci client
+//go:generate moq -out zz_generated.mock_circleciclient_test.go . CircleCiClient
+type CircleCiClient interface {
+	TriggerRegressionSuite(instanceName string) string
+}
+
+type realCircleCiClient struct{}
+
+// Real implementation of CallCircleciAPI
+func (c *realCircleCiClient) TriggerRegressionSuite(instanceName string) string {
+	apiKey := os.Getenv("CIRCLECI_API_KEY")
+	if apiKey != "" {
+		postData := map[string]interface{}{
+			"branch": "master",
+			"parameters": map[string]interface{}{
+				"deployment-regression-tests": true,
+				"framework-tests":             false,
+				"tenant-name":                 instanceName,
+			},
+		}
+		err := utils.CallCircleCiWebhook("https://circleci.com/api/v2/project/github/Ridecell/Ridecell_qa_automation/pipeline", apiKey, postData)
+		if err != nil {
+			return fmt.Sprintf("%s", err)
+		}
+	} else {
+		return "CIRCLECI_API_KEY environment variable not defined"
+	}
+	return "Success"
+}
+
 type notificationComponent struct {
 	slackClient        SlackClient
 	deployStatusClient DeployStatusClient
 	dupCache           sync.Map
+	circleciClient     CircleCiClient
 }
 
 func NewNotification() *notificationComponent {
@@ -128,6 +159,7 @@ func NewNotification() *notificationComponent {
 	return &notificationComponent{
 		slackClient:        &realSlackClient{client: slackClient},
 		deployStatusClient: &realDeployStatusClient{},
+		circleciClient:     &realCircleCiClient{},
 	}
 }
 
@@ -137,6 +169,10 @@ func (c *notificationComponent) InjectSlackClient(client SlackClient) {
 
 func (c *notificationComponent) InjectDeployStatusClient(client DeployStatusClient) {
 	c.deployStatusClient = client
+}
+
+func (c *notificationComponent) InjectCircleCiClient(client CircleCiClient) {
+	c.circleciClient = client
 }
 
 func (_ *notificationComponent) WatchTypes() []runtime.Object {
@@ -210,25 +246,9 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 
 	// Trigger CircleCi Regression Test Webhook, if set true
-	webhookStatus := "Triggered"
+	var webhookStatus string
 	if instance.Spec.Notifications.CircleciRegressionWebhook {
-		apiKey := os.Getenv("CIRCLECI_API_KEY")
-		if apiKey != "" {
-			postData := map[string]interface{}{
-				"branch": "master",
-				"parameters": map[string]interface{}{
-					"deployment-regression-tests": true,
-					"framework-tests":false,
-					"tenant-name": instance.Name,
-				},
-			}
-			err := utils.CallCircleCiWebhook("https://circleci.com/api/v2/project/github/Ridecell/Ridecell_qa_automation/pipeline", apiKey, postData)
-			if err != nil {
-				webhookStatus = fmt.Sprintf("%s", err)
-			}
-		} else {
-			webhookStatus = "CIRCLECI_API_KEY environment variable not defined"
-		}
+		webhookStatus = c.circleciClient.TriggerRegressionSuite(instance.Name)
 	}
 
 	// no errors, update notification statuses.
