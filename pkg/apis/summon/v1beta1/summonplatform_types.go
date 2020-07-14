@@ -48,7 +48,7 @@ type NotificationsSpec struct {
 	Pagerdutyteam string `json:"pagerdutyteam,omitempty"`
 	// CircleCi webhook for triggering Regression Test suite on QA tenants - DEVOPS-2348
 	// +optional
-	CircleciRegressionTestWebhook bool `json:"circleciRegressionTestWebhook,omitempty"`
+	CircleciRegressionWebhook bool `json:"circleciRegressionWebhook,omitempty"`
 }
 
 // DatabaseSpec defines database-related configuration.
@@ -311,7 +311,7 @@ type NotificationStatus struct {
 	HwAuxVersion string `json:"hwAuxVersion,omitempty"`
 	// Circleci Regression test webhook status
 	// +optional
-	CircleciRegressionTestWebhook string `json:"circleciRegressionTestWebhook,omitempty"`
+	CircleciRegressionWebhook string `json:"circleciRegressionWebhook,omitempty"`
 }
 
 // MIVStatus is the output information for the Manual Identity Verification system.

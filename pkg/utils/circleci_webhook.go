@@ -46,7 +46,7 @@ func CallCircleCiWebhook(apiUrl string, apiKey string, data map[string]interface
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 201 {
-		return errors.Errorf("CircleCi Regression Test webhook response code HTTP %d", resp.StatusCode)
+		return errors.Errorf("CircleCi Regression webhook response code HTTP %d", resp.StatusCode)
 	}
 	return nil
 }

@@ -211,8 +211,8 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 
 	// Trigger CircleCi Regression Test Webhook, if set true
 	webhookStatus := "Triggered"
-	if instance.Spec.Notifications.CircleciRegressionTestWebhook {
-		apiKey := os.Getenv("CIRCLECI_TEST_API_KEY")
+	if instance.Spec.Notifications.CircleciRegressionWebhook {
+		apiKey := os.Getenv("CIRCLECI_API_KEY")
 		if apiKey != "" {
 			postData := map[string]interface{}{
 				"branch": "master",
@@ -227,7 +227,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 				webhookStatus = fmt.Sprintf("%s", err)
 			}
 		} else {
-			webhookStatus = "CIRCLECI_TEST_API_KEY environment variable not defined"
+			webhookStatus = "CIRCLECI_API_KEY environment variable not defined"
 		}
 	}
 
@@ -240,8 +240,8 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 			instance.Status.Notification.BusinessPortalVersion = instance.Spec.BusinessPortal.Version
 			instance.Status.Notification.HwAuxVersion = instance.Spec.HwAux.Version
 			instance.Status.Notification.TripShareVersion = instance.Spec.TripShare.Version
-			if instance.Spec.Notifications.CircleciRegressionTestWebhook {
-				instance.Status.Notification.CircleciRegressionTestWebhook = webhookStatus
+			if instance.Spec.Notifications.CircleciRegressionWebhook {
+				instance.Status.Notification.CircleciRegressionWebhook = webhookStatus
 			}
 			return nil
 		}}, nil
