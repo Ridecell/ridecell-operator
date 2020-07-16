@@ -115,7 +115,7 @@ func (c *realDeployStatusClient) PostStatus(url string, name string, env string,
 // Interface for Circleci client
 //go:generate moq -out zz_generated.mock_circleciclient_test.go . CircleCiClient
 type CircleCiClient interface {
-	TriggerRegressionSuite(instanceName string) string
+	TriggerRegressionSuite(instanceName string, version string) string
 }
 
 type realCircleCiClient struct{}
