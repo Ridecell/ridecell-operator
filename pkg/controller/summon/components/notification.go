@@ -43,6 +43,7 @@ const CompDispatchStr = "comp-dispatch"
 const CompBusinessPortalStr = "comp-business-portal"
 const CompHwAuxStr = "comp-hw-aux"
 const CompTripShareStr = "comp-trip-share"
+const CompPulseStr = "comp-pulse"
 
 func init() {
 	versionRegex = regexp.MustCompile(`^(\d+)-([0-9a-fA-F]+)-(\S+)$`)
@@ -192,6 +193,12 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
 	}
+	if instance.Spec.Pulse.Version != instance.Status.Notification.PulseVersion {
+		err := c.notifyAndPostStatus(instance, CompPulseStr, instance.Spec.Pulse.Version)
+		if err != nil {
+			errs = fmt.Errorf("%s; %s", errs, err)
+		}
+	}
 	if instance.Spec.HwAux.Version != instance.Status.Notification.HwAuxVersion {
 		err := c.notifyAndPostStatus(instance, CompHwAuxStr, instance.Spec.HwAux.Version)
 		if err != nil {
@@ -215,6 +222,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 			instance.Status.Notification.SummonVersion = instance.Spec.Version
 			instance.Status.Notification.DispatchVersion = instance.Spec.Dispatch.Version
 			instance.Status.Notification.BusinessPortalVersion = instance.Spec.BusinessPortal.Version
+			instance.Status.Notification.PulseVersion = instance.Spec.Pulse.Version
 			instance.Status.Notification.HwAuxVersion = instance.Spec.HwAux.Version
 			instance.Status.Notification.TripShareVersion = instance.Spec.TripShare.Version
 			return nil

@@ -118,6 +118,12 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewService("businessPortal/service.yml.tpl"),
 		summoncomponents.NewIngress("businessPortal/ingress.yml.tpl"),
 
+		// Pulse components.
+		summoncomponents.NewDeployment("pulse/deployment.yml.tpl", nil),
+		summoncomponents.NewPodDisruptionBudget("pulse/podDisruptionBudget.yml.tpl"),
+		summoncomponents.NewService("pulse/service.yml.tpl"),
+		summoncomponents.NewIngress("pulse/ingress.yml.tpl"),
+
 		// Trip Share components.
 		summoncomponents.NewDeployment("tripShare/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("tripShare/podDisruptionBudget.yml.tpl"),
