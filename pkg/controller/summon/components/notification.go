@@ -121,7 +121,7 @@ type CircleCiClient interface {
 type realCircleCiClient struct{}
 
 // Real implementation of CallCircleciAPI
-func (c *realCircleCiClient) TriggerRegressionSuite(instanceName string) string {
+func (c *realCircleCiClient) TriggerRegressionSuite(instanceName string, version string) string {
 	apiKey := os.Getenv("CIRCLECI_API_KEY")
 	if apiKey != "" {
 		postData := map[string]interface{}{
@@ -130,6 +130,7 @@ func (c *realCircleCiClient) TriggerRegressionSuite(instanceName string) string 
 				"deployment-regression-tests": true,
 				"framework-tests":             false,
 				"tenant-name":                 instanceName,
+				"build-tag":                   version,
 			},
 		}
 		err := utils.CallCircleCiWebhook("https://circleci.com/api/v2/project/github/Ridecell/Ridecell_qa_automation/pipeline", apiKey, postData)
@@ -248,7 +249,15 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	// Trigger CircleCi Regression Test Webhook, if set true
 	var webhookStatus string
 	if instance.Spec.Notifications.CircleciRegressionWebhook {
-		webhookStatus = c.circleciClient.TriggerRegressionSuite(instance.Name)
+		// Check if this is a duplicate slipping through due to concurrency.
+		dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+		lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
+		if !ok || lastdupCacheValue != instance.Spec.Version {
+			webhookStatus = c.circleciClient.TriggerRegressionSuite(instance.Name, instance.Spec.Version)
+			if webhookStatus == "Success" {
+				c.dupCache.Store(dupCacheKey, instance.Spec.Version)
+			}
+		}
 	}
 
 	// no errors, update notification statuses.
