@@ -75,4 +75,13 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 			Expect(target.Spec.Rules).To(ContainElement(vanityRule))
 		}
 	})
+
+	It("doesn't creates an ingress object when businessPortal component is disabled", func() {
+		instance.Spec.Replicas.BusinessPortal = intp(0)
+		comp := summoncomponents.NewIngress("businessPortal/ingress.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &k8sv1beta1.Ingress{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-businessportal", Namespace: "summon-dev"}, target)
+		Expect(err).To(HaveOccurred())
+	})
 })

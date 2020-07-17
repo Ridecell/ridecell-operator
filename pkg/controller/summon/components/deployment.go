@@ -77,6 +77,19 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		return components.Result{}, nil
 	}
 
+	// Don't create deployment when associated component is not active
+	if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "dispatch") && *instance.Spec.Replicas.Dispatch == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "hwAux") && *instance.Spec.Replicas.HwAux == 0 {
+		return components.Result{}, nil
+	}
+
 	// TODO 2020-01-06 After cm+secret merges to just secret, support varying the input names in the component config so comp-dispatch and comp-trip-share can get just the hash of their config.
 	rawAppSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)

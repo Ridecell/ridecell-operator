@@ -47,8 +47,18 @@ func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	// Don't create service when redis endpoint is provided
+	// Don't create service when associated component is not active
 	if strings.HasPrefix(comp.templatePath, "redis") && instance.Spec.MigrationOverrides.RedisHostname != "" {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "dispatch") && *instance.Spec.Replicas.Dispatch == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "hwAux") && *instance.Spec.Replicas.HwAux == 0 {
 		return components.Result{}, nil
 	}
 

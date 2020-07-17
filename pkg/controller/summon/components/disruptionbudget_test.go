@@ -180,4 +180,13 @@ var _ = Describe("servicemonitor Component", func() {
 		Expect(disruptionBudget.Spec.MaxUnavailable.IntValue()).To(Equal(0))
 
 	})
+
+	It("doesn't create a businessPortal pod disruption budget", func() {
+		instance.Spec.Replicas.BusinessPortal = intp(0)
+		comp = summoncomponents.NewPodDisruptionBudget("businessPortal/podDisruptionBudget.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		disruptionBudget := &policyv1beta1.PodDisruptionBudget{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-businessPortal", Namespace: instance.Namespace}, disruptionBudget)
+		Expect(err).To(HaveOccurred())
+	})
 })
