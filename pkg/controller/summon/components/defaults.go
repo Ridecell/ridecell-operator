@@ -244,6 +244,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defBoolVal("HWAUX_ENABLED", instance.Spec.Replicas.HwAux != nil && *instance.Spec.Replicas.HwAux > 0)
 	defBoolVal("BUSINESSPORTAL_ENABLED", instance.Spec.Replicas.BusinessPortal != nil && *instance.Spec.Replicas.BusinessPortal > 0)
 	defBoolVal("TRIPSHARE_ENABLED", instance.Spec.Replicas.TripShare != nil && *instance.Spec.Replicas.TripShare > 0)
+	defBoolVal("OPERATIONS_ENABLED", instance.Spec.Replicas.Pulse != nil && *instance.Spec.Replicas.Pulse > 0)
 
 	// Translate our aws region into a usable region
 	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
@@ -322,6 +323,9 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	if replicas.Dispatch == nil {
 		replicas.Dispatch = defaultsForEnv(1, 1, 2, 2)
 	}
+	if replicas.Pulse == nil {
+		replicas.Pulse = defaultsForEnv(1, 1, 2, 2)
+	}
 	if replicas.BusinessPortal == nil {
 		replicas.BusinessPortal = defaultsForEnv(1, 1, 2, 2)
 	}
@@ -335,6 +339,9 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	// If no component version is set, override replicas to 0.
 	if instance.Spec.Dispatch.Version == "" {
 		replicas.Dispatch = intp(0)
+	}
+	if instance.Spec.Pulse.Version == "" {
+		replicas.Pulse = intp(0)
 	}
 	if instance.Spec.BusinessPortal.Version == "" {
 		replicas.BusinessPortal = intp(0)

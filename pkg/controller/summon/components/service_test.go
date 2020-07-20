@@ -48,6 +48,15 @@ var _ = Describe("SummonPlatform service Component", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
+	It("doesn't create an service object when businessPortal is disabled", func() {
+		instance.Spec.Replicas.BusinessPortal = intp(0)
+		comp := summoncomponents.NewService("businessPortal/ingress.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &corev1.Service{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-businessportal", Namespace: "summon-dev"}, target)
+		Expect(err).To(HaveOccurred())
+	})
+
 	It("creates an service object using static template", func() {
 		comp := summoncomponents.NewService("static/service.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))

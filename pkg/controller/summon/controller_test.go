@@ -216,6 +216,8 @@ var _ = Describe("Summon controller", func() {
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
 		c.EventuallyGet(helpers.Name("foo-businessportal"), deploy)
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
+		c.EventuallyGet(helpers.Name("foo-pulse"), deploy)
+		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
 		c.EventuallyGet(helpers.Name("foo-tripshare"), deploy)
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(0)))
 		c.EventuallyGet(helpers.Name("foo-hwaux"), deploy)

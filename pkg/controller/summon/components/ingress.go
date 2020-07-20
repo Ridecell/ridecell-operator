@@ -19,7 +19,9 @@ package components
 import (
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
@@ -42,6 +44,17 @@ func (_ *ingressComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// Don't create ingress when associated component is not active (businessPortal, pulse, tripshare)
+	if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
+		return components.Result{}, nil
+	}
+
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*extv1beta1.Ingress)
 		existing := existingObj.(*extv1beta1.Ingress)

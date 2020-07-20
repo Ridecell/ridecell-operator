@@ -21,7 +21,9 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
+	"strings"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -47,8 +49,22 @@ func (_ *podDisruptionBudgetComponent) IsReconcilable(ctx *components.ComponentC
 }
 
 func (comp *podDisruptionBudgetComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	requeue := false
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
+	// Don't create object when associated component is not active
+	if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "dispatch") && *instance.Spec.Replicas.Dispatch == 0 {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "hwAux") && *instance.Spec.Replicas.HwAux == 0 {
+		return components.Result{}, nil
+	}
+
+	requeue := false
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*policyv1beta1.PodDisruptionBudget)
 		existing := existingObj.(*policyv1beta1.PodDisruptionBudget)

@@ -142,6 +142,9 @@ type ReplicasSpec struct {
 	// Number of hw-aux pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no hwAux.version is set.
 	// +optional
 	HwAux *int32 `json:"hwAux,omitempty"`
+	// Number of pulse pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no pulse.version is set.
+	// +optional
+	Pulse *int32 `json:"pulse,omitempty"`
 }
 
 // MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
@@ -182,6 +185,12 @@ type CompTripShareSpec struct {
 // CompHwAuxSpec defines settings for comp-hw-aux.
 type CompHwAuxSpec struct {
 	// Comp-hw-aux image version to deploy.
+	Version string `json:"version"`
+}
+
+// CompPulseSpec defines settings for comp-pulse.
+type CompPulseSpec struct {
+	// Comp-pulse image version to deploy.
 	Version string `json:"version"`
 }
 
@@ -286,6 +295,9 @@ type SummonPlatformSpec struct {
 	// Settings for comp-hw-aux.
 	// +optional
 	HwAux CompHwAuxSpec `json:"hwAux,omitempty"`
+	// Settings for comp-pulse.
+	// +optional
+	Pulse CompPulseSpec `json:"pulse,omitempty"`
 	// Feature flag to disable the CORE-1540 fixup in case it goes AWOL.
 	// To be removed when support for the 1540 fixup is removed in summon.
 	// +optional
@@ -300,6 +312,9 @@ type NotificationStatus struct {
 	// The last version notification posted for dispatch deploy.
 	// +optional
 	DispatchVersion string `json:"dispatchVersion,omitempty"`
+	// The last version notification posted for pulse deploy.
+	// +optional
+	PulseVersion string `json:"pulseVersion,omitempty"`
 	// The last version notification posted for businessPortal deploy.
 	// +optional
 	BusinessPortalVersion string `json:"businessPortalVersion,omitempty"`
