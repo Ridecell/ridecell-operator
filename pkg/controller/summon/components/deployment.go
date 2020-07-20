@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -75,19 +74,6 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 
 	// If we're not in deploying state do nothing and exit early.
 	if instance.Status.Status != summonv1beta1.StatusDeploying {
-		return components.Result{}, nil
-	}
-
-	// Don't create deployment when associated component is not active
-	if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
-		return components.Result{}, nil
-	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
-		return components.Result{}, nil
-	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
-		return components.Result{}, nil
-	} else if strings.HasPrefix(comp.templatePath, "dispatch") && *instance.Spec.Replicas.Dispatch == 0 {
-		return components.Result{}, nil
-	} else if strings.HasPrefix(comp.templatePath, "hwAux") && *instance.Spec.Replicas.HwAux == 0 {
 		return components.Result{}, nil
 	}
 

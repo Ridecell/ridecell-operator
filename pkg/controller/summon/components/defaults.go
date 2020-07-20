@@ -244,6 +244,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defBoolVal("HWAUX_ENABLED", instance.Spec.Replicas.HwAux != nil && *instance.Spec.Replicas.HwAux > 0)
 	defBoolVal("BUSINESSPORTAL_ENABLED", instance.Spec.Replicas.BusinessPortal != nil && *instance.Spec.Replicas.BusinessPortal > 0)
 	defBoolVal("TRIPSHARE_ENABLED", instance.Spec.Replicas.TripShare != nil && *instance.Spec.Replicas.TripShare > 0)
+	defBoolVal("OPERATIONS_ENABLED", instance.Spec.Replicas.Pulse != nil && *instance.Spec.Replicas.Pulse > 0)
 
 	// Translate our aws region into a usable region
 	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]

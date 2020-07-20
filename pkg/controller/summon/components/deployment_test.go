@@ -433,14 +433,5 @@ var _ = Describe("deployment Component", func() {
 			Expect(deployment.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
 			Expect(deployment.Spec.Template.ObjectMeta.Labels["metrics-enabled"]).To(Equal("true"))
 		})
-
-		It("doesn't create businessPortal deployment when businessPortal is disabled", func() {
-			instance.Spec.Replicas.BusinessPortal = intp(0)
-			comp := summoncomponents.NewDeployment("businessPortal/deployment.yml.tpl", nil)
-			Expect(comp).To(ReconcileContext(ctx))
-			deployment := &appsv1.Deployment{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-businessportal", Namespace: instance.Namespace}, deployment)
-			Expect(err).To(HaveOccurred())
-		})
 	})
 })
