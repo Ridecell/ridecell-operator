@@ -33,6 +33,7 @@ import (
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
+	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
 
 var versionRegex *regexp.Regexp
@@ -111,10 +112,42 @@ func (c *realDeployStatusClient) PostStatus(url string, name string, env string,
 	return nil
 }
 
+// Interface for Circleci client
+//go:generate moq -out zz_generated.mock_circleciclient_test.go . CircleCiClient
+type CircleCiClient interface {
+	TriggerRegressionSuite(instanceName string, version string) string
+}
+
+type realCircleCiClient struct{}
+
+// Real implementation of CallCircleciAPI
+func (c *realCircleCiClient) TriggerRegressionSuite(instanceName string, version string) string {
+	apiKey := os.Getenv("CIRCLECI_API_KEY")
+	if apiKey != "" {
+		postData := map[string]interface{}{
+			"branch": "master",
+			"parameters": map[string]interface{}{
+				"deployment-regression-tests": true,
+				"framework-tests":             false,
+				"tenant-name":                 instanceName,
+				"build-tag":                   version,
+			},
+		}
+		err := utils.CallCircleCiWebhook("https://circleci.com/api/v2/project/github/Ridecell/Ridecell_qa_automation/pipeline", apiKey, postData)
+		if err != nil {
+			return fmt.Sprintf("%s", err)
+		}
+	} else {
+		return "CIRCLECI_API_KEY environment variable not defined"
+	}
+	return "Success"
+}
+
 type notificationComponent struct {
 	slackClient        SlackClient
 	deployStatusClient DeployStatusClient
 	dupCache           sync.Map
+	circleciClient     CircleCiClient
 }
 
 func NewNotification() *notificationComponent {
@@ -127,6 +160,7 @@ func NewNotification() *notificationComponent {
 	return &notificationComponent{
 		slackClient:        &realSlackClient{client: slackClient},
 		deployStatusClient: &realDeployStatusClient{},
+		circleciClient:     &realCircleCiClient{},
 	}
 }
 
@@ -136,6 +170,10 @@ func (c *notificationComponent) InjectSlackClient(client SlackClient) {
 
 func (c *notificationComponent) InjectDeployStatusClient(client DeployStatusClient) {
 	c.deployStatusClient = client
+}
+
+func (c *notificationComponent) InjectCircleCiClient(client CircleCiClient) {
+	c.circleciClient = client
 }
 
 func (_ *notificationComponent) WatchTypes() []runtime.Object {
@@ -208,6 +246,20 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		return components.Result{}, errs
 	}
 
+	// Trigger CircleCi Regression Test Webhook, if set true
+	var webhookStatus string
+	if instance.Spec.Notifications.CircleciRegressionWebhook {
+		// Check if this is a duplicate slipping through due to concurrency.
+		dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+		lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
+		if !ok || lastdupCacheValue != instance.Spec.Version {
+			webhookStatus = c.circleciClient.TriggerRegressionSuite(instance.Name, instance.Spec.Version)
+			if webhookStatus == "Success" {
+				c.dupCache.Store(dupCacheKey, instance.Spec.Version)
+			}
+		}
+	}
+
 	// no errors, update notification statuses.
 	return components.Result{
 		StatusModifier: func(obj runtime.Object) error {
@@ -217,6 +269,9 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 			instance.Status.Notification.BusinessPortalVersion = instance.Spec.BusinessPortal.Version
 			instance.Status.Notification.HwAuxVersion = instance.Spec.HwAux.Version
 			instance.Status.Notification.TripShareVersion = instance.Spec.TripShare.Version
+			if instance.Spec.Notifications.CircleciRegressionWebhook {
+				instance.Status.Notification.CircleciRegressionWebhook = webhookStatus
+			}
 			return nil
 		}}, nil
 }
