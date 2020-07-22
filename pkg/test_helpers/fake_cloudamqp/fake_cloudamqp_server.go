@@ -58,11 +58,11 @@ func firewall(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "GET" {
 		if IpAdded {
-			rules = append(rules, CloudamqpFirewallRule{
+			rules = []CloudamqpFirewallRule{
 				IP:          "1.2.3.4/32",
 				Services:    []string{"AMQP", "AMQPS"},
 				Description: "K8s Cluster Node IP",
-			})
+			}
 		}
 		responseBytes, err := json.Marshal(rules)
 		if err != nil {
