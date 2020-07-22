@@ -57,7 +57,7 @@ func RequestLogger(targetMux http.Handler) http.Handler {
 func firewall(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "GET" {
-		if ipAdded {
+		if IpAdded {
 			rules = append(rules, CloudamqpFirewallRule{
 				IP:          "1.2.3.4/32",
 				Services:    []string{"AMQP", "AMQPS"},
@@ -75,7 +75,7 @@ func firewall(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 	} else if r.Method == "POST" {
-		postHit = true
+		PostHit = true
 		err := json.NewDecoder(r.Body).Decode(&rules)
 		if err != nil {
 			w.WriteHeader(400)
