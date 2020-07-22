@@ -52,4 +52,12 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 		Expect(fake_cloudamqp.IPList).ToNot(ContainElement("1.2.3.4/32"))
 	})
 
+	It("doesn't put if rule already present", func() {
+		os.Setenv("CLOUDAMQP_FIREWALL", "true")
+		fake_cloudamqp.IpAdded = true
+		fake_cloudamqp.PostHit = false
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(fake_cloudamqp.PostHit).To(BeFalse())
+		Expect(fake_cloudamqp.IPList).To(ContainElement("1.2.3.4/32"))
+	})
 })

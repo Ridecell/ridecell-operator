@@ -105,32 +105,42 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 			nodeIP = ""
 		}
 	}
-	glog.Infof("CLOUDAMQP_FIREWALL: Whitelisted IPs: %s", ipList)
-
-	// apply the IP rules to CLOUDAMQP FIREWALL
-	err := utils.PutCloudamqpFirewallRules(apiUrl, apiKey, desiredRules)
-	if err != nil {
-		glog.Errorf("CLOUDAMQP_FIREWALL: failed to put firewall rules: %s ", err)
-		return components.Result{RequeueAfter: time.Second * 15}, nil
-	}
-
-	// Wait for rules to take effect
-	time.Sleep(time.Second * 15)
-
-	// Verify the whitelisted IPs by GET request
+	// Get firewall rules and check if it needs to be updated
 	rules, err := utils.GetCloudamqpFirewallRules(apiUrl, apiKey)
 	if err != nil {
 		glog.Errorf("CLOUDAMQP_FIREWALL: failed to get firewall rules: %s ", err)
 		return components.Result{RequeueAfter: time.Second * 15}, nil
 	}
 
-	// DeepEqual is a heavy method, so first check if array length is equal and then call DeepEqual
-	if len(desiredRules) == len(rules) && reflect.DeepEqual(rules, desiredRules) {
-		glog.Infof("CLOUDAMQP_FIREWALL: firewall rules updated")
+	var putFlag bool
+	var found bool
+	if len(desiredRules) == len(rules) {
+		for _, dRule := range desiredRules {
+			found = false
+			for _, rule := range rules {
+				if dRule.IP == rule.IP {
+					found = true
+					break
+				}
+			}
+			if !found {
+				putFlag = true
+				break
+			}
+		}
 	} else {
-		glog.Errorf("CLOUDAMQP_FIREWALL: Not all IPs are whitelisted, retry in 30 seconds")
-		return components.Result{RequeueAfter: time.Second * 30}, nil
+		putFlag = true
 	}
 
+	if putFlag {
+		// apply the IP rules to CLOUDAMQP FIREWALL
+		glog.Infof("CLOUDAMQP_FIREWALL: Whitelisting node IPs: %s", ipList)
+		err := utils.PutCloudamqpFirewallRules(apiUrl, apiKey, desiredRules)
+		if err != nil {
+			glog.Errorf("CLOUDAMQP_FIREWALL: failed to put firewall rules: %s ", err)
+			return components.Result{RequeueAfter: time.Second * 15}, nil
+		}
+		return components.Result{RequeueAfter: time.Second * 30}, nil
+	}
 	return components.Result{}, nil
 }
