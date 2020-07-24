@@ -112,8 +112,8 @@ func (comp *cloudamqpFirewallRuleComponent) Reconcile(ctx *components.ComponentC
 	}
 
 	var putFlag bool
-	var found bool
 	if len(desiredRules) == len(rules) {
+		var found bool
 		for _, dRule := range desiredRules {
 			found = false
 			for _, rule := range rules {
