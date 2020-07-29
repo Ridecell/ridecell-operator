@@ -262,9 +262,8 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		gatewayEnv = "master"
 	}
 
-	if instance.Spec.Environment != "prod" {
-		defBoolVal("ENABLE_JSON_LOGGING", true)
-	}
+	// Set JSON Logging globally if not already set.
+	defBoolVal("ENABLE_JSON_LOGGING", true)
 
 	// Set debug to false globally if not already set.
 	defBoolVal("DEBUG", false)
