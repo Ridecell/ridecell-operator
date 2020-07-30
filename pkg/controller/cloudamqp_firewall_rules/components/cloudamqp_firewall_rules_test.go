@@ -34,11 +34,11 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	os.Setenv("CLOUDAMQP_API_KEY", "1234567890")
 
 	BeforeEach(func() {
-		fake_cloudamqp.Run()
 		comp = cfrcomponents.NewCloudamqpFirewallRule()
 	})
 
 	It("puts firewall rules to cloudamqp", func() {
+		fake_cloudamqp.Run("9097")
 		os.Setenv("CLOUDAMQP_FIREWALL", "true")
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(fake_cloudamqp.IPList).ToNot(ContainElement("0.0.0.0/0"))
@@ -46,6 +46,7 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	})
 
 	It("puts default firewall rule if CLOUDAMQP_FIREWALL is false", func() {
+		fake_cloudamqp.Run("9098")
 		os.Setenv("CLOUDAMQP_FIREWALL", "false")
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(fake_cloudamqp.IPList).To(ContainElement("0.0.0.0/0"))
@@ -53,6 +54,7 @@ var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	})
 
 	It("doesn't put if rule already present", func() {
+		fake_cloudamqp.Run("9099")
 		os.Setenv("CLOUDAMQP_FIREWALL", "true")
 		fake_cloudamqp.IpAdded = true
 		fake_cloudamqp.PostHit = false
