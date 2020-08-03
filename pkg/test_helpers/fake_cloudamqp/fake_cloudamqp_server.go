@@ -90,11 +90,11 @@ func firewall(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(201)
 	}
 }
-func Run(port string) {
+func Run() {
 	log.SetOutput(os.Stdout)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/security/firewall", firewall)
 	go func() {
-		log.Println(http.ListenAndServe(":"+port, RequestLogger(mux)))
+		log.Println(http.ListenAndServe(":9099", RequestLogger(mux)))
 	}()
 }

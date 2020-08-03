@@ -30,9 +30,9 @@ import (
 var _ = Describe("CLOUDAMQP Firewall Defaults Component", func() {
 	var comp components.Component
 	os.Setenv("CLOUDAMQP_TEST", "true")
-	os.Setenv("CLOUDAMQP_API_URL", "http://localhost:9097/api/security/firewall")
+	os.Setenv("CLOUDAMQP_API_URL", "http://localhost:9099/api/security/firewall")
 	os.Setenv("CLOUDAMQP_API_KEY", "1234567890")
-	fake_cloudamqp.Run("9099")
+	fake_cloudamqp.Run()
 
 	BeforeEach(func() {
 		comp = cfrcomponents.NewCloudamqpFirewallRule()
