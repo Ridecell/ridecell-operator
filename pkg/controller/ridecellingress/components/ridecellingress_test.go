@@ -89,7 +89,7 @@ var _ = Describe("RidecellIngress Component", func() {
 		// Check for custom annotation
 		Expect(target.Annotations).To(HaveKeyWithValue("abc.io/ping", "pong"))
 		// below annotation should be added automatically with default value as its not present in instance definition
-		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
+		Expect(target.Annotations).To(HaveKeyWithValue("cert-manager.io/cluster-issuer", "letsencrypt-prod"))
 	})
 
 	It("creates an RidecellIngress object without annotations", func() {
@@ -106,7 +106,7 @@ var _ = Describe("RidecellIngress Component", func() {
 		// Check for annotations and its values on target
 		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/ingress.class", "traefik"))
 		Expect(target.Annotations).To(HaveKeyWithValue("kubernetes.io/tls-acme", "true"))
-		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
+		Expect(target.Annotations).To(HaveKeyWithValue("cert-manager.io/cluster-issuer", "letsencrypt-prod"))
 	})
 
 	It("creates an RidecellIngress object with no required labels", func() {

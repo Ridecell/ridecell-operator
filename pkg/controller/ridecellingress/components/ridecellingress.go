@@ -62,8 +62,8 @@ func (comp *ridecellingressComponent) Reconcile(ctx *components.ComponentContext
 	if status, ok := instance.Annotations["kubernetes.io/tls-acme"]; !ok || len(status) == 0 {
 		instance.Annotations["kubernetes.io/tls-acme"] = ingressv1beta1.TLS_ACME
 	}
-	if issuer, ok := instance.Annotations["certmanager.k8s.io/cluster-issuer"]; !ok || len(issuer) == 0 {
-		instance.Annotations["certmanager.k8s.io/cluster-issuer"] = ingressv1beta1.ClusterIssuer
+	if issuer, ok := instance.Annotations["cert-manager.io/cluster-issuer"]; !ok || len(issuer) == 0 {
+		instance.Annotations["cert-manager.io/cluster-issuer"] = ingressv1beta1.ClusterIssuer
 	}
 
 	//Iterating over each Rule to check hostnames

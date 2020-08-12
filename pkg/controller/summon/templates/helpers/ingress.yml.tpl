@@ -14,7 +14,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: traefik
     kubernetes.io/tls-acme: "true"
-    certmanager.k8s.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 {{ block "extraAnnotations" . }}{{ end }}
 spec:
   rules:
