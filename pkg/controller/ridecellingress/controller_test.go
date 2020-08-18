@@ -93,7 +93,7 @@ var _ = Describe("ridecellingress controller", func() {
 		// Check for custom annotation
 		Expect(target.Annotations).To(HaveKeyWithValue("abc.io/ping", "pong"))
 		// below annotation should be added automatically with default value as its not present in instance definition
-		Expect(target.Annotations).To(HaveKeyWithValue("certmanager.k8s.io/cluster-issuer", "letsencrypt-prod"))
+		Expect(target.Annotations).To(HaveKeyWithValue("cert-manager.io/cluster-issuer", "letsencrypt-prod"))
 	})
 
 	It("Creates RidecellIngress kind with invalid hostname", func() {
