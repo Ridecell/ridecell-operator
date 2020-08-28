@@ -138,7 +138,7 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		}
 	} else {
 		if helpers.ContainsFinalizer(logruleFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
 				contents, err := client.GetFolder(serviceFolderid)
 				if err != nil {
 					return components.Result{}, errors.Wrapf(err, "Failed to get folder at the time Finalizer")

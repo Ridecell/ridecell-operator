@@ -37,6 +37,7 @@ var _ = Describe("Monitor Notification Component", func() {
 	fake_pagerduty.Run()
 	BeforeEach(func() {
 		os.Setenv("PG_MOCK_URL", "http://localhost:8082")
+		os.Setenv("ALERTMANAGER_NAME", "alertmanager.bar.ridecell.io")
 	})
 
 	It("Is reconcilable?", func() {
@@ -57,6 +58,8 @@ var _ = Describe("Monitor Notification Component", func() {
 		err = yaml.Unmarshal([]byte(config.Spec.Receivers[0]), receiver)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(receiver.SlackConfigs[0].Channel).To(Equal("#test-alert"))
+		Expect(receiver.SlackConfigs[0].Username).To(Equal("bar.ridecell.io"))
+		Expect(receiver.SlackConfigs[0].TitleLink).To(Equal("https://alertmanager.bar.ridecell.io/#/alerts"))
 		// Check pd receiver
 		err = yaml.Unmarshal([]byte(config.Spec.Receivers[1]), receiver)
 		Expect(err).ToNot(HaveOccurred())
