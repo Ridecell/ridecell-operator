@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
@@ -84,7 +85,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		}
 	} else {
 		if helpers.ContainsFinalizer(notificationFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
 				//remove alertmanagrconfig
 				amc := &monitoringv1beta1.AlertManagerConfig{
 					ObjectMeta: metav1.ObjectMeta{
@@ -121,6 +122,8 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 					VSendResolved: true,
 				},
 				Channel:   channel,
+				Username:  strings.Replace(os.Getenv("ALERTMANAGER_NAME"), "alertmanager.", "", -1),
+				TitleLink: fmt.Sprintf("https://%s/#/alerts", os.Getenv("ALERTMANAGER_NAME")),
 				Title:     `{{ template "slack.ridecell.title" . }}`,
 				IconEmoji: `{{ template "slack.ridecell.icon_emoji" . }}`,
 				Color:     `{{ template "slack.ridecell.color" . }}`,

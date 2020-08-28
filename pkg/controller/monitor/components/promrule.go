@@ -20,7 +20,6 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"os"
 
 	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
@@ -66,7 +65,7 @@ func (comp *promruleComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	} else {
 		if helpers.ContainsFinalizer(promruleFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
 				promrule := &pomonitoringv1.PrometheusRule{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      instance.Name,
