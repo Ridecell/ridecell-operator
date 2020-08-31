@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	. "github.com/Benjamintf1/unmarshalledmatchers"
@@ -43,7 +44,7 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 		comp := summoncomponents.NewIAMRole("aws/iamrole.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &awsv1beta1.IAMRole{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("summon-platform-%s", instance.Name), Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -53,7 +54,7 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 			comp := summoncomponents.NewIAMRole("aws/iamrole.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.IAMRole{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("summon-platform-%s", instance.Name), Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.InlinePolicies["allow_s3_optimus"]).To(ContainOrderedJSON(`{"Statement": [{"Resource": "arn:aws:s3:::asdf/*"}]}`))
 		})
@@ -63,7 +64,7 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 			comp := summoncomponents.NewIAMRole("aws/iamrole.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.IAMRole{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("summon-platform-%s", instance.Name), Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.InlinePolicies).ToNot(ContainElement("allow_s3_optimus"))
 		})
@@ -74,7 +75,7 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 			comp := summoncomponents.NewIAMRole("aws/iamrole.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.IAMRole{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("summon-platform-%s", instance.Name), Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.InlinePolicies["allow_s3_miv"]).To(ContainOrderedJSON(`{"Statement": [{"Resource": "arn:aws:s3:::ridecell-foo-dev-miv"}]}`))
 		})
@@ -84,7 +85,7 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 			comp := summoncomponents.NewIAMRole("aws/iamrole.yml.tpl")
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &awsv1beta1.IAMRole{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("summon-platform-%s", instance.Name), Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.InlinePolicies["allow_s3_miv"]).To(ContainOrderedJSON(`{"Statement": [{"Resource": "arn:aws:s3:::asdf"}]}`))
 		})
