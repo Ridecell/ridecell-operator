@@ -30,6 +30,7 @@ spec:
       annotations:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
+        iam.amazonaws.com/role: summon-platform-{{ .Instance.Name }}
     spec:
       affinity:
         podAntiAffinity:

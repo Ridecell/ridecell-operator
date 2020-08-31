@@ -277,6 +277,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.Config["ENABLE_NEW_RELIC"] = summonv1beta1.ConfigValue{Bool: &val}
 	}
 
+	if instance.Spec.UseIamRole == nil {
+		instance.Spec.UseIamRole = false
+	}
+
 	return components.Result{}, nil
 }
 

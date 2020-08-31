@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2020 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,39 +29,36 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-type iamUserComponent struct {
+type iamRoleComponent struct {
 	templatePath string
 }
 
-func NewIAMUser(templatePath string) *iamUserComponent {
-	return &iamUserComponent{templatePath: templatePath}
+func NewIAMRole(templatePath string) *iamRoleComponent {
+	return &iamRoleComponent{templatePath: templatePath}
 }
 
-func (comp *iamUserComponent) WatchTypes() []runtime.Object {
+func (comp *iamRoleComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&awsv1beta1.IAMUser{},
+		&awsv1beta1.IAMRole{},
 	}
 }
 
-func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
+func (_ *iamRoleComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Check on the UseIAM Role flag
-	if instance.Spec.UseIamRole {
-		return false
-	}
-	return true
+	return instance.Spec.UseIamRole
 }
 
-func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	permissionsBoundaryArn := os.Getenv("PERMISSIONS_BOUNDARY_ARN")
 	if permissionsBoundaryArn == "" {
-		return components.Result{}, errors.Errorf("iamuser: permissions_boundary_arn is empty")
+		return components.Result{}, errors.Errorf("iamrole: permissions_boundary_arn is empty")
 	}
 	match := regexp.MustCompile(`:([0-9]{6,}):`).FindStringSubmatch(permissionsBoundaryArn)
 	if match == nil {
-		return components.Result{}, errors.Errorf("iamuser: unable to get account id from boundary arn")
+		return components.Result{}, errors.Errorf("iamrole: unable to get account id from boundary arn")
 	}
 	accountID := match[1]
 
@@ -76,8 +73,8 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*awsv1beta1.IAMUser)
-		existing := existingObj.(*awsv1beta1.IAMUser)
+		goal := goalObj.(*awsv1beta1.IAMRole)
+		existing := existingObj.(*awsv1beta1.IAMRole)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil
