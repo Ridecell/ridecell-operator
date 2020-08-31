@@ -36,6 +36,7 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 	BeforeEach(func() {
 		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn::123456789:test*")
 		instance.Spec.SQSQueue = "test-sqs-queue"
+		instance.Spec.UseIamRole = true
 	})
 
 	It("creates an IAMRole object", func() {
