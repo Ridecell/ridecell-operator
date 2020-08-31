@@ -46,10 +46,7 @@ func (comp *iamUserComponent) WatchTypes() []runtime.Object {
 func (_ *iamUserComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Check on the UseIAM Role flag
-	if instance.Spec.UseIamRole {
-		return false
-	}
-	return true
+	return !(instance.Spec.UseIamRole)
 }
 
 func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
