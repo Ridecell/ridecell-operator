@@ -4,7 +4,7 @@ metadata:
  name: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
  namespace: {{ .Instance.Namespace }}
 spec:
- roleName: summon-platform-{{ .Instance.Name }}
+ roleName: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
  inlinePolicies:
    allow_s3: |
             {
