@@ -1,7 +1,7 @@
 kind: IAMRole
 apiVersion: aws.ridecell.io/v1beta1
 metadata:
- name: summon-platform-{{ .Instance.Name }}
+ name: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
  namespace: {{ .Instance.Namespace }}
 spec:
  roleName: summon-platform-{{ .Instance.Name }}
