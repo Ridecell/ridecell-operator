@@ -141,7 +141,7 @@ var _ = Describe("iamrole controller", func() {
 
 	It("runs a basic reconcile", func() {
 		c := helpers.TestClient
-		iamRole.Spec.RoleName = fmt.Sprintf("%s-basicrole-test-summon-platform", randOwnerPrefix)
+		iamRole.Spec.RoleName = fmt.Sprintf("summon-platform-%s-basicrole-test", randOwnerPrefix)
 		c.Create(iamRole)
 
 		fetchIAMRole := &awsv1beta1.IAMRole{}
@@ -159,7 +159,7 @@ var _ = Describe("iamrole controller", func() {
 
 	It("deletes existing role policies not in spec", func() {
 		c := helpers.TestClient
-		rolename := fmt.Sprintf("%s-policynotinspec-test-summon-platform", randOwnerPrefix)
+		rolename := fmt.Sprintf("summon-platform-%s-policynotinspec-test", randOwnerPrefix)
 		_, err := iamsvc.CreateRole(&iam.CreateRoleInput{
 			RoleName:                 aws.String(rolename),
 			PermissionsBoundary:      aws.String(iamRole.Spec.PermissionsBoundaryArn),
@@ -207,7 +207,7 @@ var _ = Describe("iamrole controller", func() {
 
 	It("fails to create role with bad inlinepolicies json", func() {
 		c := helpers.TestClient
-		rolename := fmt.Sprintf("%s-badpolicyjson-test-summon-platform", randOwnerPrefix)
+		rolename := fmt.Sprintf("summon-platform-%s-badpolicyjson-test", randOwnerPrefix)
 		iamRole.Spec.RoleName = rolename
 		iamRole.Spec.InlinePolicies["allow_s3"] = "invalid"
 		iamRole.Spec.InlinePolicies["allow_sqs"] = "invalid"
@@ -222,7 +222,7 @@ var _ = Describe("iamrole controller", func() {
 
 	It("ensures that object isn't deleted prematurely by finalizer", func() {
 		c := helpers.TestClient
-		rolename := fmt.Sprintf("%s-prematuredelete-test-summon-platform", randOwnerPrefix)
+		rolename := fmt.Sprintf("summon-platform-%s-prematuredelete-test", randOwnerPrefix)
 		iamRole.Spec.RoleName = rolename
 		c.Create(iamRole)
 
@@ -243,14 +243,14 @@ var _ = Describe("iamrole controller", func() {
 
 	It("uses templating functionality on every possible field", func() {
 		c := helpers.TestClient
-		iamRole.Spec.RoleName = fmt.Sprintf("%s-templating-test-{{ .Region }}-summon-platform", randOwnerPrefix)
+		iamRole.Spec.RoleName = fmt.Sprintf("summon-platform-%s-templating-test-{{ .Region }}", randOwnerPrefix)
 		iamRole.Spec.AssumeRolePolicyDocument = fmt.Sprintf(`{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam::%s:role/iamrole-testing-role-{{ .Region }}"},"Action": "sts:AssumeRole"}]}`, os.Getenv("AWS_TESTING_ACCOUNT_ID"))
 		iamRole.Spec.InlinePolicies = map[string]string{
 			"test_tmpl": `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn:aws:s3:::random-test-bucket-{{ .Region }}"}}`,
 		}
 		c.Create(iamRole)
 
-		expectedRoleName = fmt.Sprintf("%s-templating-test-us-west-1-summon-platform", randOwnerPrefix)
+		expectedRoleName = fmt.Sprintf("summon-platform-%s-templating-test-us-west-1", randOwnerPrefix)
 		expectedAssumePolicy := fmt.Sprintf(`{"Version": "2012-10-17", "Statement": [{"Effect": "Allow","Principal": {"AWS": "arn:aws:iam::%s:role/iamrole-testing-role-us-west-1"},"Action": "sts:AssumeRole"}]}`, os.Getenv("AWS_TESTING_ACCOUNT_ID"))
 		expectedInlinePolicy := `{"Version": "2012-10-17", "Statement": {"Effect": "Deny", "Action": "s3:*", "Resource": "arn:aws:s3:::random-test-bucket-us-west-1"}}`
 
