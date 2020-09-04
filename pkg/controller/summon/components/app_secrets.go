@@ -187,8 +187,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
 	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
 	if instance.Spec.UseIamRole {
-		appSecretsData["AWS_ACCESS_KEY_ID"] = "None"
-		appSecretsData["AWS_SECRET_ACCESS_KEY"] = "None"
+		appSecretsData["AWS_ACCESS_KEY_ID"] = ""
+		appSecretsData["AWS_SECRET_ACCESS_KEY"] = ""
 	}
 
 	// Insert input secret overrides in the correct order.
