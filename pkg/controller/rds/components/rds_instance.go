@@ -181,14 +181,17 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	if err != nil {
 		return components.Result{}, errors.Wrap(err, "rds: failed to list database tags")
 	}
-	var foundOperatorTag bool
-	var foundTenantTag bool
+
+	var foundOperatorTag, foundTenantTag, foundK8sClusterTag bool
 	for _, tag := range listTagsForResourceOutput.TagList {
 		if aws.StringValue(tag.Key) == "Ridecell-Operator" && aws.StringValue(tag.Value) == "true" {
 			foundOperatorTag = true
 		}
 		if aws.StringValue(tag.Key) == "tenant" && aws.StringValue(tag.Value) == instance.Name {
 			foundTenantTag = true
+		}
+		if aws.StringValue(tag.Key) == "KubernetesCluster" && aws.StringValue(tag.Value) == os.Getenv("AWS_SUBNET_GROUP_NAME") {
+			foundK8sClusterTag = true
 		}
 	}
 
@@ -198,6 +201,9 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 	}
 	if !foundTenantTag {
 		tagsToAdd = append(tagsToAdd, &rds.Tag{Key: aws.String("tentant"), Value: aws.String(instance.Name)})
+	}
+	if !foundK8sClusterTag {
+		tagsToAdd = append(tagsToAdd, &rds.Tag{Key: aws.String("KubernetesCluster"), Value: aws.String(os.Getenv("AWS_SUBNET_GROUP_NAME"))})
 	}
 	if len(tagsToAdd) > 0 {
 		_, err = comp.rdsAPI.AddTagsToResource(&rds.AddTagsToResourceInput{
