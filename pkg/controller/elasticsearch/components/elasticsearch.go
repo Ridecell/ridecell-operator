@@ -201,18 +201,26 @@ func (comp *elasticSearchComponent) Reconcile(ctx *components.ComponentContext) 
 		return components.Result{}, errors.Wrapf(err, "elasticsearch: unable to get tags of elasticsearch instance")
 	}
 
-	tagFound := false
+	var tagFound, k8sClusterTagFound bool
 	for _, tag := range listTagsOuput.TagList {
 		if aws.StringValue(tag.Key) == "Ridecell-Operator" {
 			tagFound = true
 		}
+		if aws.StringValue(tag.Key) == "KubernetesCluster" && aws.StringValue(tag.Value) == os.Getenv("AWS_SUBNET_GROUP_NAME") {
+			k8sClusterTagFound = true
+		}
 	}
+	var tagList []*es.Tag
 	if !tagFound {
+		tagList = append(tagList, &es.Tag{Key: aws.String("Ridecell-Operator"), Value: aws.String("true")})
+	}
+	if !k8sClusterTagFound {
+		tagList = append(tagList, &es.Tag{Key: aws.String("KubernetesCluster"), Value: aws.String(os.Getenv("AWS_SUBNET_GROUP_NAME"))})
+	}
+	if len(tagList) > 0 {
 		_, err := comp.esAPI.AddTags(&es.AddTagsInput{
-			ARN: esDomainInstance.ARN,
-			TagList: []*es.Tag{
-				&es.Tag{Key: aws.String("Ridecell-Operator"), Value: aws.String("true")},
-			},
+			ARN:     esDomainInstance.ARN,
+			TagList: tagList,
 		})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "elasticsearch: unable to set tags of elasticsearch instance")
