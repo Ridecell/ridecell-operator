@@ -303,6 +303,10 @@ func (m *mockRDSDBClient) ListTagsForResource(input *rds.ListTagsForResourceInpu
 				Key:   aws.String("tenant"),
 				Value: aws.String("test"),
 			},
+			&rds.Tag{
+				Key:   aws.String("KubernetesCluster"),
+				Value: aws.String("sandbox"),
+			},
 		}
 		return &rds.ListTagsForResourceOutput{TagList: tags}, nil
 	}
