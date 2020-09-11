@@ -60,6 +60,7 @@ var passwordSecret *corev1.Secret
 
 var _ = Describe("rds aws Component", func() {
 	comp := rdscomponents.NewRDSInstance()
+	os.Setenv("AWS_SUBNET_GROUP_NAME", "sandbox")
 	var mockRDS *mockRDSDBClient
 	var dbMock sqlmock.Sqlmock
 	var db *sql.DB
