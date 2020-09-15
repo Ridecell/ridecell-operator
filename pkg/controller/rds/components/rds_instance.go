@@ -231,10 +231,10 @@ func (comp *rdsInstanceComponent) Reconcile(ctx *components.ComponentContext) (c
 
 	// TODO: Things could get weird if allocated storage is increased by less than 10% as aws will automatically round up to the nearest 10% increase
 	// This is pretty unlikely to happen even at larger numbers.
-	if aws.Int64Value(database.AllocatedStorage) != instance.Spec.AllocatedStorage {
-		needsUpdate = true
-		databaseModifyInput.AllocatedStorage = aws.Int64(instance.Spec.AllocatedStorage)
-	}
+	// if aws.Int64Value(database.AllocatedStorage) != instance.Spec.AllocatedStorage {
+	// 	needsUpdate = true
+	// 	databaseModifyInput.AllocatedStorage = aws.Int64(instance.Spec.AllocatedStorage)
+	// }
 
 	// attempt a database query to test see if our password is correct.
 	// only attempt this when database is in ready state.
