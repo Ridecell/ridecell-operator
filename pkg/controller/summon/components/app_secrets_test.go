@@ -404,4 +404,19 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(data).To(HaveKeyWithValue("google_api_key", "qwer5678"))
 	})
 
+	It("Check if aws key & secret should nill when iam role in used", func() {
+		instance.Spec.UseIamRole = true
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		var parsedYaml map[string]interface{}
+		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(parsedYaml["AWS_ACCESS_KEY_ID"]).To(BeNil())
+		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(BeNil())
+	})
+
 })
