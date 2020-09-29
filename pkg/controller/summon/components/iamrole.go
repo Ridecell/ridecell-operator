@@ -68,6 +68,7 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 	extra["accountId"] = accountID
 	extra["optimusBucketName"] = instance.Spec.OptimusBucketName
 	extra["mivBucket"] = fmt.Sprintf("ridecell-%s-miv", instance.Name)
+	extra["assumeRolePolicyDocument"] = os.Getenv("AWS_ASSUME_ROLE_POLICY_DOCUMENT")
 	if instance.Spec.MIV.ExistingBucket != "" {
 		extra["mivBucket"] = instance.Spec.MIV.ExistingBucket
 	}

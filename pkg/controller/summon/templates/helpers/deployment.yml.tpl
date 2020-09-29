@@ -13,6 +13,9 @@ metadata:
     app.kubernetes.io/managed-by: summon-operator
     metrics-enabled: {{ block "metricsEnabled" . }}{{ end }}
 spec:
+  {{ if .Instance.Spec.UseIamRole }}
+  serviceAccountName: {{ .Instance.Name }}
+  {{ end }}
   replicas: {{ block "replicas" . }}1{{ end }}
   selector:
     matchLabels:
