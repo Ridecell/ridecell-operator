@@ -46,7 +46,7 @@ func (_ *serviceAccountK8sComponent) IsReconcilable(ctx *components.ComponentCon
 func (comp *serviceAccountK8sComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	if instance.Spec.UseIamRole == false {
+	if !instance.Spec.UseIamRole {
 		return components.Result{}, nil
 	}
 	//TODO Add better way to get accountID
