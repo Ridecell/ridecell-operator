@@ -48,7 +48,14 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("summon-platform-dev-%s", instance.Name), Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
-
+	It("creates an IAMRole object with assumeRolePolicyDocument", func() {
+		instance.Spec.UseIamRole = true
+		comp := summoncomponents.NewIAMRole("aws/iamrole.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &awsv1beta1.IAMRole{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("summon-platform-dev-%s", instance.Name), Namespace: instance.Namespace}, target)
+		Expect(err).ToNot(HaveOccurred())
+	})
 	Context("Optimus policy", func() {
 		It("grants access to an external bucket", func() {
 			instance.Spec.OptimusBucketName = "asdf"

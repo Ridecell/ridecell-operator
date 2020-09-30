@@ -5,9 +5,9 @@ metadata:
  namespace: {{ .Instance.Namespace }}
 spec:
  roleName: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
- {{if .Extra.assumeRolePolicyDocument}}
- assumeRolePolicyDocument: {{ .Extra.assumeRolePolicyDocument }}
- {{end}}
+  {{if .Extra.assumeRolePolicyDocument}}
+ assumeRolePolicyDocument: {{ .Extra.assumeRolePolicyDocument | toJson }}
+  {{end}}
  inlinePolicies:
    allow_s3: |
             {
