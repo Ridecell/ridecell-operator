@@ -12,9 +12,6 @@ metadata:
     app.kubernetes.io/managed-by: summon-operator
     metrics-enabled: "{{ .Instance.Spec.Metrics.Celeryd | default "false" }}"
 spec:
-  {{ if .Instance.Spec.UseIamRole }}
-  serviceAccountName: {{ .Instance.Name }}
-  {{ end }}
   replicas: {{ .Instance.Spec.Replicas.Celeryd | default 0 }}
   selector:
     matchLabels:
@@ -36,6 +33,9 @@ spec:
         iam.amazonaws.com/role: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
         {{ end }}
     spec:
+      {{ if .Instance.Spec.UseIamRole }}
+      serviceAccountName: {{ .Instance.Name }}
+      {{ end }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
