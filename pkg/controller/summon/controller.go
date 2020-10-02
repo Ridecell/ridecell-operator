@@ -56,7 +56,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewServiceAccount(),
 
 		//K8s stuff
-		//summoncomponents.NewserviceAccountK8s(),
+		summoncomponents.NewserviceAccountK8s(),
 
 		//Rabbitmq components
 		summoncomponents.NewRabbitmqVhost("rabbitmq/vhost.yml.tpl"),
