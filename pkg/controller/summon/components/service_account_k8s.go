@@ -36,7 +36,9 @@ func NewserviceAccountK8s() *serviceAccountK8sComponent {
 }
 
 func (comp *serviceAccountK8sComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&corev1.ServiceAccount{},
+	}
 }
 
 func (_ *serviceAccountK8sComponent) IsReconcilable(ctx *components.ComponentContext) bool {
