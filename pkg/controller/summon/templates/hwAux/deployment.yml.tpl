@@ -33,6 +33,9 @@ spec:
         iam.amazonaws.com/role: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
         {{ end }}
     spec:
+      {{ if .Instance.Spec.UseIamRole }}
+      serviceAccountName: {{ .Instance.Name }}
+      {{ end }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
