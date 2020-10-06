@@ -302,6 +302,9 @@ type SummonPlatformSpec struct {
 	// To be removed when support for the 1540 fixup is removed in summon.
 	// +optional
 	NoCore1540Fixup bool `json:"noCore1540Fixup,omitempty"`
+	// Test Flag: Use IAM Role for pods when set to true
+	// +optional
+	UseIamRole bool `json:"useIamRole,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

@@ -26,7 +26,14 @@ spec:
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
         metrics-enabled: "false"
+      {{ if .Instance.Spec.UseIamRole }}
+      annotations:
+        iam.amazonaws.com/role: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
+      {{ end }}
     spec:
+      {{ if .Instance.Spec.UseIamRole }}
+      serviceAccountName: {{ .Instance.Name }}
+      {{ end }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
