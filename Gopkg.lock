@@ -1232,8 +1232,8 @@
   name = "github.com/prometheus/alertmanager"
   packages = ["config"]
   pruneopts = "T"
-  revision = "1ace0f76b7101cccc149d7298022df36039858ca"
-  version = "v0.18.0"
+  revision = "4c6c03ebfe21009c546e4d1e9b92c371d67c021d"
+  version = "v0.21.0"
 
 [[projects]]
   digest = "1:3b5729e3fc486abc6fc16ce026331c3d196e788c3b973081ecf5d28ae3e1050d"
