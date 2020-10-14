@@ -43,23 +43,39 @@ func Open(ctx *components.ComponentContext, dbInfo *dbv1beta1.PostgresConnection
 		sslmode = dbInfo.SSLMode
 	}
 	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=%s", dbInfo.Host, uint16(port), dbInfo.Database, dbInfo.Username, dbPassword, sslmode)
-
-	// retry creating DB connection object 3 times if there connection object is expired or broken
+	db, err := dbpool.Open("postgres", connStr)
+	if err != nil {
+		return nil, errors.Wrap(err, "database: Unable to open database connection")
+	}
+	// Test db connection
 	var count int
-	for retry := 0; retry < 3; retry++ {
-		db, err := dbpool.Open("postgres", connStr)
+	row := db.QueryRow("SELECT 1")
+	err = row.Scan(&count)
+	if err != nil {
+		// delete connection object from sync map
+		dbpool.Dbs.Delete(fmt.Sprintf("postgres %s", connStr))
+		db, err = dbpool.Open("postgres", connStr)
 		if err != nil {
 			return nil, errors.Wrap(err, "database: Unable to open database connection")
 		}
-		// Test db connection
-		row := db.QueryRow("SELECT 1")
-		err = row.Scan(&count)
-		if err == nil {
-			return db, nil
-		}
-		// delete connection object from sync map
-		dbpool.Dbs.Delete(fmt.Sprintf("postgres %s", connStr))
 	}
 
-	return nil, err
+	// // retry creating DB connection object 3 times if there connection object is expired or broken
+	// var count int
+	// for retry := 0; retry < 3; retry++ {
+	// 	db, err := dbpool.Open("postgres", connStr)
+	// 	if err != nil {
+	// 		return nil, errors.Wrap(err, "database: Unable to open database connection")
+	// 	}
+	// 	// Test db connection
+	// 	row := db.QueryRow("SELECT 1")
+	// 	err = row.Scan(&count)
+	// 	if err == nil {
+	// 		return db, nil
+	// 	}
+	// 	// delete connection object from sync map
+	// 	dbpool.Dbs.Delete(fmt.Sprintf("postgres %s", connStr))
+	// }
+
+	return db, nil
 }
