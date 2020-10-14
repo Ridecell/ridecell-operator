@@ -88,10 +88,10 @@ var _ = Describe("postgresusercomponents Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		db, dbMock, err = sqlmock.New()
+		Expect(err).NotTo(HaveOccurred())
 		dbpool.Dbs.Store("postgres host=test-database port=5432 dbname=test user=test password='1234totallysecurepassword' sslmode=require", db)
 		dbpool.Dbs.Store("postgres host=test-database port=5432 dbname=postgres user=newuser password='test' sslmode=require", db)
-		Expect(err).NotTo(HaveOccurred())
-		})
+	})
 
 	AfterEach(func() {
 		db.Close()
