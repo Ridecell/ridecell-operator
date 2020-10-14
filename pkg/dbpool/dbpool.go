@@ -48,7 +48,7 @@ func Open(driverName, dataSourceName string) (*sql.DB, error) {
 	// Don't log passwords.
 	dataSourceNameForLogging := passwordRe.ReplaceAllString(dataSourceName, "password='[redacted]'")
 	glog.V(3).Infof("dbpool: opening database connection: %s %s", driverName, dataSourceNameForLogging)
-	fmt.Println("DB Conn object not found in map, creating one with :", dataSourceName)
+
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		// Welp, we tried.
