@@ -45,17 +45,21 @@ func Open(ctx *components.ComponentContext, dbInfo *dbv1beta1.PostgresConnection
 	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=%s", dbInfo.Host, uint16(port), dbInfo.Database, dbInfo.Username, dbPassword, sslmode)
 	db, err := dbpool.Open("postgres", connStr)
 	if err != nil {
+		fmt.Println("First time dbpool.open has error, returning error")
 		return nil, errors.Wrap(err, "database: Unable to open database connection")
 	}
+	fmt.Println("Testing DB connection")
 	// Test db connection
 	var count int
 	row := db.QueryRow("SELECT 1")
 	err = row.Scan(&count)
 	if err != nil {
+		fmt.Println("DB test failed, with err: ", err)
 		// delete connection object from sync map
 		dbpool.Dbs.Delete(fmt.Sprintf("postgres %s", connStr))
 		db, err = dbpool.Open("postgres", connStr)
 		if err != nil {
+			fmt.Println("Second time dbpool.open has error, returning error")
 			return nil, errors.Wrap(err, "database: Unable to open database connection")
 		}
 	}
@@ -76,6 +80,6 @@ func Open(ctx *components.ComponentContext, dbInfo *dbv1beta1.PostgresConnection
 	// 	// delete connection object from sync map
 	// 	dbpool.Dbs.Delete(fmt.Sprintf("postgres %s", connStr))
 	// }
-
+	fmt.Println("DB test success, returning db object.")
 	return db, nil
 }
