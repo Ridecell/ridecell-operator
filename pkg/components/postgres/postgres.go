@@ -50,9 +50,9 @@ func Open(ctx *components.ComponentContext, dbInfo *dbv1beta1.PostgresConnection
 	}
 	fmt.Println("Testing DB connection")
 	// Test db connection
-	var count int
-	row := db.QueryRow("SELECT 1")
-	err = row.Scan(&count)
+	//var count int
+	err = db.Ping()
+	//err = row.Scan(&count)
 	if err != nil {
 		fmt.Println("DB test failed, with err: ", err)
 		// delete connection object from sync map
