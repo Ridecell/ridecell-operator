@@ -189,8 +189,11 @@ func (comp *logruleComponent) Reconcile(ctx *components.ComponentContext) (compo
 			"annotations": {
 					"summary": "{{SearchDescription}}",
 					"SumoQuery": "<{{SearchQueryUrl}}|{{SearchQuery}}>",
-					"SumoChange": "{{Results.changed}}",
 					"SumoTimeRange": "{{TimeRange}}",
+					"SumoNumRawResults":"{{NumRawResults}}",
+					"SumoFireTime": "{{FireTime}}",
+					"SumoAggregateResultsJson": "{{AggregateResultsJson}}",
+					"SumoRawResultsJson": "{{RawResultsJson}}",
 					"runbook": "%s"
 			}
 	}]`, instance.Spec.ServiceName, rule.Severity, rule.Runbook)
