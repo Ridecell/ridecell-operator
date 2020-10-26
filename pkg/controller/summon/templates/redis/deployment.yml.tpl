@@ -10,7 +10,11 @@ metadata:
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
 spec:
+{{- if .Instance.Spec.Metrics.Web == 0 -}}
+  replicas: 0
+{{- else -}}
   replicas: 1
+{{- end -}}
   strategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -29,7 +33,7 @@ spec:
     spec:
       containers:
       - name: default
-        image: redis:latest
+        image: redis:6.0.8-alpine
         imagePullPolicy: Always
         ports:
         - containerPort: 6379
