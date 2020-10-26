@@ -66,4 +66,17 @@ var _ = Describe("redis_deployment Component", func() {
 		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
 		Expect(err).To(HaveOccurred())
 	})
+
+	It("Set redis Replica count to 0 when web Replica count is 0", func() {
+		instance.Status.Status = summonv1beta1.StatusDeploying
+		zero := int32(0)
+		instance.Spec.Replicas.Web = &zero
+		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+
+		deployment := &appsv1.Deployment{}
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(deployment.Spec.Replicas).To(Equal(0))
+	})
 })
