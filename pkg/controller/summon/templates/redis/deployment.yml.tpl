@@ -10,11 +10,11 @@ metadata:
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
 spec:
-{{- if .Instance.Spec.Metrics.Web == 0 -}}
+{{ if .Extra.disableredis }}
   replicas: 0
-{{- else -}}
+{{ else }}
   replicas: 1
-{{- end -}}
+{{ end }}
   strategy:
     rollingUpdate:
       maxUnavailable: 1
