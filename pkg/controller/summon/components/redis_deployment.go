@@ -14,8 +14,6 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
-
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -60,7 +58,6 @@ func (comp *redisDeploymentComponent) Reconcile(ctx *components.ComponentContext
 	}
 	// Set replica to 0 when web is zero.
 	extra := map[string]interface{}{}
-	fmt.Println(*instance.Spec.Replicas.Web)
 	if *instance.Spec.Replicas.Web == 0 {
 		extra["disableredis"] = true
 	}
