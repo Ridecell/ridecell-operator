@@ -14,6 +14,8 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -56,8 +58,14 @@ func (comp *redisDeploymentComponent) Reconcile(ctx *components.ComponentContext
 	if instance.Spec.MigrationOverrides.RedisHostname != "" {
 		return components.Result{}, nil
 	}
+	// Set replica to 0 when web is zero.
+	extra := map[string]interface{}{}
+	fmt.Println(*instance.Spec.Replicas.Web)
+	if *instance.Spec.Replicas.Web == 0 {
+		extra["disableredis"] = true
+	}
 
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*appsv1.Deployment)
 		existing := existingObj.(*appsv1.Deployment)
 		// Copy the Spec over.

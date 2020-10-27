@@ -36,6 +36,8 @@ var _ = Describe("redis_deployment Component", func() {
 
 	It("creates a redis deployment", func() {
 		instance.Status.Status = summonv1beta1.StatusDeploying
+		one := int32(0)
+		instance.Spec.Replicas.Web = &one
 		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -47,6 +49,8 @@ var _ = Describe("redis_deployment Component", func() {
 	It("sets the RAM when given in MB", func() {
 		instance.Status.Status = summonv1beta1.StatusDeploying
 		instance.Spec.Redis.RAM = 300
+		one := int32(0)
+		instance.Spec.Replicas.Web = &one
 		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -59,6 +63,8 @@ var _ = Describe("redis_deployment Component", func() {
 	It("does not creates redis deployment when redis endpoint is already provided", func() {
 		instance.Status.Status = summonv1beta1.StatusDeploying
 		instance.Spec.MigrationOverrides.RedisHostname = "test.redis.aws.com"
+		one := int32(0)
+		instance.Spec.Replicas.Web = &one
 		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -77,6 +83,6 @@ var _ = Describe("redis_deployment Component", func() {
 		deployment := &appsv1.Deployment{}
 		err := ctx.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-redis", Namespace: "summon-dev"}, deployment)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(deployment.Spec.Replicas).To(Equal(0))
+		Expect(deployment.Spec.Replicas).To(Equal(&zero))
 	})
 })
