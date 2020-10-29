@@ -81,7 +81,7 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 					return components.Result{}, errors.Wrapf(err, "rabbitmqvhost: error deleting rabbitmq vhost")
 				}
 				if res.StatusCode != 204 && res.StatusCode != 404 {
-					return components.Result{}, errors.Errorf("rabbitmqvhost: unable to delete rabbitmq vhost %s: HTTP Status Code %s", instance.Spec.VhostName, string(res.StatusCode))
+					return components.Result{}, errors.Errorf("rabbitmqvhost: unable to delete rabbitmq vhost %s: HTTP Status Code %d", instance.Spec.VhostName, res.StatusCode)
 				}
 			}
 			// All operations complete, remove finalizer

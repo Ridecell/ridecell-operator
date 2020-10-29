@@ -78,7 +78,7 @@ func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (componen
 					return components.Result{}, errors.Wrapf(err, "rabbitmquser: error deleting rabbitmq user")
 				}
 				if res.StatusCode != 204 && res.StatusCode != 404 {
-					return components.Result{}, errors.Errorf("rabbitmquser: unable to delete rabbitmq user %s: HTTP Status Code %s", instance.Spec.Username, string(res.StatusCode))
+					return components.Result{}, errors.Errorf("rabbitmquser: unable to delete rabbitmq user %s: HTTP Status Code %d", instance.Spec.Username, res.StatusCode)
 				}
 			}
 			// All operations complete, remove finalizer
