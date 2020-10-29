@@ -142,3 +142,25 @@ func (frc *FakeRabbitClient) ClearPermissionsIn(vhost, username string) (res *ht
 	}
 	return &http.Response{StatusCode: 204}, nil
 }
+
+func (frc *FakeRabbitClient) DeleteUser(username string) (res *http.Response, err error) {
+	for i, user := range frc.Users {
+		if user.Name == username {
+			frc.Users[i] = frc.Users[len(frc.Users)-1]
+			frc.Users = frc.Users[:len(frc.Users)-1]
+			return &http.Response{StatusCode: 204}, nil
+		}
+	}
+	return &http.Response{StatusCode: 404}, nil
+}
+
+func (frc *FakeRabbitClient) DeleteVhost(vhost string) (res *http.Response, err error) {
+	for i, element := range frc.Vhosts {
+		if element.Name == vhost {
+			frc.Vhosts[i] = frc.Vhosts[len(frc.Vhosts)-1]
+			frc.Vhosts = frc.Vhosts[:len(frc.Vhosts)-1]
+			return &http.Response{StatusCode: 204}, nil
+		}
+	}
+	return &http.Response{StatusCode: 404}, nil
+}
