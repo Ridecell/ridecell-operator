@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -28,6 +29,8 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+const RabbitmqUserFinalizer = "user.rabbitmq.finalizer"
 
 type userComponent struct {
 	ClientFactory utils.RabbitMQClientFactory
@@ -51,6 +54,42 @@ func (_ *userComponent) IsReconcilable(_ *components.ComponentContext) bool {
 
 func (comp *userComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.RabbitmqUser)
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !helpers.ContainsFinalizer(RabbitmqUserFinalizer, instance) {
+			instance.ObjectMeta.Finalizers = helpers.AppendFinalizer(RabbitmqUserFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "rabbitmquser: failed to update instance while adding finalizer")
+			}
+		}
+	} else {
+		if helpers.ContainsFinalizer(RabbitmqUserFinalizer, instance) {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+				// Connect to the rabbitmq cluster
+				rmqconn, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.ClientFactory)
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "rabbitmquser: error creating rabbitmq client")
+				}
+				// delete user
+				res, err := rmqconn.DeleteUser(instance.Spec.Username)
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "rabbitmquser: error deleting rabbitmq user")
+				}
+				if res.StatusCode != 204 && res.StatusCode != 404 {
+					return components.Result{}, errors.Errorf("rabbitmquser: unable to delete rabbitmq user %s: HTTP Status Code %s", instance.Spec.Username, string(res.StatusCode))
+				}
+			}
+			// All operations complete, remove finalizer
+			instance.ObjectMeta.Finalizers = helpers.RemoveFinalizer(RabbitmqUserFinalizer, instance)
+			err := ctx.Update(ctx.Context, instance.DeepCopy())
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "rabbitmquser: failed to update instance while removing finalizer")
+			}
+		}
+		// If object is being deleted and has no finalizer just exit.
+		return components.Result{}, nil
+	}
 
 	// Connect to the rabbitmq cluster
 	rmqc, err := utils.OpenRabbit(ctx, &instance.Spec.Connection, comp.ClientFactory)
