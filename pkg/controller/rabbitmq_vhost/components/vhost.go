@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	helpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/utils"
 )
@@ -74,13 +75,13 @@ func (comp *vhostComponent) Reconcile(ctx *components.ComponentContext) (compone
 				if err != nil {
 					return components.Result{}, errors.Wrapf(err, "rabbitmqvhost: error creating rabbitmq client")
 				}
-				// delete user
+				// delete vhost
 				res, err := rmqconn.DeleteVhost(instance.Spec.VhostName)
 				if err != nil {
 					return components.Result{}, errors.Wrapf(err, "rabbitmqvhost: error deleting rabbitmq vhost")
 				}
 				if res.StatusCode != 204 && res.StatusCode != 404 {
-					return components.Result{}, errors.Errorf("rabbitmqvhost: unable to delete rabbitmq vhost %s: HTTP Status Code %s", instance.Spec.Username, string(res.StatusCode))
+					return components.Result{}, errors.Errorf("rabbitmqvhost: unable to delete rabbitmq vhost %s: HTTP Status Code %s", instance.Spec.VhostName, string(res.StatusCode))
 				}
 			}
 			// All operations complete, remove finalizer
