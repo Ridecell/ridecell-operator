@@ -49,6 +49,8 @@ var _ = Describe("RabbitmqVhost Vhost Component", func() {
 		},
 	}
 	BeforeEach(func() {
+		instance.ObjectMeta.Finalizers = []string{"vhost.rabbitmq.finalizer"}
+
 		user1 := &dbv1beta1.RabbitmqUser{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 			Status: dbv1beta1.RabbitmqUserStatus{
