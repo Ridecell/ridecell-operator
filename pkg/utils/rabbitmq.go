@@ -33,8 +33,10 @@ import (
 type RabbitMQManager interface {
 	ListVhosts() ([]rabbithole.VhostInfo, error)
 	PutVhost(string, rabbithole.VhostSettings) (*http.Response, error)
+	DeleteVhost(string) (*http.Response, error)
 	ListUsers() ([]rabbithole.UserInfo, error)
 	PutUser(string, rabbithole.UserSettings) (*http.Response, error)
+	DeleteUser(string) (*http.Response, error)
 	ListPoliciesIn(vhost string) (rec []rabbithole.Policy, err error)
 	PutPolicy(vhost string, name string, policy rabbithole.Policy) (res *http.Response, err error)
 	DeletePolicy(vhost string, name string) (res *http.Response, err error)

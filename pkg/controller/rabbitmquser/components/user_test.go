@@ -39,6 +39,7 @@ var _ = Describe("RabbitmqUser User Component", func() {
 	var spec1 dbv1beta1.RabbitmqUserSpec
 
 	BeforeEach(func() {
+		instance.ObjectMeta.Finalizers = []string{"user.rabbitmq.finalizer"}
 		// Set password in secrets
 		rabbitSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: "default"},
