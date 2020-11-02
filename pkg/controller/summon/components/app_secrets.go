@@ -202,7 +202,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	if fk == nil || len(fk.(string)) == 0 {
 		appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	} else {
-		appSecretsData["FERNET_KEYS"] = []string{fk}
+		appSecretsData["FERNET_KEYS"] = []string{fk.(string)}
 	}
 
 	// If OTAKEYS_API_KEY is provided externally and EnableMockCarServer is also true, it is a conflict
