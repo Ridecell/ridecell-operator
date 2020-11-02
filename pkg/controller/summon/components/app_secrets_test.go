@@ -230,7 +230,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(parsedYaml.Keys).To(Equal([]string{"myfernetkey"}))
+		Expect(parsedYaml.Keys).To(Equal([]string{"myfernetkey", "1"}))
 	})
 
 	It("runs reconcile with no secret_key", func() {
