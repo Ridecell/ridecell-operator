@@ -203,6 +203,36 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml.Keys).To(Equal([]string{"1", "2", "3", "4", "5", "6"}))
 	})
 
+	It("uses user provided fernet keys", func() {
+		now := time.Now().UTC()
+		addKey := func(k, v string) {
+			d, _ := time.ParseDuration(k)
+			fernetKeys.Data[time.Time.Format(now.Add(d), summoncomponents.CustomTimeLayout)] = []byte(v)
+		}
+		fernetKeys.Data = map[string][]byte{}
+		addKey("-1h", "1")
+
+		inSecret.Data = map[string][]byte{
+			"FERNET_KEYS": []byte("myfernetkey"),
+		}
+
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		var parsedYaml struct {
+			Keys []string `yaml:"FERNET_KEYS"`
+		}
+		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(parsedYaml.Keys).To(Equal([]string{"myfernetkey"}))
+	})
+
 	It("runs reconcile with no secret_key", func() {
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys)
 		res, err := comp.Reconcile(ctx)
