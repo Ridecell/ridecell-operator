@@ -79,7 +79,7 @@ commands:
 jobs:
   lint:
     docker:
-    - image: golangci/golangci-lint:latest
+    - image: golangci/golangci-lint:v1.32.1
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
     steps:
     - rc_setup
