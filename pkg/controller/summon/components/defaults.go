@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const defaultFernetKeysLifespan = "8760h"
+const defaultFernetKeysLifespan = "26280h"
 
 // Treat this as a const, no touchy.
 var zeroSeconds time.Duration
