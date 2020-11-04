@@ -213,7 +213,7 @@ var _ = Describe("app_secrets Component", func() {
 		addKey("-1h", "1")
 
 		inSecret.Data = map[string][]byte{
-			"FERNET_KEYS": []byte("myfernetkey"),
+			"FERNET_KEYS": []byte("myfernetkey1,myferneykey2"),
 		}
 
 		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
@@ -230,7 +230,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(parsedYaml.Keys).To(Equal([]string{"myfernetkey", "1"}))
+		Expect(parsedYaml.Keys).To(Equal([]string{"myfernetkey1", "myferneykey2"}))
 	})
 
 	It("runs reconcile with no secret_key", func() {
