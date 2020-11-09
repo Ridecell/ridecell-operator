@@ -163,6 +163,8 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 					&s3.Tag{
 						Key:   aws.String("ridecell-operator"),
 						Value: aws.String("True"),
+						Key:   aws.String("Name"),
+						Value: aws.String(instance.Spec.BucketName),
 					},
 				},
 			},
