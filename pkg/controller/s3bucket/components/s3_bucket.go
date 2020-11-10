@@ -164,6 +164,11 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 						Key:   aws.String("ridecell-operator"),
 						Value: aws.String("True"),
 					},
+					// Add default Name tag to s3 bucket
+					&s3.Tag{
+						Key:   aws.String("Name"),
+						Value: aws.String(instance.Spec.BucketName),
+					},
 				},
 			},
 		})
