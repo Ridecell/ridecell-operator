@@ -182,7 +182,6 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
-	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
 	appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
 	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
@@ -196,6 +195,15 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		for k, v := range secret.Data {
 			appSecretsData[k] = string(v)
 		}
+	}
+
+	// If FERNET_KEYS is not provided externally, use dynamic fernet keys
+	fk := appSecretsData["FERNET_KEYS"]
+	if fk == nil || len(fk.(string)) == 0 {
+		appSecretsData["FERNET_KEYS"] = formattedFernetKeys
+	} else {
+		// Split user provided fernet keys by ','
+		appSecretsData["FERNET_KEYS"] = strings.Split(fk.(string), ",")
 	}
 
 	// If OTAKEYS_API_KEY is provided externally and EnableMockCarServer is also true, it is a conflict
