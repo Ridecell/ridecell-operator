@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -74,6 +75,13 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 
 	// If we're not in deploying state do nothing and exit early.
 	if instance.Status.Status != summonv1beta1.StatusDeploying {
+		return components.Result{}, nil
+	}
+
+	// Create either Celery beat or Celery RedBeat
+	if strings.HasPrefix(comp.templatePath, "celerybeat") && instance.Spec.UseCeleryRedBeat {
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "celeryredbeat") && !(instance.Spec.UseCeleryRedBeat) {
 		return components.Result{}, nil
 	}
 

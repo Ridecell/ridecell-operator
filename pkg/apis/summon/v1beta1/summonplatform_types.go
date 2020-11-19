@@ -305,6 +305,9 @@ type SummonPlatformSpec struct {
 	// Test Flag: Use IAM Role for pods when set to true
 	// +optional
 	UseIamRole bool `json:"useIamRole,omitempty"`
+	// Test Flag: Use Celery RedBeat instead of CeleryBeat when set to true
+	// +optional
+	UseCeleryRedBeat bool `json:"useIamRole,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

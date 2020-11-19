@@ -107,6 +107,10 @@ func Add(mgr manager.Manager) error {
 		// Does not have a pod disruption budget intentionally
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
+		// Celery RedBeat components.
+		summoncomponents.NewDeployment("celeryredbeat/deployment.yml.tpl", nil),
+		summoncomponents.NewService("celeryredbeat/service.yml.tpl"),
+
 		// Channelworker components.
 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("channelworker/podDisruptionBudget.yml.tpl"),
