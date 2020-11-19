@@ -124,6 +124,9 @@ type ReplicasSpec struct {
 	// Number of celerybeat pods to run. Defaults to 1. Must be exactly 0 or 1.
 	// +optional
 	CeleryBeat *int32 `json:"celeryBeat,omitempty"`
+	// Number of celeryredbeat pods to run. Defaults to 1.
+	// +optional
+	CeleryRedBeat *int32 `json:"celeryRedBeat,omitempty"`
 	// Number of channelworker pods to run. Defaults to 1 for dev/qa, 2 for uat, 4 for prod.
 	// +optional
 	ChannelWorker *int32 `json:"channelWorker,omitempty"`
