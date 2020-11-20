@@ -50,7 +50,7 @@ spec:
       - name: pull-secret
       containers:
       - name: default
-        image:us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
+        image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
         command:
         - /bin/sh
         - -c
