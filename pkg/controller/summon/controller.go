@@ -109,7 +109,6 @@ func Add(mgr manager.Manager) error {
 
 		// Celery RedBeat components.
 		summoncomponents.NewDeployment("celeryredbeat/deployment.yml.tpl", nil),
-		summoncomponents.NewService("celeryredbeat/service.yml.tpl"),
 
 		// Channelworker components.
 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", nil),
