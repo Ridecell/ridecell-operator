@@ -11,7 +11,7 @@ metadata:
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
 spec:
-  replicas: {{ .Instance.Spec.Replicas.CeleryRedBeat | default 1 }}
+  replicas: {{ .Instance.Spec.Replicas.CeleryRedBeat }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-celeryredbeat
@@ -34,14 +34,7 @@ spec:
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              topologyKey: failure-domain.beta.kubernetes.io/zone
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-celeryredbeat
-          - weight: 1
-            podAffinityTerm:
+          - podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
@@ -54,11 +47,15 @@ spec:
         command:
         - /bin/sh
         - -c
+        {{ if .Instance.Spec.Config["DEBUG"] }}
         - python -m celery -A summon_platform beat -l debug -S redbeat.RedBeatScheduler
+        {{ else }}
+        - python -m celery -A summon_platform beat -l info -S redbeat.RedBeatScheduler
+        {{ end }}
         resources:
           requests:
             memory: 260M
-            cpu: 10m
+            cpu: 5m
           limits:
             memory: 500M
         env:

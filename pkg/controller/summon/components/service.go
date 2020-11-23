@@ -60,10 +60,6 @@ func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (compo
 		return components.Result{}, nil
 	} else if strings.HasPrefix(comp.templatePath, "hwAux") && *instance.Spec.Replicas.HwAux == 0 {
 		return components.Result{}, nil
-	} else if strings.HasPrefix(comp.templatePath, "celerybeat") && instance.Spec.UseCeleryRedBeat {
-		return components.Result{}, nil
-	} else if strings.HasPrefix(comp.templatePath, "celeryredbeat") && !(instance.Spec.UseCeleryRedBeat) {
-		return components.Result{}, nil
 	}
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
