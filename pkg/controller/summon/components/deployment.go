@@ -80,9 +80,11 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 
 	// Create either Celery beat or Celery RedBeat
 	if strings.HasPrefix(comp.templatePath, "celerybeat") && instance.Spec.UseCeleryRedBeat {
-		return components.Result{}, nil
+		// delete celerybeat
+		return components.Result{}, deleteObject(ctx, instance, "celerybeat")
 	} else if strings.HasPrefix(comp.templatePath, "celeryredbeat") && !(instance.Spec.UseCeleryRedBeat) {
-		return components.Result{}, nil
+		// delete celeryredbeat
+		return components.Result{}, deleteObject(ctx, instance, "celeryredbeat")
 	}
 
 	// TODO 2020-01-06 After cm+secret merges to just secret, support varying the input names in the component config so comp-dispatch and comp-trip-share can get just the hash of their config.
@@ -145,4 +147,24 @@ func (_ *deploymentComponent) hashItem(data []byte) string {
 	hash := sha1.Sum(data)
 	encodedHash := hex.EncodeToString(hash[:])
 	return encodedHash
+}
+
+func deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
+	obj := nil
+	if componentName == "celerybeat" {
+		obj = &appsv1.StatefulSet{}
+	} else {
+		obj = &appsv1.Deployment{}
+	}
+
+	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + "-" + componentName, Namespace: instance.Namespace}, obj)
+	if err == nil {
+		err = ctx.Delete(ctx.Context, obj)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete existing "+componentName)
+		}
+	} else if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get and delete existing "+componentName)
+	}
+	return nil
 }
