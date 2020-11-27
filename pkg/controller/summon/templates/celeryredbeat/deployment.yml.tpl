@@ -48,7 +48,7 @@ spec:
         command:
         - /bin/sh
         - -c
-        {{ if .Instance.Spec.Config["DEBUG"] }}
+        {{ if .Extra.debug }}
         - python -m celery -A summon_platform beat -l debug -S redbeat.RedBeatScheduler
         {{ else }}
         - python -m celery -A summon_platform beat -l info -S redbeat.RedBeatScheduler

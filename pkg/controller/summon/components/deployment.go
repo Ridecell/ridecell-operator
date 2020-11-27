@@ -114,6 +114,9 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 	extra := map[string]interface{}{}
 	extra["configHash"] = string(configMapHash)
 	extra["appSecretsHash"] = string(appSecretsHash)
+	// Pass debug value
+	_, ok = instance.Spec.Config["DEBUG"]
+	extra["debug"] = bool(ok)
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goalDeployment, ok := goalObj.(*appsv1.Deployment)
