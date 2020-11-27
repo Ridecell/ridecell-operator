@@ -49,9 +49,9 @@ spec:
         - /bin/sh
         - -c
         {{ if .Extra.debug }}
-        - python -m celery -A summon_platform beat -l debug -S redbeat.RedBeatScheduler
+        - python -m celery -A summon_platform beat -l debug -S redbeat.RedBeatScheduler --pidfile=
         {{ else }}
-        - python -m celery -A summon_platform beat -l info -S redbeat.RedBeatScheduler
+        - python -m celery -A summon_platform beat -l info -S redbeat.RedBeatScheduler --pidfile=
         {{ end }}
         resources:
           requests:
