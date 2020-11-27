@@ -150,7 +150,7 @@ func (_ *deploymentComponent) hashItem(data []byte) string {
 }
 
 func deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
-	obj := nil
+	var obj runtime.Object = nil
 	if componentName == "celerybeat" {
 		obj = &appsv1.StatefulSet{}
 	} else {
