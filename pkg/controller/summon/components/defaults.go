@@ -319,6 +319,9 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	if replicas.CeleryBeat == nil {
 		replicas.CeleryBeat = intp(1)
 	}
+	if replicas.CeleryRedBeat == nil {
+		replicas.CeleryRedBeat = defaultsForEnv(1, 1, 2, 2)
+	}
 	if replicas.Dispatch == nil {
 		replicas.Dispatch = defaultsForEnv(1, 1, 2, 2)
 	}

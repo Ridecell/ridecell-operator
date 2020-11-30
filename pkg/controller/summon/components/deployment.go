@@ -21,10 +21,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -77,6 +79,15 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 		return components.Result{}, nil
 	}
 
+	// Create either Celery beat or Celery RedBeat
+	if strings.HasPrefix(comp.templatePath, "celerybeat") && instance.Spec.UseCeleryRedBeat {
+		// delete celerybeat
+		return components.Result{}, deleteObject(ctx, instance, "celerybeat")
+	} else if strings.HasPrefix(comp.templatePath, "celeryredbeat") && !(instance.Spec.UseCeleryRedBeat) {
+		// delete celeryredbeat
+		return components.Result{}, deleteObject(ctx, instance, "celeryredbeat")
+	}
+
 	// TODO 2020-01-06 After cm+secret merges to just secret, support varying the input names in the component config so comp-dispatch and comp-trip-share can get just the hash of their config.
 	rawAppSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
@@ -106,6 +117,9 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 	extra := map[string]interface{}{}
 	extra["configHash"] = string(configMapHash)
 	extra["appSecretsHash"] = string(appSecretsHash)
+	// Pass debug value
+	_, ok := instance.Spec.Config["DEBUG"]
+	extra["debug"] = bool(ok)
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goalDeployment, ok := goalObj.(*appsv1.Deployment)
@@ -134,4 +148,24 @@ func (_ *deploymentComponent) hashItem(data []byte) string {
 	hash := sha1.Sum(data)
 	encodedHash := hex.EncodeToString(hash[:])
 	return encodedHash
+}
+
+func deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
+	var obj runtime.Object
+	if componentName == "celerybeat" {
+		obj = &appsv1.StatefulSet{}
+	} else {
+		obj = &appsv1.Deployment{}
+	}
+
+	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + "-" + componentName, Namespace: instance.Namespace}, obj)
+	if err == nil {
+		err = ctx.Delete(ctx.Context, obj)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete existing "+componentName)
+		}
+	} else if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get and delete existing "+componentName)
+	}
+	return nil
 }
