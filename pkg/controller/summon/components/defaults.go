@@ -31,11 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const defaultFernetKeysLifespan = "26280h"
-
-// Treat this as a const, no touchy.
-var zeroSeconds time.Duration
-
 var configDefaults map[string]summonv1beta1.ConfigValue
 
 type defaultsComponent struct {
