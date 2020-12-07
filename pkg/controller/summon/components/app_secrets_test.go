@@ -65,6 +65,7 @@ var _ = Describe("app_secrets Component", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"TOKEN": []byte("secrettoken"),
+				"FERNET_KEYS": []byte("myfernetkey1"),
 			},
 		}
 
