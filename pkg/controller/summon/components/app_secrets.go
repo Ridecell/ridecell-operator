@@ -168,7 +168,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// Add FERNET_KEYS
 	fk := appSecretsData["FERNET_KEYS"]
-	if fk != nil || len(fk.(string)) > 0 {
+	if fk != nil && len(fk.(string)) > 0 {
 		// Split user provided fernet keys by ','
 		appSecretsData["FERNET_KEYS"] = strings.Split(fk.(string), ",")
 	}
