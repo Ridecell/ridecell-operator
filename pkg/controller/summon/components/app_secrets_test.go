@@ -18,7 +18,6 @@ package components_test
 
 import (
 	"encoding/json"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,7 +36,7 @@ import (
 )
 
 var _ = Describe("app_secrets Component", func() {
-	var inSecret, postgresSecret, fernetKeys, rabbitmqPassword, secretKey, accessKey *corev1.Secret
+	var inSecret, postgresSecret, rabbitmqPassword, secretKey, accessKey *corev1.Secret
 	var comp components.Component
 
 	BeforeEach(func() {
@@ -66,14 +65,6 @@ var _ = Describe("app_secrets Component", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: "summon-dev"},
 			Data: map[string][]byte{
 				"TOKEN": []byte("secrettoken"),
-			},
-		}
-
-		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
-		fernetKeys = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev.fernet-keys", Namespace: "summon-dev"},
-			Data: map[string][]byte{
-				formattedTime: []byte("lorem ipsum"),
 			},
 		}
 
@@ -106,7 +97,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		comp = summoncomponents.NewAppSecret()
 	})
 
@@ -120,13 +111,13 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("Run reconcile without a postgres password", func() {
-		ctx.Client = fake.NewFakeClient(inSecret, fernetKeys, secretKey, accessKey)
+		ctx.Client = fake.NewFakeClient(inSecret, secretKey, accessKey)
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 
 	It("Run reconcile with a missing postgres password", func() {
 		delete(postgresSecret.Data, "password")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("app_secrets: Postgres secret not initialized"))
 	})
@@ -134,7 +125,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("Run reconcile with a missing postgres password and other fields", func() {
 		delete(postgresSecret.Data, "password")
 		postgresSecret.Data["foo"] = []byte("other")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError("app_secrets: Postgres password not found in secret"))
 	})
@@ -173,50 +164,12 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
 	})
 
-	It("reconciles with existing fernet keys", func() {
-		now := time.Now().UTC()
-		addKey := func(k, v string) {
-			d, _ := time.ParseDuration(k)
-			fernetKeys.Data[time.Time.Format(now.Add(d), summoncomponents.CustomTimeLayout)] = []byte(v)
-		}
-		fernetKeys.Data = map[string][]byte{}
-		addKey("-1h", "1")
-		addKey("-2h", "2")
-		addKey("-3h", "3")
-		addKey("-4h", "4")
-		addKey("-5h", "5")
-		addKey("-6h", "6")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
-
-		Expect(comp).To(ReconcileContext(ctx))
-
-		fetchSecret := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "foo-dev.app-secrets", Namespace: "summon-dev"}, fetchSecret)
-		Expect(err).ToNot(HaveOccurred())
-
-		var parsedYaml struct {
-			Keys []string `yaml:"FERNET_KEYS"`
-		}
-		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &parsedYaml)
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(parsedYaml.Keys).To(Equal([]string{"1", "2", "3", "4", "5", "6"}))
-	})
-
 	It("uses user provided fernet keys", func() {
-		now := time.Now().UTC()
-		addKey := func(k, v string) {
-			d, _ := time.ParseDuration(k)
-			fernetKeys.Data[time.Time.Format(now.Add(d), summoncomponents.CustomTimeLayout)] = []byte(v)
-		}
-		fernetKeys.Data = map[string][]byte{}
-		addKey("-1h", "1")
-
 		inSecret.Data = map[string][]byte{
 			"FERNET_KEYS": []byte("myfernetkey1,myferneykey2"),
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 
 		Expect(comp).To(ReconcileContext(ctx))
 
@@ -234,7 +187,7 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("runs reconcile with no secret_key", func() {
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret)
 		res, err := comp.Reconcile(ctx)
 		Expect(err).To(MatchError(`app_secrets: error fetching derived app secret foo-dev.secret-key: secrets "foo-dev.secret-key" not found`))
 		Expect(res.Requeue).To(BeTrue())
@@ -261,7 +214,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, inSecret2, inSecret3, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -277,7 +230,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("handles a SAML_PRIVATE_KEY", func() {
 		inSecret.Data["SAML_PRIVATE_KEY"] = []byte("supersecretprivatekey")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -297,7 +250,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("handles a SAML_PUBLIC_KEY", func() {
 		inSecret.Data["SAML_PUBLIC_KEY"] = []byte("veryverifiedcert")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -317,7 +270,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("handles a SAML_IDP_PUBLIC_KEY", func() {
 		inSecret.Data["SAML_IDP_PUBLIC_KEY"] = []byte("veryverifiedcert")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -336,7 +289,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("handles a SAML_IDP_METADATA", func() {
 		inSecret.Data["SAML_IDP_METADATA"] = []byte("<saml>isgreat</saml>")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -356,7 +309,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("creates a comp-dispatch secret", func() {
 		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -377,7 +330,7 @@ var _ = Describe("app_secrets Component", func() {
 			"DEBUG": summonv1beta1.ConfigValue{Bool: &v},
 		}
 		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -391,7 +344,7 @@ var _ = Describe("app_secrets Component", func() {
 	})
 
 	It("creates a comp-hw-aux secret", func() {
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -405,7 +358,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("creates a comp-trip-share secret", func() {
 		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
@@ -421,7 +374,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("creates a comp-trip-share secret with a tripshare specific key", func() {
 		inSecret.Data["GOOGLE_MAPS_BACKEND_API_KEY"] = []byte("asdf1234")
 		inSecret.Data["GOOGLE_MAPS_TRIPSHARE_API_KEY"] = []byte("qwer5678")
-		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, fernetKeys, secretKey, accessKey, rabbitmqPassword)
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}

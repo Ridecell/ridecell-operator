@@ -226,9 +226,6 @@ type SummonPlatformSpec struct {
 	// Settings for Optimus integration.
 	// +optional
 	OptimusBucketName string `json:"optimusBucketName,omitempty"`
-	// Fernet Key Rotation Time Setting
-	// +optional
-	FernetKeyLifetime time.Duration `json:"fernetKeyLifetime,omitempty"`
 	// Disable the creation of the dispatcher@ridecell.com superuser.
 	NoCreateSuperuser bool `json:"noCreateSuperuser,omitempty"`
 	// AWS Region setting

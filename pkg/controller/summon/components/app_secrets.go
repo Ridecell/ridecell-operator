@@ -43,25 +43,6 @@ import (
 
 type appSecretComponent struct{}
 
-type fernetKeyEntry struct {
-	Key  []byte
-	Date time.Time
-}
-
-type fernetSlice []fernetKeyEntry
-
-func (p fernetSlice) Len() int {
-	return len(p)
-}
-
-func (p fernetSlice) Less(i, j int) bool {
-	return p[i].Date.Before(p[j].Date)
-}
-
-func (p fernetSlice) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
 func NewAppSecret() *appSecretComponent {
 	return &appSecretComponent{}
 }
@@ -136,11 +117,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	// This order must match the one in inputSecrets().
 	postgresSecret := dynamicInputSecrets[0]
-	fernetKeys := dynamicInputSecrets[1]
-	secretKey := dynamicInputSecrets[2]
-	awsSecret := dynamicInputSecrets[3]
-	rabbitmqSecret := dynamicInputSecrets[4]
-	mockCarServerSecret := dynamicInputSecrets[5]
+	secretKey := dynamicInputSecrets[1]
+	awsSecret := dynamicInputSecrets[2]
+	rabbitmqSecret := dynamicInputSecrets[3]
+	mockCarServerSecret := dynamicInputSecrets[4]
 
 	postgresConnection := instance.Status.PostgresConnection
 	if postgresSecret == nil || postgresSecret.Data == nil {
@@ -149,15 +129,6 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	postgresPassword, ok := postgresSecret.Data[postgresConnection.PasswordSecretRef.Key]
 	if !ok {
 		return components.Result{}, errors.New("app_secrets: Postgres password not found in secret")
-	}
-
-	if len(fernetKeys.Data) == 0 {
-		return components.Result{}, errors.New("app_secrets: Fernet keys map is empty")
-	}
-
-	formattedFernetKeys, err := comp.formatFernetKeys(fernetKeys.Data)
-	if err != nil {
-		return components.Result{}, err
 	}
 
 	val, ok := secretKey.Data["SECRET_KEY"]
@@ -197,11 +168,9 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		}
 	}
 
-	// If FERNET_KEYS is not provided externally, use dynamic fernet keys
+	// Add FERNET_KEYS
 	fk := appSecretsData["FERNET_KEYS"]
-	if fk == nil || len(fk.(string)) == 0 {
-		appSecretsData["FERNET_KEYS"] = formattedFernetKeys
-	} else {
+	if fk != nil || len(fk.(string)) > 0 {
 		// Split user provided fernet keys by ','
 		appSecretsData["FERNET_KEYS"] = strings.Split(fk.(string), ",")
 	}
@@ -355,31 +324,6 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	return components.Result{}, nil
 }
 
-func (_ *appSecretComponent) formatFernetKeys(fernetData map[string][]byte) ([]string, error) {
-	var unsortedArray []fernetKeyEntry
-	for k, v := range fernetData {
-		parsedTime, err := time.Parse(CustomTimeLayout, k)
-		if err != nil {
-			return nil, errors.New("app_secrets: Failed to parse time for fernet keys")
-		}
-		unsortedArray = append(unsortedArray, fernetKeyEntry{Date: parsedTime, Key: v})
-	}
-
-	sortedTimes := make(fernetSlice, 0, len(unsortedArray))
-	for _, d := range unsortedArray {
-		sortedTimes = append(sortedTimes, d)
-	}
-
-	sort.Sort(sort.Reverse(sortedTimes))
-
-	var outputSlice []string
-	for _, v := range sortedTimes {
-		outputSlice = append(outputSlice, string(v.Key))
-	}
-
-	return outputSlice, nil
-}
-
 func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform) []string {
 	var mockCarServerSecret string
 	// Only try to fetch this secret if we need it.
@@ -389,7 +333,6 @@ func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform
 	// The order of these must match the code using it. Do not change. I mean it.
 	return []string{
 		instance.Status.PostgresConnection.PasswordSecretRef.Name,
-		fmt.Sprintf("%s.fernet-keys", instance.Name),
 		fmt.Sprintf("%s.secret-key", instance.Name),
 		fmt.Sprintf("%s.aws-credentials", instance.Name),
 		instance.Status.RabbitMQConnection.PasswordSecretRef.Name,

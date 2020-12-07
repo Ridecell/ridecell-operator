@@ -135,11 +135,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.PullSecret == "" {
 		instance.Spec.PullSecret = "pull-secret"
 	}
-	if instance.Spec.FernetKeyLifetime == zeroSeconds {
-		// This is set to rotate fernet keys every year.
-		parsedTimeDuration, _ := time.ParseDuration(defaultFernetKeysLifespan)
-		instance.Spec.FernetKeyLifetime = parsedTimeDuration
-	}
 	if instance.Spec.AwsRegion == "" {
 		instance.Spec.AwsRegion = os.Getenv("AWS_REGION")
 		// If the env var isn't present, assume us-west-2. Mostly for local testing stuff.
