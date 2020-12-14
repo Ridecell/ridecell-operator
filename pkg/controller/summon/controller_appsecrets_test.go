@@ -53,7 +53,8 @@ var _ = Describe("Summon controller appsecrets", func() {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "appsecretstest", Namespace: helpers.Namespace},
 			StringData: map[string]string{
-				"TOKEN": "secrettoken",
+				"TOKEN":       "secrettoken",
+				"FERNET_KEYS": []byte("myfernetkey1"),
 			},
 		}
 		helpers.TestClient.Create(secret)

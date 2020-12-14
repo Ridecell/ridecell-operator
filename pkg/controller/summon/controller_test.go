@@ -54,7 +54,8 @@ var _ = Describe("Summon controller", func() {
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
-				"filler": []byte{}}}
+				"filler":      []byte{},
+				"FERNET_KEYS": []byte("myfernetkey1")}}
 		err = helpers.Client.Create(context.TODO(), appSecrets)
 		Expect(err).NotTo(HaveOccurred())
 		os.Setenv("ENABLE_NEW_STATUS_CHECK", "false")
