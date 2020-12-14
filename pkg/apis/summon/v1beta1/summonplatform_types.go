@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -226,9 +224,6 @@ type SummonPlatformSpec struct {
 	// Settings for Optimus integration.
 	// +optional
 	OptimusBucketName string `json:"optimusBucketName,omitempty"`
-	// Fernet Key Rotation Time Setting
-	// +optional
-	FernetKeyLifetime time.Duration `json:"fernetKeyLifetime,omitempty"`
 	// Disable the creation of the dispatcher@ridecell.com superuser.
 	NoCreateSuperuser bool `json:"noCreateSuperuser,omitempty"`
 	// AWS Region setting

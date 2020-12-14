@@ -94,7 +94,8 @@ var _ = Describe("Summon controller notifications", func() {
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
-				"filler": []byte{}}}
+				"filler":      []byte{},
+				"FERNET_KEYS": []byte("myfernetkey1")}}
 		helpers.TestClient.Create(appSecrets)
 
 		// Set up the instance object for other tests.

@@ -31,11 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const defaultFernetKeysLifespan = "26280h"
-
-// Treat this as a const, no touchy.
-var zeroSeconds time.Duration
-
 var configDefaults map[string]summonv1beta1.ConfigValue
 
 type defaultsComponent struct {
@@ -134,11 +129,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	if instance.Spec.PullSecret == "" {
 		instance.Spec.PullSecret = "pull-secret"
-	}
-	if instance.Spec.FernetKeyLifetime == zeroSeconds {
-		// This is set to rotate fernet keys every year.
-		parsedTimeDuration, _ := time.ParseDuration(defaultFernetKeysLifespan)
-		instance.Spec.FernetKeyLifetime = parsedTimeDuration
 	}
 	if instance.Spec.AwsRegion == "" {
 		instance.Spec.AwsRegion = os.Getenv("AWS_REGION")
