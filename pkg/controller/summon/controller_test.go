@@ -430,7 +430,9 @@ var _ = Describe("Summon controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 		inSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
-			StringData: map[string]string{},
+			StringData: map[string]string{
+				"FERNET_KEYS": "myfernetkey1",
+			},
 		}
 		err = c.Create(context.TODO(), inSecret)
 		Expect(err).NotTo(HaveOccurred())
@@ -615,7 +617,9 @@ var _ = Describe("Summon controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 		inSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
-			StringData: map[string]string{},
+			StringData: map[string]string{
+				"FERNET_KEYS": "myfernetkey1",
+			},
 		}
 		err = c.Create(context.TODO(), inSecret)
 		Expect(err).NotTo(HaveOccurred())
