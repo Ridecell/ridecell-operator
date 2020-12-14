@@ -166,11 +166,13 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		}
 	}
 
-	// Add FERNET_KEYS
+	// Add FERNET_KEYS, if not provided, throw error
 	fk := appSecretsData["FERNET_KEYS"]
 	if fk != nil && len(fk.(string)) > 0 {
 		// Split user provided fernet keys by ','
 		appSecretsData["FERNET_KEYS"] = strings.Split(fk.(string), ",")
+	} else {
+		return components.Result{}, errors.Errorf("app_secrets: FERNET_KEYS secret does not found or its empty.")
 	}
 
 	// If OTAKEYS_API_KEY is provided externally and EnableMockCarServer is also true, it is a conflict
