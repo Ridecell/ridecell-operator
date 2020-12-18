@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"strings"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -50,13 +51,13 @@ func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	// Don't create ingress when associated component is not active (businessPortal, pulse, tripshare), delete if already exist
 	if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
-		return components.Result{}, deleteObject(ctx, instance, "businessportal")
+		return components.Result{}, comp.deleteObject(ctx, instance, "businessportal")
 	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
-		return components.Result{}, deleteObject(ctx, instance, "tripshare")
+		return components.Result{}, comp.deleteObject(ctx, instance, "tripshare")
 	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
-		return components.Result{}, deleteObject(ctx, instance, "pulse")
+		return components.Result{}, comp.deleteObject(ctx, instance, "pulse")
 	} else if strings.HasPrefix(comp.templatePath, "customerportal") && *instance.Spec.Replicas.CustomerPortal == 0 {
-		return components.Result{}, deleteObject(ctx, instance, "customerportal")
+		return components.Result{}, comp.deleteObject(ctx, instance, "customerportal")
 	}
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
@@ -69,7 +70,7 @@ func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (compo
 	return res, err
 }
 
-func deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
+func (_ *ingressComponent) deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
 	obj := &extv1beta1.Ingress{}
 
 	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + "-" + componentName, Namespace: instance.Namespace}, obj)

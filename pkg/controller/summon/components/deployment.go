@@ -82,10 +82,10 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 	// Create either Celery beat or Celery RedBeat
 	if strings.HasPrefix(comp.templatePath, "celerybeat") && instance.Spec.UseCeleryRedBeat {
 		// delete celerybeat
-		return components.Result{}, deleteObject(ctx, instance, "celerybeat")
+		return components.Result{}, comp.deleteObject(ctx, instance, "celerybeat")
 	} else if strings.HasPrefix(comp.templatePath, "celeryredbeat") && !(instance.Spec.UseCeleryRedBeat) {
 		// delete celeryredbeat
-		return components.Result{}, deleteObject(ctx, instance, "celeryredbeat")
+		return components.Result{}, comp.deleteObject(ctx, instance, "celeryredbeat")
 	}
 
 	// TODO 2020-01-06 After cm+secret merges to just secret, support varying the input names in the component config so comp-dispatch and comp-trip-share can get just the hash of their config.
@@ -150,7 +150,7 @@ func (_ *deploymentComponent) hashItem(data []byte) string {
 	return encodedHash
 }
 
-func deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
+func (_ *deploymentComponent) deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
 	var obj runtime.Object
 	if componentName == "celerybeat" {
 		obj = &appsv1.StatefulSet{}
