@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Instance.Name }}-customer-portal
+  name: {{ .Instance.Name }}-customerportal
   namespace: {{ .Instance.Namespace }}
   labels:
-    app.kubernetes.io/name: customer-portal
-    app.kubernetes.io/instance: {{ .Instance.Name }}-customer-portal
+    app.kubernetes.io/name: customerportal
+    app.kubernetes.io/instance: {{ .Instance.Name }}-customerportal
     app.kubernetes.io/version: {{ .Instance.Spec.CustomerPortal.Version | quote }}
     app.kubernetes.io/component: web
     app.kubernetes.io/part-of: {{ .Instance.Name }}
@@ -15,12 +15,12 @@ spec:
   replicas: {{ .Instance.Spec.Replicas.CustomerPortal }}
   selector:
     matchLabels:
-      app.kubernetes.io/instance: {{ .Instance.Name }}-customer-portal
+      app.kubernetes.io/instance: {{ .Instance.Name }}-customerportal
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: customer-portal
-        app.kubernetes.io/instance: {{ .Instance.Name }}-customer-portal
+        app.kubernetes.io/name: customerportal
+        app.kubernetes.io/instance: {{ .Instance.Name }}-customerportal
         app.kubernetes.io/version: {{ .Instance.Spec.CustomerPortal.Version | quote }}
         app.kubernetes.io/component: web
         app.kubernetes.io/part-of: {{ .Instance.Name }}
@@ -42,13 +42,13 @@ spec:
               topologyKey: failure-domain.beta.kubernetes.io/zone
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-customer-portal
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-customerportal
           - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-customer-portal
+                  app.kubernetes.io/instance: {{ .Instance.Name }}-customerportal
       imagePullSecrets:
       - name: pull-secret
       containers:

@@ -51,17 +51,19 @@ func (_ *podDisruptionBudgetComponent) IsReconcilable(ctx *components.ComponentC
 func (comp *podDisruptionBudgetComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	// Don't create object when associated component is not active
+	// Don't create object when associated component is not active, delete if already exists
 	if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
-		return components.Result{}, nil
+		return components.Result{}, deleteObject(ctx, instance, "businessportal")
 	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
-		return components.Result{}, nil
+		return components.Result{}, deleteObject(ctx, instance, "tripshare")
 	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
-		return components.Result{}, nil
+		return components.Result{}, deleteObject(ctx, instance, "pulse")
 	} else if strings.HasPrefix(comp.templatePath, "dispatch") && *instance.Spec.Replicas.Dispatch == 0 {
-		return components.Result{}, nil
+		return components.Result{}, deleteObject(ctx, instance, "dispatch")
 	} else if strings.HasPrefix(comp.templatePath, "hwAux") && *instance.Spec.Replicas.HwAux == 0 {
-		return components.Result{}, nil
+		return components.Result{}, deleteObject(ctx, instance, "hwaux")
+	} else if strings.HasPrefix(comp.templatePath, "customerportal") && *instance.Spec.Replicas.CustomerPortal == 0 {
+		return components.Result{}, deleteObject(ctx, instance, "customerportal")
 	}
 
 	requeue := false
@@ -88,4 +90,19 @@ func (comp *podDisruptionBudgetComponent) Reconcile(ctx *components.ComponentCon
 		return components.Result{Requeue: true}, nil
 	}
 	return res, err
+}
+
+func deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
+	obj := &policyv1beta1.PodDisruptionBudget{}
+
+	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + "-" + componentName, Namespace: instance.Namespace}, obj)
+	if err == nil {
+		err = ctx.Delete(ctx.Context, obj)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete existing "+componentName)
+		}
+	} else if err != nil && !kerrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get and delete existing "+componentName)
+	}
+	return nil
 }
