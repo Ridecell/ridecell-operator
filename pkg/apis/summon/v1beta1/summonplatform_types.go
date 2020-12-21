@@ -146,6 +146,9 @@ type ReplicasSpec struct {
 	// Number of pulse pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no pulse.version is set.
 	// +optional
 	Pulse *int32 `json:"pulse,omitempty"`
+	// Number of kafkaconsumer pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no pulse.version is set.
+	// +optional
+	KafkaConsumer *int32 `json:"kafkaconsumer,omitempty"`
 }
 
 // MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
@@ -159,6 +162,8 @@ type MetricsSpec struct {
 	Web *bool `json:"web,omitempty"`
 	// Enables metrics exporting for celeryd pods
 	Celeryd *bool `json:"celeryd,omitempty"`
+	// Enables metrics exporting for web pods
+	KafkaConsumer *bool `json:"kafkaconsumer,omitempty"`
 }
 
 // CompDispatchSpec defines settings for comp-dispatch.
