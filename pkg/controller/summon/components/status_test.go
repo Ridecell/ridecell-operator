@@ -68,7 +68,7 @@ var _ = Describe("SummonPlatform Status Component", func() {
 				Replicas: intp(2),
 			},
 		}
-		kafkaconsumerdDeployment = &appsv1.Deployment{
+		kafkaconsumerDeployment = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-kafkaconsumer", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: intp(2),
