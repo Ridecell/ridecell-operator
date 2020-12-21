@@ -237,6 +237,7 @@ var _ = Describe("Summon controller notifications", func() {
 		updateDeployment("businessportal", 0)
 		updateDeployment("hwaux", 0)
 		updateDeployment("tripshare", 0)
+		updateDeployment("kafkaconsumer", 1)
 
 		// Mark the statefulset as ready.
 		statefulset := &appsv1.StatefulSet{}
