@@ -139,7 +139,7 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 		celeryd.Spec.Replicas != nil && celeryd.Status.AvailableReplicas == *celeryd.Spec.Replicas &&
 		channelworker.Spec.Replicas != nil && channelworker.Status.AvailableReplicas == *channelworker.Spec.Replicas &&
 		static.Spec.Replicas != nil && static.Status.AvailableReplicas == *static.Spec.Replicas &&
-		kafkaconsumer.Spec.Replicas != nil && kafkaconsumer.Status.AvailableReplicas == *kafkaconsumer.Spec.AvailableReplicas &&
+		kafkaconsumer.Spec.Replicas != nil && kafkaconsumer.Status.AvailableReplicas == *kafkaconsumer.Spec.Replicas &&
 		// Note this one is different, available vs ready.
 		celerybeat.Spec.Replicas != nil && celerybeat.Status.ReadyReplicas == *celerybeat.Spec.Replicas {
 		// TODO: Add an actual HTTP self check in here.
