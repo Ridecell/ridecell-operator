@@ -143,7 +143,6 @@ func Add(mgr manager.Manager) error {
 
 		// Kafka Consumer components.
 		summoncomponents.NewDeployment("kafkaconsumer/deployment.yml.tpl", nil),
-		summoncomponents.NewPodDisruptionBudget("kafkaconsumer/podDisruptionBudget.yml.tpl"),
 
 
 		// Set Monitoring
