@@ -327,6 +327,9 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	if replicas.HwAux == nil {
 		replicas.HwAux = defaultsForEnv(1, 1, 2, 2)
 	}
+	if replicas.KafkaConsumer == nil {
+	    replicas.KafkaConsumer = defaultsForEnv(0, 0, 0, 0)
+	}
 
 	// If no component version is set, override replicas to 0.
 	if instance.Spec.Dispatch.Version == "" {
