@@ -45,7 +45,7 @@ const CompBusinessPortalStr = "comp-business-portal"
 const CompHwAuxStr = "comp-hw-aux"
 const CompTripShareStr = "comp-trip-share"
 const CompPulseStr = "comp-pulse"
-const CompKafkaConsumerStr = 'comp-kafka-consumer'
+const CompKafkaConsumerStr = "comp-kafka-consumer"
 
 func init() {
 	versionRegex = regexp.MustCompile(`^(\d+)-([0-9a-fA-F]+)-(\S+)$`)
