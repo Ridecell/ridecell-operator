@@ -200,6 +200,13 @@ type CompPulseSpec struct {
 	Version string `json:"version"`
 }
 
+// ComKafkaConsumerSpec defines setting for comp-kafkaconsumer
+type CompKafkaConsumerSpec struct {
+	// Comp-Kafkaconsumer image version to deploy.
+	Version string `json:"version"`
+}
+
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -301,6 +308,8 @@ type SummonPlatformSpec struct {
 	// Settings for comp-pulse.
 	// +optional
 	Pulse CompPulseSpec `json:"pulse,omitempty"`
+	// Settings for comp-kafkaconsumer
+	KafkaConsumer CompKafkaConsumerSpec 'json:kafkaconsumer,omitempty'
 	// Feature flag to disable the CORE-1540 fixup in case it goes AWOL.
 	// To be removed when support for the 1540 fixup is removed in summon.
 	// +optional
@@ -333,6 +342,8 @@ type NotificationStatus struct {
 	// The last version notification posted for HwAux deploy.
 	// +optional
 	HwAuxVersion string `json:"hwAuxVersion,omitempty"`
+	// The last version notification posted for kafkaconsumer deploy.
+	KafkaConsumerVersion string `json:"kafkaConsumerVersion,omitempty"`
 	// Circleci Regression test webhook status
 	// +optional
 	CircleciRegressionWebhook string `json:"circleciRegressionWebhook,omitempty"`
