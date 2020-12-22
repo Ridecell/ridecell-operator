@@ -249,7 +249,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		if err != nil {
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
-
+	}
 	if instance.Spec.KafkaConsumer.Version != instance.Status.Notification.KafkaConsumerVersion {
 		err := c.notifyAndPostStatus(instance, CompKafkaConsumerStr, instance.Spec.KafkaConsumer.Version)
 		if err != nil {
