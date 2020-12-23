@@ -149,6 +149,9 @@ type ReplicasSpec struct {
 	// Number of kafkaconsumer pods to run. Defaults to 0 for dev/qa, 0 for uat/prod.
 	// +optional
 	KafkaConsumer *int32 `json:"kafkaconsumer,omitempty"`
+	// Number of customer-portal pods to run. Defaults to 1 for dev/qa, 2 for uat/prod. Overridden to 0 if no customerPortal.version is set.
+	// +optional
+	CustomerPortal *int32 `json:"customerPortal,omitempty"`
 }
 
 // MonitorSpec will enable in monitoring. (In future we can use it to configure monitor.ridecell.io)
@@ -206,6 +209,11 @@ type CompKafkaConsumerSpec struct {
 	Version string `json:"version"`
 }
 
+// CompCustomerPortalSpec defines settings for comp-customer-portal.
+type CompCustomerPortalSpec struct {
+	// Comp-customer-portal image version to deploy.
+	Version string `json:"version"`
+}
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
@@ -310,6 +318,9 @@ type SummonPlatformSpec struct {
 	Pulse CompPulseSpec `json:"pulse,omitempty"`
 	// Settings for comp-kafkaconsumer
 	KafkaConsumer CompKafkaConsumerSpec `json:"kafkaconsumer,omitempty"`
+	// Settings for comp-customer-portal.
+	// +optional
+	CustomerPortal CompCustomerPortalSpec `json:"customerPortal,omitempty"`
 	// Feature flag to disable the CORE-1540 fixup in case it goes AWOL.
 	// To be removed when support for the 1540 fixup is removed in summon.
 	// +optional
@@ -333,6 +344,9 @@ type NotificationStatus struct {
 	// The last version notification posted for pulse deploy.
 	// +optional
 	PulseVersion string `json:"pulseVersion,omitempty"`
+	// The last version notification posted for customerPortal deploy.
+	// +optional
+	CustomerPortalVersion string `json:"customerPortalVersion,omitempty"`
 	// The last version notification posted for businessPortal deploy.
 	// +optional
 	BusinessPortalVersion string `json:"businessPortalVersion,omitempty"`

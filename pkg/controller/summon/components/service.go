@@ -17,12 +17,15 @@ limitations under the License.
 package components
 
 import (
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"strings"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type serviceComponent struct {
@@ -47,19 +50,21 @@ func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	// Don't create service when associated component is not active
+	// Don't create service when associated component is not active, delete if already exist
 	if strings.HasPrefix(comp.templatePath, "redis") && instance.Spec.MigrationOverrides.RedisHostname != "" {
-		return components.Result{}, nil
+		return components.Result{}, comp.deleteObject(ctx, instance, "redis")
 	} else if strings.HasPrefix(comp.templatePath, "businessPortal") && *instance.Spec.Replicas.BusinessPortal == 0 {
-		return components.Result{}, nil
+		return components.Result{}, comp.deleteObject(ctx, instance, "businessportal")
 	} else if strings.HasPrefix(comp.templatePath, "tripShare") && *instance.Spec.Replicas.TripShare == 0 {
-		return components.Result{}, nil
+		return components.Result{}, comp.deleteObject(ctx, instance, "tripshare")
 	} else if strings.HasPrefix(comp.templatePath, "pulse") && *instance.Spec.Replicas.Pulse == 0 {
-		return components.Result{}, nil
+		return components.Result{}, comp.deleteObject(ctx, instance, "pulse")
 	} else if strings.HasPrefix(comp.templatePath, "dispatch") && *instance.Spec.Replicas.Dispatch == 0 {
-		return components.Result{}, nil
+		return components.Result{}, comp.deleteObject(ctx, instance, "dispatch")
 	} else if strings.HasPrefix(comp.templatePath, "hwAux") && *instance.Spec.Replicas.HwAux == 0 {
-		return components.Result{}, nil
+		return components.Result{}, comp.deleteObject(ctx, instance, "hwaux")
+	} else if strings.HasPrefix(comp.templatePath, "customerportal") && *instance.Spec.Replicas.CustomerPortal == 0 {
+		return components.Result{}, comp.deleteObject(ctx, instance, "customerportal")
 	}
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
@@ -72,4 +77,19 @@ func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (compo
 		return nil
 	})
 	return res, err
+}
+
+func (_ *serviceComponent) deleteObject(ctx *components.ComponentContext, instance *summonv1beta1.SummonPlatform, componentName string) error {
+	obj := &corev1.Service{}
+
+	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name + "-" + componentName, Namespace: instance.Namespace}, obj)
+	if err == nil {
+		err = ctx.Delete(ctx.Context, obj)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete existing "+componentName)
+		}
+	} else if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get and delete existing "+componentName)
+	}
+	return nil
 }

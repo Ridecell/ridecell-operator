@@ -124,6 +124,12 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewService("businessPortal/service.yml.tpl"),
 		summoncomponents.NewIngress("businessPortal/ingress.yml.tpl"),
 
+		// Customer Portal components.
+		summoncomponents.NewDeployment("customerportal/deployment.yml.tpl", nil),
+		summoncomponents.NewPodDisruptionBudget("customerportal/podDisruptionBudget.yml.tpl"),
+		summoncomponents.NewService("customerportal/service.yml.tpl"),
+		summoncomponents.NewIngress("customerportal/ingress.yml.tpl"),
+
 		// Pulse components.
 		summoncomponents.NewDeployment("pulse/deployment.yml.tpl", nil),
 		summoncomponents.NewPodDisruptionBudget("pulse/podDisruptionBudget.yml.tpl"),

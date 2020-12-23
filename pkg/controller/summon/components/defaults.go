@@ -236,6 +236,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defBoolVal("TRIPSHARE_ENABLED", instance.Spec.Replicas.TripShare != nil && *instance.Spec.Replicas.TripShare > 0)
 	defBoolVal("OPERATIONS_ENABLED", instance.Spec.Replicas.Pulse != nil && *instance.Spec.Replicas.Pulse > 0)
 	defBoolVal("KAFKACONSUMER_ENABLED", instance.Spec.Replicas.KafkaConsumer != nil && *instance.Spec.Replicas.KafkaConsumer > 0)
+	defBoolVal("CUSTOMERPORTAL_ENABLED", instance.Spec.Replicas.CustomerPortal != nil && *instance.Spec.Replicas.CustomerPortal > 0)
 
 	// Translate our aws region into a usable region
 	untranslatedRegion := strings.Split(os.Getenv("AWS_REGION"), "-")[0]
@@ -322,6 +323,9 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	if replicas.BusinessPortal == nil {
 		replicas.BusinessPortal = defaultsForEnv(1, 1, 2, 2)
 	}
+	if replicas.CustomerPortal == nil {
+		replicas.CustomerPortal = defaultsForEnv(1, 1, 2, 2)
+	}
 	if replicas.TripShare == nil {
 		replicas.TripShare = defaultsForEnv(1, 1, 2, 2)
 	}
@@ -338,6 +342,9 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	}
 	if instance.Spec.Pulse.Version == "" {
 		replicas.Pulse = intp(0)
+	}
+	if instance.Spec.CustomerPortal.Version == "" {
+		replicas.CustomerPortal = intp(0)
 	}
 	if instance.Spec.BusinessPortal.Version == "" {
 		replicas.BusinessPortal = intp(0)
