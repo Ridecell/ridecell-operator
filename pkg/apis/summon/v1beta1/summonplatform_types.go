@@ -165,8 +165,6 @@ type MetricsSpec struct {
 	Web *bool `json:"web,omitempty"`
 	// Enables metrics exporting for celeryd pods
 	Celeryd *bool `json:"celeryd,omitempty"`
-	// Enables metrics exporting for kafkaconsumer pods
-	KafkaConsumer *bool `json:"kafkaconsumer,omitempty"`
 }
 
 // CompDispatchSpec defines settings for comp-dispatch.
