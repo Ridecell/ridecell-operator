@@ -355,9 +355,6 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	if instance.Spec.HwAux.Version == "" {
 		replicas.HwAux = intp(0)
 	}
-	if instance.Spec.KafkaConsumer.Version == "" {
-	    replicas.KafkaConsumer = intp(0)
-	}
 
 	// Quick error check.
 	if !(*replicas.CeleryBeat == 0 || *replicas.CeleryBeat == 1) {
