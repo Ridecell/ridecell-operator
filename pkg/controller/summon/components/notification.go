@@ -45,6 +45,7 @@ const CompBusinessPortalStr = "comp-business-portal"
 const CompHwAuxStr = "comp-hw-aux"
 const CompTripShareStr = "comp-trip-share"
 const CompPulseStr = "comp-pulse"
+const CompCustomerPortal = "comp-customer-portal"
 
 func init() {
 	versionRegex = regexp.MustCompile(`^(\d+)-([0-9a-fA-F]+)-(\S+)$`)
@@ -237,6 +238,12 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
 	}
+	if instance.Spec.CustomerPortal.Version != instance.Status.Notification.CustomerPortalVersion {
+		err := c.notifyAndPostStatus(instance, CompCustomerPortal, instance.Spec.CustomerPortal.Version)
+		if err != nil {
+			errs = fmt.Errorf("%s; %s", errs, err)
+		}
+	}
 	if instance.Spec.HwAux.Version != instance.Status.Notification.HwAuxVersion {
 		err := c.notifyAndPostStatus(instance, CompHwAuxStr, instance.Spec.HwAux.Version)
 		if err != nil {
@@ -277,6 +284,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 			instance.Status.Notification.PulseVersion = instance.Spec.Pulse.Version
 			instance.Status.Notification.HwAuxVersion = instance.Spec.HwAux.Version
 			instance.Status.Notification.TripShareVersion = instance.Spec.TripShare.Version
+			instance.Status.Notification.CustomerPortalVersion = instance.Spec.CustomerPortal.Version
 			if instance.Spec.Notifications.CircleciRegressionWebhook {
 				instance.Status.Notification.CircleciRegressionWebhook = webhookStatus
 			}
