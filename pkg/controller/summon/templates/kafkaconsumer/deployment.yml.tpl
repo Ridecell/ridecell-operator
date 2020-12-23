@@ -10,9 +10,8 @@ metadata:
     app.kubernetes.io/component: worker
     app.kubernetes.io/part-of: {{ .Instance.Name }}
     app.kubernetes.io/managed-by: summon-operator
-    metrics-enabled: "{{ .Instance.Spec.Metrics.KafkaConsumer | default "false" }}"
 spec:
-  replicas: {{ .Instance.Spec.Replicas.KafkaConsumer | default 0 }}
+  replicas: {{ .Instance.Spec.Replicas.KafkaConsumer }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Instance.Name }}-kafkaconsumer
@@ -25,7 +24,6 @@ spec:
         app.kubernetes.io/component: worker
         app.kubernetes.io/part-of: {{ .Instance.Name }}
         app.kubernetes.io/managed-by: summon-operator
-        metrics-enabled: "{{ .Instance.Spec.Metrics.KafkaConsumer | default "false" }}"
       annotations:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
@@ -40,12 +38,6 @@ spec:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
-            podAffinityTerm:
-              topologyKey: failure-domain.beta.kubernetes.io/zone
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-kafkaconsumer
-          - weight: 1
             podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
@@ -65,10 +57,10 @@ spec:
         - containerPort: 9000
         resources:
           requests:
-            memory: 1G
-            cpu: 500m
+            memory: 500M
+            cpu: 50m
           limits:
-            memory: 1.5G
+            memory: 500M
         env:
         - name: SUMMON_COMPONENT
           valueFrom:
