@@ -17,6 +17,7 @@ limitations under the License.
 package templates
 
 import (
+	"fmt"
 	"bytes"
 	"net/http"
 	"path"
