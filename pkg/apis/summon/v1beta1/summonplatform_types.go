@@ -201,12 +201,6 @@ type CompPulseSpec struct {
 	Version string `json:"version"`
 }
 
-// CompKafkaConsumerSpec defines setting for comp-kafkaconsumer
-type CompKafkaConsumerSpec struct {
-	// Comp-Kafkaconsumer image version to deploy.
-	Version string `json:"version"`
-}
-
 // CompCustomerPortalSpec defines settings for comp-customer-portal.
 type CompCustomerPortalSpec struct {
 	// Comp-customer-portal image version to deploy.
@@ -314,8 +308,6 @@ type SummonPlatformSpec struct {
 	// Settings for comp-pulse.
 	// +optional
 	Pulse CompPulseSpec `json:"pulse,omitempty"`
-	// Settings for comp-kafkaconsumer
-	KafkaConsumer CompKafkaConsumerSpec `json:"kafkaconsumer,omitempty"`
 	// Settings for comp-customer-portal.
 	// +optional
 	CustomerPortal CompCustomerPortalSpec `json:"customerPortal,omitempty"`
@@ -354,8 +346,6 @@ type NotificationStatus struct {
 	// The last version notification posted for HwAux deploy.
 	// +optional
 	HwAuxVersion string `json:"hwAuxVersion,omitempty"`
-	// The last version notification posted for kafkaconsumer deploy.
-	KafkaConsumerVersion string `json:"kafkaConsumerVersion,omitempty"`
 	// Circleci Regression test webhook status
 	// +optional
 	CircleciRegressionWebhook string `json:"circleciRegressionWebhook,omitempty"`

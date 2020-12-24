@@ -45,7 +45,6 @@ const CompBusinessPortalStr = "comp-business-portal"
 const CompHwAuxStr = "comp-hw-aux"
 const CompTripShareStr = "comp-trip-share"
 const CompPulseStr = "comp-pulse"
-const CompKafkaConsumerStr = "comp-kafka-consumer"
 const CompCustomerPortal = "comp-customer-portal"
 
 func init() {
@@ -253,12 +252,6 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 	if instance.Spec.TripShare.Version != instance.Status.Notification.TripShareVersion {
 		err := c.notifyAndPostStatus(instance, CompTripShareStr, instance.Spec.TripShare.Version)
-		if err != nil {
-			errs = fmt.Errorf("%s; %s", errs, err)
-		}
-	}
-	if instance.Spec.KafkaConsumer.Version != instance.Status.Notification.KafkaConsumerVersion {
-		err := c.notifyAndPostStatus(instance, CompKafkaConsumerStr, instance.Spec.KafkaConsumer.Version)
 		if err != nil {
 			errs = fmt.Errorf("%s; %s", errs, err)
 		}
