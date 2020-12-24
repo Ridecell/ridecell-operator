@@ -47,7 +47,7 @@ func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]in
 	if err != nil {
 		return Result{}, controllerutil.OperationResultNone, err
 	}
-	fmt.Println(target)
+
 	op, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, target.DeepCopyObject(), func(existing runtime.Object) error {
 		// Set owner ref.
 		err := controllerutil.SetControllerReference(ctx.Top.(metav1.Object), existing.(metav1.Object), ctx.Scheme)

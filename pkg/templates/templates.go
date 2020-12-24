@@ -17,6 +17,7 @@ limitations under the License.
 package templates
 
 import (
+	"fmt"
 	"bytes"
 	"net/http"
 	"path"
@@ -83,7 +84,7 @@ func renderTemplate(tmpl *template.Template, data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	fmt.Println(buffer.String())
 	return buffer.String(), nil
 }
 
