@@ -5,7 +5,7 @@
 {{- end -}}
 {{- define "deploymentPorts" -}}
 [{containerPort: 9000}]
-{{- end }-}
+{{- end -}}
 {{ define "metricsEnabled" }}"false"{{ end }}
 {{ define "replicas" }}{{ .Instance.Spec.Replicas.KafkaConsumer }}{{ end }}
 {{ define "resources" }}{requests: {memory: "500M", cpu: "50m"}, limits: {memory: "500M"}}{{ end }}
