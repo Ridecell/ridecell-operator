@@ -83,7 +83,7 @@ func renderTemplate(tmpl *template.Template, data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	fmt.Println(buffer.String())
 	return buffer.String(), nil
 }
 
