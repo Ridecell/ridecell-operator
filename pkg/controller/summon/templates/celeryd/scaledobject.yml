@@ -1,0 +1,21 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Instance.Name }}-celeryd
+  namespace: {{ .Instance.Namespace }}
+spec:
+  scaleTargetRef:
+    name: {{ .Instance.Name }}-celeryd
+  pollingInterval: 30
+  cooldownPeriod:  60
+  minReplicaCount: 1
+  maxReplicaCount: 12
+  advanced:
+    restoreToOriginalReplicaCount: true
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus-infra.prometheus.svc.cluster.local:9090
+      metricName: rabbitmq_queue_messages_ready
+      query: sum(rabbitmq_queue_messages_ready{queue="celery", vhost="{{ .Instance.Spec.MigrationOverrides.RabbitMQVhost | default .Instance.Name }}"})
+      threshold: '100'
