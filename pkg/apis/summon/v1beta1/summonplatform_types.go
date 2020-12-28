@@ -116,9 +116,6 @@ type ReplicasSpec struct {
 	// Number of celeryd pods to run. Defaults to 1 for dev/qa/uat, 4 for prod.
 	// +optional
 	Celeryd *int32 `json:"celeryd,omitempty"`
-	// Use horizontal pod autoscaling for celeryd instead of a set replica.
-	// +optional
-	CelerydAuto *bool `json:"celerydAuto,omitempty"`
 	// Number of celerybeat pods to run. Defaults to 1. Must be exactly 0 or 1.
 	// +optional
 	CeleryBeat *int32 `json:"celeryBeat,omitempty"`

@@ -23,16 +23,16 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 )
 
 var _ = Describe("deployment Component", func() {
@@ -43,7 +43,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("runs a basic reconcile", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -70,7 +70,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("runs a basic web deployment reconcile", func() {
-		comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
+		comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -94,7 +94,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("makes sure keys are sorted before hash", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -120,7 +120,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("updates existing hashes for deployments", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
@@ -164,7 +164,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("updates existing hashes for statefulsets", func() {
-		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil)
+		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl")
 
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
@@ -208,7 +208,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("creates an statefulset object using celerybeat template", func() {
-		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil)
+		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl")
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -231,7 +231,7 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	It("sets celerybeat to 0 if NoCelerybeat is true", func() {
-		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil)
+		comp := summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl")
 
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
@@ -258,28 +258,24 @@ var _ = Describe("deployment Component", func() {
 	})
 
 	Context("with celeryd", func() {
-		var configMap *corev1.ConfigMap
-		var appSecrets *corev1.Secret
 		BeforeEach(func() {
-			// default component would run first and default celerydAuto to false.
-			bVal := false
-			instance.Spec.Replicas.CelerydAuto = &bVal
-			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
-			configMap = &corev1.ConfigMap{
+			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
+		})
+
+		It("passes eventlet/30 by default", func() {
+			configMap := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
 				Data:       map[string]string{"summon-platform.yml": "{}\n"},
 			}
 
-			appSecrets = &corev1.Secret{
+			appSecrets := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 				Data: map[string][]byte{
 					"filler": []byte("test"),
 					"test":   []byte("another_test"),
 				},
 			}
-		})
 
-		It("passes eventlet/30 by default", func() {
 			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 			Expect(comp).To(ReconcileContext(ctx))
 			target := &appsv1.Deployment{}
@@ -289,6 +285,19 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("passes concurrency when set", func() {
+			configMap := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+				Data:       map[string]string{"summon-platform.yml": "{}\n"},
+			}
+
+			appSecrets := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+				Data: map[string][]byte{
+					"filler": []byte("test"),
+					"test":   []byte("another_test"),
+				},
+			}
+
 			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 			instance.Spec.Celery.Concurrency = 10
 			Expect(comp).To(ReconcileContext(ctx))
@@ -299,6 +308,19 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("passes pool when set", func() {
+			configMap := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+				Data:       map[string]string{"summon-platform.yml": "{}\n"},
+			}
+
+			appSecrets := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.app-secrets", instance.Name), Namespace: instance.Namespace},
+				Data: map[string][]byte{
+					"filler": []byte("test"),
+					"test":   []byte("another_test"),
+				},
+			}
+
 			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 			instance.Spec.Celery.Pool = "solo"
 			Expect(comp).To(ReconcileContext(ctx))
@@ -306,33 +328,6 @@ var _ = Describe("deployment Component", func() {
 			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "30", "--pool", "solo"}))
-		})
-
-		It("uses existing Spec.Replicas if celerydAuto is set", func() {
-			// Defaults component would set celeryd to 1 for dev instances.
-			instance.Spec.Replicas.Celeryd = intp(1)
-			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
-			Expect(comp).To(ReconcileContext(ctx))
-
-			target := &appsv1.Deployment{}
-			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
-
-			// Simulate HPA modifying replica count of existing deployment object
-			bValue := true
-			instance.Spec.Replicas.CelerydAuto = &bValue
-			celerydReplicas := int32(2)
-			target.Spec.Replicas = &celerydReplicas
-			err = ctx.Client.Update(ctx.Context, target)
-			Expect(err).ToNot(HaveOccurred())
-
-			// Reconcile Deployment Object and refetch.
-			Expect(comp).To(ReconcileContext(ctx))
-			// Check that after reconciling, reconciled deployment object keeps existing replicas.
-			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-celeryd", Namespace: instance.Namespace}, target)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(target.Spec.Replicas).Should(PointTo(BeEquivalentTo(int32(2))))
 		})
 	})
 
@@ -355,7 +350,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag true on web deployment", func() {
-			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
 			trueBool := true
 			instance.Spec.Metrics.Web = &trueBool
 			Expect(comp).To(ReconcileContext(ctx))
@@ -369,7 +364,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag false on web deployment", func() {
-			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
 			falseBool := false
 			instance.Spec.Metrics.Web = &falseBool
 			Expect(comp).To(ReconcileContext(ctx))
@@ -383,7 +378,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag nil on web deployment", func() {
-			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl", nil)
+			comp := summoncomponents.NewDeployment("web/deployment.yml.tpl")
 			instance.Spec.Metrics.Web = nil
 			Expect(comp).To(ReconcileContext(ctx))
 
@@ -396,7 +391,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag true on static deployment", func() {
-			comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", nil)
+			comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 			trueBool := true
 			instance.Spec.Metrics.Web = &trueBool
 			Expect(comp).To(ReconcileContext(ctx))
@@ -409,7 +404,7 @@ var _ = Describe("deployment Component", func() {
 		})
 
 		It("Web flag true on celeryd deployment", func() {
-			comp := summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", nil)
+			comp := summoncomponents.NewDeployment("celeryd/deployment.yml.tpl")
 			trueBool := true
 			instance.Spec.Metrics.Web = &trueBool
 			Expect(comp).To(ReconcileContext(ctx))

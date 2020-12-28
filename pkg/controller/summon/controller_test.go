@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -202,12 +201,6 @@ var _ = Describe("Summon controller", func() {
 		c.EventuallyGet(helpers.Name("foo-web"), ingress)
 		Expect(ingress.Spec.TLS[0].SecretName).To(Equal("foo-tls"))
 
-		// Check that no hpa was deployed for celery. (celerydAuto is false by default)
-		hpa := &autoscalingv2beta2.HorizontalPodAutoscaler{}
-		Eventually(func() error {
-			return helpers.Client.Get(context.TODO(), helpers.Name("foo-celeryd-hpa"), hpa)
-		}, timeout).ShouldNot(Succeed())
-
 		// Delete the Deployment and expect it to come back.
 		c.Delete(deploy)
 		c.EventuallyGet(helpers.Name("foo-web"), deploy)
@@ -228,9 +221,6 @@ var _ = Describe("Summon controller", func() {
 		c.EventuallyGet(helpers.Name("foo"), instance)
 		instance.Spec.Dispatch.Version = "1234"
 		instance.Spec.TripShare.Version = "5678"
-		// Enable HPA for celeryd
-		bVal := true
-		instance.Spec.Replicas.CelerydAuto = &bVal
 		c.Update(instance)
 		Eventually(func() error {
 			c.Get(helpers.Name("foo-dispatch"), deploy)
@@ -246,9 +236,6 @@ var _ = Describe("Summon controller", func() {
 			}
 			return nil
 		}, timeout).Should(Succeed())
-		// celeryd-hpa should be created
-		c.EventuallyGet(helpers.Name("foo-celeryd-hpa"), hpa, c.EventuallyTimeout(timeout))
-		Expect(hpa.Spec.ScaleTargetRef.Name).To(Equal("foo-celeryd"))
 	})
 
 	It("reconciles labels", func() {
