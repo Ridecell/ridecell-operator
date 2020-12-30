@@ -42,9 +42,10 @@ var _ = Describe("SummonPlatform Status Component", func() {
 	var tripShareDeployment *appsv1.Deployment
 	var hwAuxDeployment *appsv1.Deployment
 	var celerybeatStatefulSet *appsv1.StatefulSet
+	var kafkaconsumerDeployment *appsv1.Deployment
 	makeClient := func() client.Client {
 		return fake.NewFakeClient(instance, webDeployment, daphneDeployment, celerydDeployment,
-			channelworkersDeployment, staticDeployment, celerybeatStatefulSet)
+			channelworkersDeployment, staticDeployment, celerybeatStatefulSet, kafkaconsumerDeployment)
 	}
 
 	BeforeEach(func() {
@@ -63,6 +64,12 @@ var _ = Describe("SummonPlatform Status Component", func() {
 		}
 		celerydDeployment = &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celeryd", Namespace: "summon-dev"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: intp(2),
+			},
+		}
+		kafkaconsumerDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-kafkaconsumer", Namespace: "summon-dev"},
 			Spec: appsv1.DeploymentSpec{
 				Replicas: intp(2),
 			},
@@ -106,6 +113,7 @@ var _ = Describe("SummonPlatform Status Component", func() {
 		channelworkersDeployment.Status.AvailableReplicas = 2
 		staticDeployment.Status.AvailableReplicas = 2
 		celerybeatStatefulSet.Status.ReadyReplicas = 2
+		kafkaconsumerDeployment.Status.AvailableReplicas = 2
 		instance.Status.Status = summonv1beta1.StatusDeploying
 		ctx.Client = makeClient()
 
@@ -191,13 +199,14 @@ var _ = Describe("SummonPlatform Status Component", func() {
 			updateDeploymentStatus(businessPortalDeployment)
 			updateDeploymentStatus(tripShareDeployment)
 			updateDeploymentStatus(hwAuxDeployment)
+			updateDeploymentStatus(kafkaconsumerDeployment)
 			celerybeatStatefulSet.Status.ReadyReplicas = 2
 			celerybeatStatefulSet.Status.UpdatedReplicas = 2
 
 			instance.Status.Status = summonv1beta1.StatusDeploying
 			ctx.Client = fake.NewFakeClient(instance, webDeployment, daphneDeployment, celerydDeployment,
 				channelworkersDeployment, staticDeployment, celerybeatStatefulSet, dispatchDeployment,
-				businessPortalDeployment, tripShareDeployment, hwAuxDeployment)
+				businessPortalDeployment, tripShareDeployment, hwAuxDeployment, kafkaconsumerDeployment)
 
 			comp := summoncomponents.NewStatus()
 			Expect(comp).To(ReconcileContext(ctx))

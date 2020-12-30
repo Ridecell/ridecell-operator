@@ -235,6 +235,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	defBoolVal("BUSINESSPORTAL_ENABLED", instance.Spec.Replicas.BusinessPortal != nil && *instance.Spec.Replicas.BusinessPortal > 0)
 	defBoolVal("TRIPSHARE_ENABLED", instance.Spec.Replicas.TripShare != nil && *instance.Spec.Replicas.TripShare > 0)
 	defBoolVal("OPERATIONS_ENABLED", instance.Spec.Replicas.Pulse != nil && *instance.Spec.Replicas.Pulse > 0)
+	defBoolVal("KAFKACONSUMER_ENABLED", instance.Spec.Replicas.KafkaConsumer != nil && *instance.Spec.Replicas.KafkaConsumer > 0)
 	defBoolVal("CUSTOMERPORTAL_ENABLED", instance.Spec.Replicas.CustomerPortal != nil && *instance.Spec.Replicas.CustomerPortal > 0)
 
 	// Translate our aws region into a usable region
@@ -330,6 +331,9 @@ func (comp *defaultsComponent) replicaDefaults(instance *summonv1beta1.SummonPla
 	}
 	if replicas.HwAux == nil {
 		replicas.HwAux = defaultsForEnv(1, 1, 2, 2)
+	}
+	if replicas.KafkaConsumer == nil {
+		replicas.KafkaConsumer = defaultsForEnv(0, 0, 0, 0)
 	}
 
 	// If no component version is set, override replicas to 0.
