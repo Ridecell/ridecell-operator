@@ -1,9 +1,5 @@
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 // ConditionType specifies the available conditions for the resource
 type ConditionType string
 
@@ -24,7 +20,7 @@ type Condition struct {
 
 	// Status of the condition, one of True, False, Unknown.
 	// +required
-	Status metav1.ConditionStatus `json:"status" description:"status of the condition, one of True, False, Unknown"`
+	Status string `json:"status" description:"status of the condition, one of True, False, Unknown"`
 
 	// The reason for the condition's last transition.
 	// +optional
@@ -64,7 +60,7 @@ func (c *Conditions) AreInitialized() bool {
 
 // GetInitializedConditions returns Conditions initialized to the default -> Status: Unknown
 func GetInitializedConditions() *Conditions {
-	return &Conditions{{Type: ConditionReady, Status: metav1.ConditionUnknown}, {Type: ConditionActive, Status: metav1.ConditionUnknown}}
+	return &Conditions{{Type: ConditionReady, Status: "Unknown"}, {Type: ConditionActive, Status: "Unknown"}}
 }
 
 // IsTrue is true if the condition is True
@@ -72,7 +68,7 @@ func (c *Condition) IsTrue() bool {
 	if c == nil {
 		return false
 	}
-	return c.Status == metav1.ConditionTrue
+	return c.Status == "True"
 }
 
 // IsFalse is true if the condition is False
@@ -80,7 +76,7 @@ func (c *Condition) IsFalse() bool {
 	if c == nil {
 		return false
 	}
-	return c.Status == metav1.ConditionFalse
+	return c.Status == "False"
 }
 
 // IsUnknown is true if the condition is Unknown
@@ -88,11 +84,11 @@ func (c *Condition) IsUnknown() bool {
 	if c == nil {
 		return true
 	}
-	return c.Status == metav1.ConditionUnknown
+	return c.Status == "Unknown"
 }
 
 // SetReadyCondition modifies Ready Condition according to input parameters
-func (c *Conditions) SetReadyCondition(status metav1.ConditionStatus, reason string, message string) {
+func (c *Conditions) SetReadyCondition(status string, reason string, message string) {
 	if *c == nil {
 		c = GetInitializedConditions()
 	}
@@ -100,7 +96,7 @@ func (c *Conditions) SetReadyCondition(status metav1.ConditionStatus, reason str
 }
 
 // SetActiveCondition modifies Active Condition according to input parameters
-func (c *Conditions) SetActiveCondition(status metav1.ConditionStatus, reason string, message string) {
+func (c *Conditions) SetActiveCondition(status string, reason string, message string) {
 	if *c == nil {
 		c = GetInitializedConditions()
 	}
@@ -124,7 +120,7 @@ func (c Conditions) getCondition(conditionType ConditionType) Condition {
 	return Condition{}
 }
 
-func (c Conditions) setCondition(conditionType ConditionType, status metav1.ConditionStatus, reason string, message string) {
+func (c Conditions) setCondition(conditionType ConditionType, status string, reason string, message string) {
 	for i := range c {
 		if c[i].Type == conditionType {
 			c[i].Status = status
