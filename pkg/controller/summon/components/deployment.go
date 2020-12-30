@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	kedav1alpha1 "github.com/kedacore/keda/v2/api/v1alpha1"
+	kedav1alpha1 "github.com/Ridecell/ridecell-operator/pkg/apis/keda/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
