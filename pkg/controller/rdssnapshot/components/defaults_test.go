@@ -45,7 +45,7 @@ var _ = Describe("rds Defaults Component", func() {
 		instance.ObjectMeta.SetCreationTimestamp(currentTime)
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.SnapshotID).To(Equal("test-2000-01-01-00-00-00"))
-	})test-qa__master-3.1
+	})
 
 	It("sanitizes snapshot id", func() {
 		comp := rdssnapshotcomponents.NewDefaults()

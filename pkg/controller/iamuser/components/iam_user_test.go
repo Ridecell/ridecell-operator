@@ -18,7 +18,6 @@ package components_test
 
 import (
 	"context"
-	"os"
 	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
