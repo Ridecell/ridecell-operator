@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
 	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
