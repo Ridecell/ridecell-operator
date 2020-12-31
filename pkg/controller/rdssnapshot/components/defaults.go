@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
+	"regex"
 	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
@@ -50,6 +51,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		curTimeString := time.Time.Format(creationTimestamp, CustomTimeLayout)
 		instance.Spec.SnapshotID = fmt.Sprintf("%s-%s", instance.Name, curTimeString)
 	}
+
+	// sanitize snapshot id, replace any special chars with `-`, also remove consecutive `-`
+	reg, err := regexp.Compile("[^A-Za-z0-9]+")
+	if err != nil {
+		return components.Result{}, err
+	}
+	instance.Spec.SnapshotID = reg.ReplaceAllString(instance.Spec.SnapshotID, "-")
 
 	return components.Result{}, nil
 }
