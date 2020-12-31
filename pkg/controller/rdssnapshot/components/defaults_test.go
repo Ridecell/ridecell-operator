@@ -45,18 +45,13 @@ var _ = Describe("rds Defaults Component", func() {
 		instance.ObjectMeta.SetCreationTimestamp(currentTime)
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.SnapshotID).To(Equal("test-2000-01-01-00-00-00"))
-	})
+	})test-qa__master-3.1
 
 	It("sanitizes snapshot id", func() {
 		comp := rdssnapshotcomponents.NewDefaults()
 		instance.Spec.SnapshotID = "test-qa__master-3.1"
-		timeLocationUTC, err := time.LoadLocation("UTC")
-		Expect(err).ToNot(HaveOccurred())
-		// Set creationTimestamp to a predictable value
-		currentTime := metav1.Date(2000, time.January, 1, 0, 0, 0, 0, timeLocationUTC)
-		instance.ObjectMeta.SetCreationTimestamp(currentTime)
 		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.SnapshotID).To(Equal("test-qa-master-3-1-2000-01-01-00-00-00"))
+		Expect(instance.Spec.SnapshotID).To(Equal("test-qa-master-3-1"))
 	})
 
 })
