@@ -82,7 +82,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		}
 	} else {
 		if helpers.ContainsFinalizer(iamUserFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
 				result, err := comp.deleteDependencies(ctx)
 				if err != nil {
 					return result, err
