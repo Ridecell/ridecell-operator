@@ -19,7 +19,7 @@ package components
 import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
-	"regex"
+	"regexp"
 	"time"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
