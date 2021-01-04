@@ -17,8 +17,6 @@ limitations under the License.
 package components_test
 
 import (
-	"os"
-
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -126,9 +124,6 @@ var _ = Describe("iam_role aws Component", func() {
 	})
 
 	Describe("finalizer tests", func() {
-		BeforeEach(func() {
-			os.Setenv("ENABLE_FINALIZERS", "true")
-		})
 
 		It("adds finalizer when there isn't one", func() {
 			mockIAM.finalizerTest = true
