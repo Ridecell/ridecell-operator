@@ -103,7 +103,7 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 		}
 	} else {
 		if helpers.ContainsFinalizer(iamRoleFinalizer, instance) {
-			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" && os.Getenv("ENABLE_FINALIZERS") == "true" {
+			if flag := instance.Annotations["ridecell.io/skip-finalizer"]; flag != "true" {
 				result, err := comp.deleteDependencies(roleName)
 				if err != nil {
 					return result, err
