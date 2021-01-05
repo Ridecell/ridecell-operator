@@ -94,7 +94,6 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 	helpers.starter = func() {
 		// Start the test environment.
 		cfg, err := helpers.Environment.Start()
-		fmt.Printf("avdhoot %s", err)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		helpers.Cfg = cfg
 
