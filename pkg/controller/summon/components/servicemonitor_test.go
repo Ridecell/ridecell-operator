@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	promv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 )
 

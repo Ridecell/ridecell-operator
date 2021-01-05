@@ -27,7 +27,7 @@ import (
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_pagerduty"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_sumologic"
-	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	pomonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	alertmconfig "github.com/prometheus/alertmanager/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
