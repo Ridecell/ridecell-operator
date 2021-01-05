@@ -66,7 +66,7 @@ func New() (*TestHelpers, error) {
 		return nil, fmt.Errorf("Unable to find current filename")
 	}
 	crdPath := filepath.Join(callerLine, "..", "..", "..", "config", "crds")
-	poCrdPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "github.com", "coreos", "prometheus-operator", "example", "prometheus-operator-crd")
+	poCrdPath := filepath.Join(callerLine, "..", "..", "..", "vendor", "github.com", "prometheus-operator", "prometheus-operator", "example", "prometheus-operator-crd")
 	helpers.Environment = &envtest.Environment{
 		CRDDirectoryPaths:  []string{crdPath, poCrdPath},
 		CRDs:               []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
