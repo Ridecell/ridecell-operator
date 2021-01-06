@@ -53,10 +53,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 
 	// sanitize snapshot id, replace any special chars with `-`, also remove consecutive `-`
-	reg, err := regexp.Compile("[^A-Za-z0-9]+")
-	if err != nil {
-		return components.Result{}, err
-	}
+	reg, _ := regexp.Compile("[^A-Za-z0-9]+")
 	instance.Spec.SnapshotID = reg.ReplaceAllString(instance.Spec.SnapshotID, "-")
 
 	return components.Result{}, nil
