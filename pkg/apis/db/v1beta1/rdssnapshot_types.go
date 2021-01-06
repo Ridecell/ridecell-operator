@@ -24,7 +24,6 @@ import (
 type RDSSnapshotSpec struct {
 	// +kubebuilder:validation:MinLength=2
 	RDSInstanceID string `json:"rdsInstanceID"`
-	//+kubebuilder:validation:Pattern=^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$
 	// +optional
 	SnapshotID string `json:"snapshotID,omitempty"`
 	// TTL is the time until the object cleans itself up
