@@ -83,6 +83,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewPodDisruptionBudget("web/podDisruptionBudget.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
+		summoncomponents.NewIngress("web/ingress-protected.yml.tpl"),
 
 		// Daphne components.
 		summoncomponents.NewDeployment("daphne/deployment.yml.tpl", nil),

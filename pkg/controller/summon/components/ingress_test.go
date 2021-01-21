@@ -84,4 +84,17 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-businessportal", Namespace: "summon-dev"}, target)
 		Expect(err).To(HaveOccurred())
 	})
+
+	It("creates protected ingress object using web template", func() {
+		comp := summoncomponents.NewIngress("web/ingress-protected.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &k8sv1beta1.Ingress{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web-protected", Namespace: "summon-dev"}, target)
+		Expect(err).ToNot(HaveOccurred())
+		// There should only be a single rule (for the primary hostname -- no vanity hostname rules should exist)
+		Expect(target.Spec.Rules).To(HaveLen(1))
+		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf(instance.Spec.Hostname))
+		Expect(target.Annotations["traefik.ingress.kubernetes.io/router.middlewares"]).To(Equal("traefik-traefik-forward-auth@kubernetescrd"))
+
+	})
 })
