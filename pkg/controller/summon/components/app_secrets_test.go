@@ -403,4 +403,13 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(BeNil())
 	})
 
+	It("Run reconcile with a missing accessKey ", func() {
+		instance.Spec.UseIamRole = true
+		delete(accessKey.Data, "AWS_ACCESS_KEY_ID")
+		delete(accessKey.Data, "AWS_SECRET_ACCESS_KEY")
+		ctx.Client = fake.NewFakeClient(inSecret, postgresSecret, secretKey, accessKey, rabbitmqPassword)
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 })

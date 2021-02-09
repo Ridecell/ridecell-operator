@@ -88,4 +88,18 @@ spec:
                 ]
               }
             }
+   allow_ses: |
+         {
+            "Version": "2012-10-17",
+            "Statement": [
+               {
+                     "Sid": "",
+                     "Effect": "Allow",
+                     "Action": [
+                        "ses:SendTemplatedEmail"
+                     ],
+                     "Resource": "*"
+               }
+            ]
+         }
  permissionsBoundaryArn: {{ .Extra.permissionsBoundaryArn }}
