@@ -66,7 +66,8 @@ docker-push:
 # Install tools
 tools:
 	if ! type dep >/dev/null; then go get github.com/golang/dep/cmd/dep; fi
-	go get -u github.com/onsi/ginkgo/ginkgo github.com/modocache/gover github.com/mattn/goveralls github.com/matryer/moq github.com/gobuffalo/packr/v2/packr2
+	go get -u github.com/onsi/ginkgo/ginkgo github.com/modocache/gover github.com/mattn/goveralls github.com/gobuffalo/packr/v2/packr2
+	wget https://github.com/matryer/moq/releases/download/v0.1.7/moq_v0.1.7_Linux_x86_64.tar.gz && tar -xvf moq_v0.1.7_Linux_x86_64.tar.gz -C ${GOPATH}/bin/
 
 # Install dependencies
 dep: tools
