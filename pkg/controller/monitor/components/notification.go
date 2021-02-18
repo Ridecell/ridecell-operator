@@ -198,12 +198,10 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 			return components.Result{}, errors.Wrapf(err, "Failed when checking service %s", instance.Spec.ServiceName)
 		}
 
-		// Check service present or not
-		if len(lsr.Services) > 1 {
-			return components.Result{}, errors.New("More than two service present with name: " + instance.Spec.ServiceName)
-		} else if len(lsr.Services) == 0 {
+		service := &pagerduty.Service{}
+		if len(lsr.Services) == 0 {
 			//create PD service
-			service := pagerduty.Service{
+			service = &pagerduty.Service{
 				Name:        instance.Spec.ServiceName,
 				Description: "This service created by ridecell-operator. Manual modification may break self service monitoring",
 				IncidentUrgencyRule: &pagerduty.IncidentUrgencyRule{
@@ -219,7 +217,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 				},
 				AlertCreation: "create_alerts_and_incidents",
 			}
-			s, _, err := client.Services.Create(&service)
+			s, _, err := client.Services.Create(service)
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "Failed to create service %s", instance.Spec.ServiceName)
 			}
@@ -242,17 +240,21 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 				return components.Result{}, errors.Wrapf(err, "Failed to create event rule for service %s", instance.Spec.ServiceName)
 			}
 			eventid = event.ID
-		} else if lsr.Services[0].EscalationPolicy.ID != ep.ID {
-			lsr.Services[0].EscalationPolicy = &pagerduty.EscalationPolicyReference{
+		} else {
+			// PG do not allow to create multiple service with same name
+			service = lsr.Services[0]
+		}
+		if service.EscalationPolicy.ID != ep.ID {
+			service.EscalationPolicy = &pagerduty.EscalationPolicyReference{
 				HTMLURL: ep.HTMLURL,
 				ID:      ep.ID,
 				Self:    ep.Self,
 				Summary: ep.Summary,
 				Type:    ep.Type,
 			}
-			_, _, err := client.Services.Update(lsr.Services[0].ID, lsr.Services[0])
+			_, _, err := client.Services.Update(service.ID, service)
 			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "failed to update service %s with with escalation police %s",
+				return components.Result{}, errors.Wrapf(err, "failed to update pagerduty service %s with with escalation police %s",
 					instance.Spec.ServiceName, ep.Name)
 			}
 		}
