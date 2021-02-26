@@ -39,12 +39,6 @@ spec:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
             podAffinityTerm:
-              topologyKey: failure-domain.beta.kubernetes.io/zone
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/instance: {{ .Instance.Name }}-customerportal
-          - weight: 1
-            podAffinityTerm:
               topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels:
