@@ -156,7 +156,7 @@ func NewNotification() *notificationComponent {
 	var slackClient *slack.Client
 	slackApiKey := os.Getenv("SLACK_API_KEY")
 	if slackApiKey != "" {
-		slackClient = slack.New(	)
+		slackClient = slack.New(slackApiKey)
 	}
 
 	return &notificationComponent{
