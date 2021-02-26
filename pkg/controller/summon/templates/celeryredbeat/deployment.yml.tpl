@@ -33,10 +33,15 @@ spec:
       {{ end }}
       affinity:
         podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: {{ .Instance.Name }}-celeryredbeat
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
+          - weight: 1
             podAffinityTerm:
-              topologyKey: kubernetes.io/hostname
+              topologyKey: failure-domain.beta.kubernetes.io/zone
               labelSelector:
                 matchLabels:
                   app.kubernetes.io/instance: {{ .Instance.Name }}-celeryredbeat
