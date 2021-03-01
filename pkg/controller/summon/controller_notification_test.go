@@ -27,10 +27,10 @@ import (
 	// Some slack methods deprecated Nov 25, 2020. Will need to update tests!
 	// See nlopes/slack readme and slack api:
 	// https://api.slack.com/changelog/2020-01-deprecating-antecedents-to-the-conversations-api
+	"github.com/nlopes/slack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	ghttp "github.com/onsi/gomega/ghttp"
-	"github.com/slack-go/slack"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
