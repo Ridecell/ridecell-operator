@@ -37,10 +37,10 @@ spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: "kubernetes.io/hostname"
-            labelSelector:
+          - labelSelector:
               matchLabels:
                 app.kubernetes.io/instance: {{ .Instance.Name }}-customerportal
+            topologyKey: "kubernetes.io/hostname"
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 1
             podAffinityTerm:

@@ -39,10 +39,10 @@ spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: "kubernetes.io/hostname"
-            labelSelector:
+          - labelSelector:
               matchLabels:
                 app.kubernetes.io/instance: {{ .Instance.Name }}-celeryd
+            topologyKey: "kubernetes.io/hostname"
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 1
             podAffinityTerm:

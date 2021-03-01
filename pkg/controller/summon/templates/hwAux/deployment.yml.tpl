@@ -39,10 +39,10 @@ spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: "kubernetes.io/hostname"
-            labelSelector:
+          - labelSelector:
               matchLabels:
                 app.kubernetes.io/instance: {{ .Instance.Name }}-hwaux
+            topologyKey: "kubernetes.io/hostname"
           - weight: 1
             podAffinityTerm:
               topologyKey: "failure-domain.beta.kubernetes.io/zone"
