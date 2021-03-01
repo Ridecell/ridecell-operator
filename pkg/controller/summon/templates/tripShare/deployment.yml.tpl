@@ -38,7 +38,7 @@ spec:
       {{ end }}
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution: 
+          requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
                 app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
