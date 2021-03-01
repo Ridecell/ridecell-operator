@@ -37,14 +37,14 @@ spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: kubernetes.io/hostname
+          - topologyKey: "kubernetes.io/hostname"
             labelSelector:
               matchLabels:
                 app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 1
             podAffinityTerm:
-              topologyKey: failure-domain.beta.kubernetes.io/zone
+              topologyKey: "failure-domain.beta.kubernetes.io/zone"
               labelSelector:
                 matchLabels:
                   app.kubernetes.io/instance: {{ .Instance.Name }}-businessportal
