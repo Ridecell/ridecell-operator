@@ -57,9 +57,11 @@ var _ = Describe("Summon controller notifications", func() {
 
 	// Helper function for slack notification test cases to retrieve only test case related slack history.
 	getTestRelevantHistory := func(testIdentity string, slackClient *slack.Client, slackChannel string, lastTimestamp string) slack.History {
-		historyParams := slack.NewHistoryParameters()
-		historyParams.Oldest = lastTimestamp
-		history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
+		historyParams := &slack.GetConversationHistoryParameters{
+			ChannelID: slackChannel,
+			Oldest: lastTimestamp,
+		}
+		history, err := slackClient.GetConversationHistory(historyParams)
 		Expect(err).ToNot(HaveOccurred())
 		filteredMsgs := []slack.Message{}
 		// Get messages pertaining only to testIdentity.
