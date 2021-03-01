@@ -38,11 +38,11 @@ spec:
       {{ end }}
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: "kubernetes.io/hostname"
-            labelSelector:
+          requiredDuringSchedulingIgnoredDuringExecution: 
+          - labelSelector:
               matchLabels:
                 app.kubernetes.io/instance: {{ .Instance.Name }}-tripshare
+            topologyKey: "kubernetes.io/hostname"
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 1
             podAffinityTerm:
