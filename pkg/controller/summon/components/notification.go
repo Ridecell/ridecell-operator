@@ -27,7 +27,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"

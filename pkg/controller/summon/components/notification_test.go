@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
