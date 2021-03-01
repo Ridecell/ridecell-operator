@@ -27,7 +27,7 @@ import (
 	// Some slack methods deprecated Nov 25, 2020. Will need to update tests!
 	// See nlopes/slack readme and slack api:
 	// https://api.slack.com/changelog/2020-01-deprecating-antecedents-to-the-conversations-api
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	ghttp "github.com/onsi/gomega/ghttp"
@@ -270,9 +270,10 @@ var _ = Describe("Summon controller notifications", func() {
 
 			// Set up Slack client with the test user credentials and find the most recent message.
 			slackClient = slack.New(os.Getenv("SLACK_API_KEY"))
-			historyParams := slack.NewHistoryParameters()
-			historyParams.Count = 1
-			history, err := slackClient.GetChannelHistory(slackChannel, historyParams)
+			historyParams := &slack.GetConversationHistoryParameters{
+				ChannelID: slackChannel,
+			}
+			history, err := slackClient.GetConversationHistory(historyParams)
 			Expect(err).ToNot(HaveOccurred())
 			lastMessage = history.Messages[0]
 
