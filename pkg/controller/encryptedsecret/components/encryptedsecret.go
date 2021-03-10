@@ -106,7 +106,10 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 
 		if useDataKey {
 			var p payload
-			gob.NewDecoder(bytes.NewReader(decodedValue)).Decode(&p)
+			err = gob.NewDecoder(bytes.NewReader(decodedValue)).Decode(&p)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "error decoding value for payload")
+			}
 			plainDataKey, ok := keyMap[string(p.Key)]
 			if !ok {
 				// Decrypt cipherdatakey
