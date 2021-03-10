@@ -95,7 +95,7 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 		// check if value has crypto prefix, if true, then decrypt using data key
 		if strings.HasPrefix(v, "crypto") {
 			useDataKey = true
-			array := strings.Split(value, " ")
+			array := strings.Split(v, " ")
 			v = array[len(array)-1]
 		}
 
@@ -110,7 +110,6 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 			plainDataKey, ok := keyMap[string(p.Key)]
 			if !ok {
 				// Decrypt cipherdatakey
-				fmt.Println("Decrypt: Decrypt cipherDataKey from KMS")
 				decryptedValue, err := comp.kmsAPI.Decrypt(&kms.DecryptInput{
 					CiphertextBlob: p.Key,
 					EncryptionContext: map[string]*string{
@@ -118,17 +117,17 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 					},
 				})
 				if err != nil {
-					return errors.Wrapf(err, "error decrypting value for cipherDatakey")
+					return components.Result{}, errors.Wrapf(err, "error decrypting value for cipherDatakey")
 				}
 				plainDataKey = &[32]byte{}
-				copy(plainDataKey[:], decryptRsp.Plaintext)
+				copy(plainDataKey[:], decryptedValue.Plaintext)
 				keyMap[string(p.Key)] = plainDataKey
 			}
 			// Decrypt message
 			var plaintext []byte
 			plaintext, ok = secretbox.Open(plaintext, p.Message, p.Nonce, plainDataKey)
 			if !ok {
-				return errors.Wrapf(err, "error decrypting value with data key for %s", key)
+				return components.Result{}, errors.Wrapf(err, "error decrypting value with data key for %s", k)
 			}
 			if bytes.Equal(plaintext, []byte(secretsv1beta1.EncryptedSecretEmptyKey)) {
 				// Decode the magic value to an empty string.
