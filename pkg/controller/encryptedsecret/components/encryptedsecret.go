@@ -19,6 +19,8 @@ package components
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/gob"
+	"strings"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/nacl/secretbox"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -33,6 +36,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type payload struct {
+	Key     []byte
+	Nonce   *[24]byte
+	Message []byte
+}
 
 type EncryptedSecretComponent struct {
 	kmsAPI kmsiface.KMSAPI
@@ -75,14 +84,63 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 		Data: make(map[string][]byte),
 	}
 
+	// Key map for holding plainDataKey to avoid repetative KMS decrypt calls for single cipherDataKey
+	keyMap := map[string]*[32]byte{}
+
 	for k, v := range instance.Data {
 		if v == "" {
 			return components.Result{}, errors.Errorf("encryptedsecret: secret[%s] does not have a value", k)
 		}
+		useDataKey := false
+		// check if value has crypto prefix, if true, then decrypt using data key
+		if strings.HasPrefix(v, "crypto") {
+			useDataKey = true
+			array := strings.Split(v, " ")
+			v = array[len(array)-1]
+		}
+
 		decodedValue, err := base64.StdEncoding.DecodeString(v)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "encryptedsecret: failed to base64 decode secret")
 		}
+
+		if useDataKey {
+			var p payload
+			err = gob.NewDecoder(bytes.NewReader(decodedValue)).Decode(&p)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "error decoding value for payload")
+			}
+			plainDataKey, ok := keyMap[string(p.Key)]
+			if !ok {
+				// Decrypt cipherdatakey
+				decryptedValue, err := comp.kmsAPI.Decrypt(&kms.DecryptInput{
+					CiphertextBlob: p.Key,
+					EncryptionContext: map[string]*string{
+						"RidecellOperator": aws.String("true"),
+					},
+				})
+				if err != nil {
+					return components.Result{}, errors.Wrapf(err, "error decrypting value for cipherDatakey")
+				}
+				plainDataKey = &[32]byte{}
+				copy(plainDataKey[:], decryptedValue.Plaintext)
+				keyMap[string(p.Key)] = plainDataKey
+			}
+			// Decrypt message
+			var plaintext []byte
+			plaintext, ok = secretbox.Open(plaintext, p.Message, p.Nonce, plainDataKey)
+			if !ok {
+				return components.Result{}, errors.Wrapf(err, "error decrypting value with data key for %s", k)
+			}
+			if bytes.Equal(plaintext, []byte(secretsv1beta1.EncryptedSecretEmptyKey)) {
+				// Decode the magic value to an empty string.
+				newSecret.Data[k] = []byte{}
+			} else {
+				newSecret.Data[k] = plaintext
+			}
+			continue
+		}
+
 		decryptedValue, err := comp.kmsAPI.Decrypt(&kms.DecryptInput{
 			CiphertextBlob: decodedValue,
 			EncryptionContext: map[string]*string{
