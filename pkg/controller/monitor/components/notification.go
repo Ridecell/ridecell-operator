@@ -93,7 +93,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 						Namespace: instance.Namespace,
 					}}
 				err := ctx.Delete(ctx.Context, amc)
-				if err != nil {
+				if err != nil && !k8serrors.IsNotFound(err) {
 					return components.Result{}, errors.Wrapf(err, "failed to delete notification %s", instance.Name)
 				}
 				// TODO remove service/event rule from PG
