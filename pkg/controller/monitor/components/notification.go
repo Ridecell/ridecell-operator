@@ -31,6 +31,7 @@ import (
 	pagerduty "github.com/heimweh/go-pagerduty/pagerduty"
 	alertmconfig "github.com/prometheus/alertmanager/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const notificationFinalizer = "finalizer.notification.monitoring.ridecell.io"
