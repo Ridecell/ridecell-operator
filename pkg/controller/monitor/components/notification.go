@@ -199,7 +199,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 			return components.Result{}, errors.Wrapf(err, "Failed when checking service %s", instance.Spec.ServiceName)
 		}
 
-		service := &pagerduty.Service{}
+		var service *pagerduty.Service
 		if len(lsr.Services) == 0 {
 			//create PD service
 			service = &pagerduty.Service{
