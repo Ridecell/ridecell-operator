@@ -25,8 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	crossplanev1alpha1 "github.com/crossplane/provider-aws/apis/identity/v1alpha1"
-	crossplanev1beta1 "github.com/crossplane/provider-aws/apis/identity/v1beta1"
+	//crossplanev1alpha1 "github.com/crossplane/provider-aws/apis/identity/v1alpha1"
+	//crossplanev1beta1 "github.com/crossplane/provider-aws/apis/identity/v1beta1"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
@@ -40,9 +40,7 @@ func NewIAMRole(templatePath string) *iamRoleComponent {
 }
 
 func (comp *iamRoleComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{
-		&crossplanev1beta1.IAMRole{},
-	}
+	return []runtime.Object{}
 }
 
 func (_ *iamRoleComponent) IsReconcilable(ctx *components.ComponentContext) bool {
@@ -77,10 +75,10 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	// Create IAMPolicy
 	_, _, err := ctx.CreateOrUpdate("aws/iampolicy.yml.tpl", extra, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*crossplanev1alpha1.IAMPolicy)
-		existing := existingObj.(*crossplanev1alpha1.IAMPolicy)
-		// Copy the Spec over.
-		existing.Spec = goal.Spec
+		// goal := goalObj.(*crossplanev1alpha1.IAMPolicy)
+		// existing := existingObj.(*crossplanev1alpha1.IAMPolicy)
+		// // Copy the Spec over.
+		// existing.Spec = goal.Spec
 		return nil
 	})
 	if err != nil {
@@ -89,10 +87,10 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	// Create IAMRole
 	_, _, err = ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*crossplanev1beta1.IAMRole)
-		existing := existingObj.(*crossplanev1beta1.IAMRole)
-		// Copy the Spec over.
-		existing.Spec = goal.Spec
+		// goal := goalObj.(*crossplanev1beta1.IAMRole)
+		// existing := existingObj.(*crossplanev1beta1.IAMRole)
+		// // Copy the Spec over.
+		// existing.Spec = goal.Spec
 		return nil
 	})
 	if err != nil {
@@ -101,10 +99,10 @@ func (comp *iamRoleComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	// Create IAMRolePolicyAttachment
 	res, _, err := ctx.CreateOrUpdate("aws/iamrolepolicyattachment.yml.tpl", extra, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*crossplanev1beta1.IAMRolePolicyAttachment)
-		existing := existingObj.(*crossplanev1beta1.IAMRolePolicyAttachment)
-		// Copy the Spec over.
-		existing.Spec = goal.Spec
+		// goal := goalObj.(*crossplanev1beta1.IAMRolePolicyAttachment)
+		// existing := existingObj.(*crossplanev1beta1.IAMRolePolicyAttachment)
+		// // Copy the Spec over.
+		// existing.Spec = goal.Spec
 		return nil
 	})
 
