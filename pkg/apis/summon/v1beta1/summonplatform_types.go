@@ -44,9 +44,9 @@ type NotificationsSpec struct {
 	DeploymentStatusUrl string `json:"deploymentStatusUrl,omitempty"`
 	// Name of pagerduty team. Team will be paged for all critical alerts
 	Pagerdutyteam string `json:"pagerdutyteam,omitempty"`
-	// CircleCi webhook for triggering Regression Test suite on QA tenants - DEVOPS-2348
+	// GithubActions webhook for triggering Regression Test suite on QA tenants - DEVOPS-2348
 	// +optional
-	CircleciRegressionWebhook bool `json:"circleciRegressionWebhook,omitempty"`
+	GithubactionsRegressionWebhook bool `json:"githubactionsRegressionWebhook,omitempty"`
 }
 
 // DatabaseSpec defines database-related configuration.
@@ -346,9 +346,9 @@ type NotificationStatus struct {
 	// The last version notification posted for HwAux deploy.
 	// +optional
 	HwAuxVersion string `json:"hwAuxVersion,omitempty"`
-	// Circleci Regression test webhook status
+	// Githubactions Regression test webhook status
 	// +optional
-	CircleciRegressionWebhook string `json:"circleciRegressionWebhook,omitempty"`
+	GithubactionsRegressionWebhook string `json:"githubactionsRegressionWebhook,omitempty"`
 }
 
 // MIVStatus is the output information for the Manual Identity Verification system.

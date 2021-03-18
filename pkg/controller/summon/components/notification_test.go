@@ -322,6 +322,6 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(mockedDeployStatusClient.PostStatusCalls()).To(HaveLen(0))
 		})
 
-		// TODO: Add Circleci Webhook test cases
+		// TODO: Add Githubactions Webhook test cases
 	})
 })
