@@ -256,7 +256,7 @@ var _ = Describe("Summon controller notifications", func() {
 		var testIdentity string
 
 		// The ID of the private group to send to.
-		slackChannel := "CKEV56KKJ" // #rcoperator-test. Should only be used by githubactions.
+		slackChannel := "CKEV56KKJ" // #rcoperator-test. Should only be used by circleci.
 		//slackChannel := "CKBMB2E3V" // #rcoperator-test2. Use this one for local testing!
 
 		BeforeEach(func() {
