@@ -30,6 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -193,7 +194,7 @@ func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceN
 
 	pgdbConnection := pgdb.Status.Connection
 
-	_, ok := data["DATABASE"]
+	_, ok = data["DATABASE"]
 	if !ok {
 		// Create the key if it doesn't exist
 		data["DATABASE"] = map[interface{}]interface{}{}
@@ -220,7 +221,7 @@ func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceNa
 		return errors.New("Error while converting object into Secret")
 	}
 
-	_, ok := data["AWS"]
+	_, ok = data["AWS"]
 	if !ok {
 		// Create the key if it doesn't exist
 		data["AWS"] = map[interface{}]interface{}{}
@@ -252,7 +253,7 @@ func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceN
 		return err
 	}
 
-	_, ok := data["DATABASE"]
+	_, ok = data["DATABASE"]
 	// Create the key if it doesn't exist
 	if !ok {
 		data["DATABASE"] = map[interface{}]interface{}{}
@@ -300,7 +301,7 @@ func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceNa
 		return errors.New("Error while converting object into Secret")
 	}
 
-	_, ok := data["AWS"]
+	_, ok = data["AWS"]
 	if !ok {
 		// Create the key if it doesn't exist
 		data["AWS"] = map[interface{}]interface{}{}
