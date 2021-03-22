@@ -181,24 +181,14 @@ func DumpYAML(data map[string]interface{}) error {
 }
 
 func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
-	pgdb := &dbv1beta1.PostgresDatabase{}
-
-	retry := 2
-	var err error
-	for retry > 0 {
-		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-		if err != nil {
-			if k8serr.IsNotFound(err) {
-				// wait for secrets/configs to be created
-				time.Sleep(RETRY_INTERVAL * time.Second)
-				retry = retry - 1
-				continue
-			}
-			return err
-		}
+	obj, err := getObject(ctx, env, serviceName, "PostgresDatabase")
+	if err != nil {
+		return err
 	}
-	if err != nil && k8serr.IsNotFound(err) {
-		return nil
+
+	pgdb, ok := obj.(*dbv1beta1.PostgresDatabase)
+	if !ok {
+		return errors.New("Error while converting object into PostgresDatabase")
 	}
 
 	pgdbConnection := pgdb.Status.Connection
@@ -220,24 +210,14 @@ func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceN
 }
 
 func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
-	secret := &corev1.Secret{}
-
-	retry := 2
-	var err error
-	for retry > 0 {
-		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
-		if err != nil {
-			if k8serr.IsNotFound(err) {
-				// wait for secrets/configs to be created
-				time.Sleep(RETRY_INTERVAL * time.Second)
-				retry = retry - 1
-				continue
-			}
-			return err
-		}
+	obj, err := getObject(ctx, env, serviceName, "Secret")
+	if err != nil {
+		return err
 	}
-	if err != nil && k8serr.IsNotFound(err) {
-		return nil
+
+	secret, ok := obj.(*corev1.Secret)
+	if !ok {
+		return errors.New("Error while converting object into Secret")
 	}
 
 	_, ok := data["AWS"]
@@ -254,24 +234,14 @@ func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceNa
 }
 
 func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
-	pgdb := &dbv1beta1.PostgresDatabase{}
-
-	retry := 2
-	var err error
-	for retry > 0 {
-		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-		if err != nil {
-			if k8serr.IsNotFound(err) {
-				// wait for secrets/configs to be created
-				time.Sleep(RETRY_INTERVAL * time.Second)
-				retry = retry - 1
-				continue
-			}
-			return err
-		}
+	obj, err := getObject(ctx, env, serviceName, "PostgresDatabase")
+	if err != nil {
+		return err
 	}
-	if err != nil && k8serr.IsNotFound(err) {
-		return nil
+
+	pgdb, ok := obj.(*dbv1beta1.PostgresDatabase)
+	if !ok {
+		return errors.New("Error while converting object into PostgresDatabase")
 	}
 
 	pgdbConnection := pgdb.Status.Connection
@@ -296,25 +266,14 @@ func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceN
 }
 
 func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
-	// Fetch the RabbitmqVhost object.
-	rmqv := &dbv1beta1.RabbitmqVhost{}
-
-	retry := 2
-	var err error
-	for retry > 0 {
-		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
-		if err != nil {
-			if k8serr.IsNotFound(err) {
-				// wait for secrets/configs to be created
-				time.Sleep(RETRY_INTERVAL * time.Second)
-				retry = retry - 1
-				continue
-			}
-			return err
-		}
+	obj, err := getObject(ctx, env, serviceName, "RabbitmqVhost")
+	if err != nil {
+		return err
 	}
-	if err != nil && k8serr.IsNotFound(err) {
-		return nil
+
+	rmqv, ok := obj.(*dbv1beta1.RabbitmqVhost)
+	if !ok {
+		return errors.New("Error while converting object into RabbitmqVhost")
 	}
 
 	rabbitmqConnection := rmqv.Status.Connection
@@ -331,24 +290,14 @@ func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceNam
 }
 
 func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
-	secret := &corev1.Secret{}
-
-	retry := 2
-	var err error
-	for retry > 0 {
-		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
-		if err != nil {
-			if k8serr.IsNotFound(err) {
-				// wait for secrets/configs to be created
-				time.Sleep(RETRY_INTERVAL * time.Second)
-				retry = retry - 1
-				continue
-			}
-			return err
-		}
+	obj, err := getObject(ctx, env, serviceName, "Secret")
+	if err != nil {
+		return err
 	}
-	if err != nil && k8serr.IsNotFound(err) {
-		return nil
+
+	secret, ok := obj.(*corev1.Secret)
+	if !ok {
+		return errors.New("Error while converting object into Secret")
 	}
 
 	_, ok := data["AWS"]
@@ -362,4 +311,38 @@ func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceNa
 	awsKey["SECRET_ACCESS_KEY"] = string(secret.Data["AWS_SECRET_ACCESS_KEY"])
 
 	return nil
+}
+
+func getObject(ctx *components.ComponentContext, env string, serviceName string, kind string) (*Object, error) {
+	var obj runtime.Object
+	objName := fmt.Sprintf("svc-%s-%s", env, serviceName)
+
+	switch kind {
+	case "RabbitmqVhost":
+		obj = &dbv1beta1.RabbitmqVhost{}
+	case "PostgresDatabase":
+		obj = &dbv1beta1.PostgresDatabase{}
+	default:
+		obj = &corev1.Secret{}
+		objName = fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)
+	}
+
+	retry := 2
+	var err error
+	for retry > 0 {
+		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: objName}, obj)
+		if err != nil {
+			if k8serr.IsNotFound(err) {
+				// wait for secrets/configs to be created
+				time.Sleep(RETRY_INTERVAL * time.Second)
+				retry = retry - 1
+				continue
+			}
+		}
+		break
+	}
+	if k8serr.IsNotFound(err) {
+		err = nil
+	}
+	return obj, err
 }
