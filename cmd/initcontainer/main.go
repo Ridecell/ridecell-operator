@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,8 @@ import (
 )
 
 var fileMode string
+
+const RETRY_INTERVAL = 5 // seconds
 
 // Temporary flag to allow standing up a database prior to migration
 var disableDatabase bool
@@ -179,12 +182,23 @@ func DumpYAML(data map[string]interface{}) error {
 
 func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	pgdb := &dbv1beta1.PostgresDatabase{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-	if err != nil {
-		if k8serr.IsNotFound(err) {
-			return nil
+
+	retry := 2
+	var err error
+	for retry > 0 {
+		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+		if err != nil {
+			if k8serr.IsNotFound(err) {
+				// wait for secrets/configs to be created
+				time.Sleep(RETRY_INTERVAL * time.Second)
+				retry = retry - 1
+				continue
+			}
+			return err
 		}
-		return err
+	}
+	if err != nil && k8serr.IsNotFound(err) {
+		return nil
 	}
 
 	pgdbConnection := pgdb.Status.Connection
@@ -207,12 +221,23 @@ func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceN
 
 func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	secret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
-	if err != nil {
-		if k8serr.IsNotFound(err) {
-			return nil
+
+	retry := 2
+	var err error
+	for retry > 0 {
+		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
+		if err != nil {
+			if k8serr.IsNotFound(err) {
+				// wait for secrets/configs to be created
+				time.Sleep(RETRY_INTERVAL * time.Second)
+				retry = retry - 1
+				continue
+			}
+			return err
 		}
-		return err
+	}
+	if err != nil && k8serr.IsNotFound(err) {
+		return nil
 	}
 
 	_, ok := data["AWS"]
@@ -230,12 +255,23 @@ func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceNa
 
 func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	pgdb := &dbv1beta1.PostgresDatabase{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
-	if err != nil {
-		if k8serr.IsNotFound(err) {
-			return nil
+
+	retry := 2
+	var err error
+	for retry > 0 {
+		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, pgdb)
+		if err != nil {
+			if k8serr.IsNotFound(err) {
+				// wait for secrets/configs to be created
+				time.Sleep(RETRY_INTERVAL * time.Second)
+				retry = retry - 1
+				continue
+			}
+			return err
 		}
-		return err
+	}
+	if err != nil && k8serr.IsNotFound(err) {
+		return nil
 	}
 
 	pgdbConnection := pgdb.Status.Connection
@@ -262,12 +298,23 @@ func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceN
 func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	// Fetch the RabbitmqVhost object.
 	rmqv := &dbv1beta1.RabbitmqVhost{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
-	if err != nil {
-		if k8serr.IsNotFound(err) {
-			return nil
+
+	retry := 2
+	var err error
+	for retry > 0 {
+		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s", env, serviceName)}, rmqv)
+		if err != nil {
+			if k8serr.IsNotFound(err) {
+				// wait for secrets/configs to be created
+				time.Sleep(RETRY_INTERVAL * time.Second)
+				retry = retry - 1
+				continue
+			}
+			return err
 		}
-		return err
+	}
+	if err != nil && k8serr.IsNotFound(err) {
+		return nil
 	}
 
 	rabbitmqConnection := rmqv.Status.Connection
@@ -285,12 +332,23 @@ func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceNam
 
 func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceName string, c client.Client, data map[string]interface{}) error {
 	secret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
-	if err != nil {
-		if k8serr.IsNotFound(err) {
-			return nil
+
+	retry := 2
+	var err error
+	for retry > 0 {
+		err = ctx.Get(ctx.Context, types.NamespacedName{Namespace: serviceName, Name: fmt.Sprintf("svc-%s-%s.aws-credentials", env, serviceName)}, secret)
+		if err != nil {
+			if k8serr.IsNotFound(err) {
+				// wait for secrets/configs to be created
+				time.Sleep(RETRY_INTERVAL * time.Second)
+				retry = retry - 1
+				continue
+			}
+			return err
 		}
-		return err
+	}
+	if err != nil && k8serr.IsNotFound(err) {
+		return nil
 	}
 
 	_, ok := data["AWS"]

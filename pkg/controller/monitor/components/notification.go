@@ -30,8 +30,8 @@ import (
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	pagerduty "github.com/heimweh/go-pagerduty/pagerduty"
 	alertmconfig "github.com/prometheus/alertmanager/config"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const notificationFinalizer = "finalizer.notification.monitoring.ridecell.io"
