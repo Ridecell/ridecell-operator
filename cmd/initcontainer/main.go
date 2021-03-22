@@ -314,7 +314,7 @@ func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceNa
 	return nil
 }
 
-func getObject(ctx *components.ComponentContext, env string, serviceName string, kind string) (*Object, error) {
+func getObject(ctx *components.ComponentContext, env string, serviceName string, kind string) (*runtime.Object, error) {
 	var obj runtime.Object
 	objName := fmt.Sprintf("svc-%s-%s", env, serviceName)
 
