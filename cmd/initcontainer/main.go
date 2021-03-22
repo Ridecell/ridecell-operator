@@ -345,5 +345,5 @@ func getObject(ctx *components.ComponentContext, env string, serviceName string,
 	if k8serr.IsNotFound(err) {
 		err = nil
 	}
-	return obj, err
+	return &obj, err
 }
