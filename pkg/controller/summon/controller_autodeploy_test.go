@@ -214,7 +214,7 @@ var _ = Describe("Summon controller autodeploy @autodeploy", func() {
 
 			// basetag comes from initial registry setup
 			tagState := append(MockTags, "basetag")
-			// githubactions runs tests in random order, and registry may pick up tags from other
+			// circleci runs tests in random order, and registry may pick up tags from other
 			// test cases, so at least confirm these tags exist.
 			for _, tag := range tagState {
 				Expect(gcr.CachedTags).To(ContainElement(tag))

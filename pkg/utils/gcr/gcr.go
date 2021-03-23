@@ -29,7 +29,7 @@ func GetCacheExpiry() time.Duration {
 }
 
 func SanitizeBranchName(branch string) (string, error) {
-	// Since the githubactions build number probably won't go over 7 digits, truncate branch name to 48 chars to
+	// Since the circleci build number probably won't go over 7 digits, truncate branch name to 48 chars to
 	// match against docker image tag. Preceeding 16 chars left for [circlecibuild#]-[7 digit commit hash]-
 	if len(branch) >= 48 {
 		branch = branch[0:48]
