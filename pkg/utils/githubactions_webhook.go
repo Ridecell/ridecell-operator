@@ -38,8 +38,8 @@ func CallGithubActionsWebhook(apiUrl string, apiKey string, data map[string]inte
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	// req.Header.Set("Accept", "application/json")
-	req.Header.Set("x-attribution-login", "ridecell-operator")
-	req.Header.Set("x-attribution-actor-id", "ridecell-operator")
+	// req.Header.Set("x-attribution-login", "ridecell-operator")
+	// req.Header.Set("x-attribution-actor-id", "ridecell-operator")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
