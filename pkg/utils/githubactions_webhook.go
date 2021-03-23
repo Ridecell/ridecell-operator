@@ -30,6 +30,7 @@ func CallGithubActionsWebhook(apiUrl string, apiKey string, data map[string]inte
 		return err
 	}
 	body := bytes.NewReader(payloadBytes)
+	fmt.print(body)
 	req, err := http.NewRequest("POST", apiUrl, body)
 	if err != nil {
 		return err
