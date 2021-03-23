@@ -135,7 +135,6 @@ func (c *realGithubActionsClient) TriggerRegressionSuite(instanceName string, ve
 				"build-tag":                   version,
 			},
 		}
-		fmt.Println("postData: ", postData)
 		err := utils.CallGithubActionsWebhook("https://api.github.com/repos/Ridecell/Ridecell_qa_automation/actions/workflows/main.yml/dispatches", apiKey, postData)
 		if err != nil {
 			return fmt.Sprintf("%s", err)
@@ -147,10 +146,10 @@ func (c *realGithubActionsClient) TriggerRegressionSuite(instanceName string, ve
 }
 
 type notificationComponent struct {
-	slackClient         SlackClient
-	deployStatusClient  DeployStatusClient
-	dupCache            sync.Map
-	githubactionsClient GithubActionsClient
+	slackClient        SlackClient
+	deployStatusClient DeployStatusClient
+	dupCache           sync.Map
+	githubactionsClient     GithubActionsClient
 }
 
 func NewNotification() *notificationComponent {
@@ -161,9 +160,9 @@ func NewNotification() *notificationComponent {
 	}
 
 	return &notificationComponent{
-		slackClient:         &realSlackClient{client: slackClient},
-		deployStatusClient:  &realDeployStatusClient{},
-		githubactionsClient: &realGithubActionsClient{},
+		slackClient:        &realSlackClient{client: slackClient},
+		deployStatusClient: &realDeployStatusClient{},
+		githubactionsClient:     &realGithubActionsClient{},
 	}
 }
 

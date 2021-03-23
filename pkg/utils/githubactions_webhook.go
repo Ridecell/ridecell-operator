@@ -19,7 +19,6 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"net/http"
 )
@@ -30,7 +29,6 @@ func CallGithubActionsWebhook(apiUrl string, apiKey string, data map[string]inte
 	if err != nil {
 		return err
 	}
-	fmt.Println("JsonPostData: ", string(payloadBytes))
 	body := bytes.NewReader(payloadBytes)
 	req, err := http.NewRequest("POST", apiUrl, body)
 	if err != nil {
@@ -39,7 +37,6 @@ func CallGithubActionsWebhook(apiUrl string, apiKey string, data map[string]inte
 	req.SetBasicAuth(apiKey, "")
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	// req.Header.Set("Accept", "application/json")
 	req.Header.Set("x-attribution-login", "ridecell-operator")
 	req.Header.Set("x-attribution-actor-id", "ridecell-operator")
 
