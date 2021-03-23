@@ -23,7 +23,7 @@ import (
 	"net/http"
 )
 
-func CallCircleCiWebhook(apiUrl string, apiKey string, data map[string]interface{}) error {
+func CallGithubActionsWebhook(apiUrl string, apiKey string, data map[string]interface{}) error {
 
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
@@ -35,8 +35,8 @@ func CallCircleCiWebhook(apiUrl string, apiKey string, data map[string]interface
 		return err
 	}
 	req.SetBasicAuth(apiKey, "")
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("x-attribution-login", "ridecell-operator")
 	req.Header.Set("x-attribution-actor-id", "ridecell-operator")
 
@@ -45,8 +45,8 @@ func CallCircleCiWebhook(apiUrl string, apiKey string, data map[string]interface
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 201 {
-		return errors.Errorf("CircleCi Regression webhook response code HTTP %d", resp.StatusCode)
+	if resp.StatusCode != 204 {
+		return errors.Errorf("GithubActions Regression webhook response code HTTP %d", resp.StatusCode)
 	}
 	return nil
 }
