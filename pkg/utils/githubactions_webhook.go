@@ -17,9 +17,9 @@ limitations under the License.
 package utils
 
 import (
-	"fmt"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"net/http"
 )
