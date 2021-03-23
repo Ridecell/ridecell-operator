@@ -135,6 +135,7 @@ func (c *realGithubActionsClient) TriggerRegressionSuite(instanceName string, ve
 				"build-tag":                   version,
 			},
 		}
+		fmt.Println("postData: ",postData)
 		err := utils.CallGithubActionsWebhook("https://api.github.com/repos/Ridecell/Ridecell_qa_automation/actions/workflows/main.yml/dispatches", apiKey, postData)
 		if err != nil {
 			return fmt.Sprintf("%s", err)
