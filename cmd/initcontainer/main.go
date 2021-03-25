@@ -187,7 +187,7 @@ func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceN
 		return err
 	}
 
-	pgdb, ok := obj.(*dbv1beta1.PostgresDatabase)
+	pgdb, ok := obj.(dbv1beta1.PostgresDatabase)
 	if !ok {
 		return errors.New("Error while converting object into PostgresDatabase")
 	}
@@ -216,7 +216,7 @@ func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceNa
 		return err
 	}
 
-	secret, ok := obj.(*corev1.Secret)
+	secret, ok := obj.(corev1.Secret)
 	if !ok {
 		return errors.New("Error while converting object into Secret")
 	}
@@ -240,7 +240,7 @@ func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceN
 		return err
 	}
 
-	pgdb, ok := obj.(*dbv1beta1.PostgresDatabase)
+	pgdb, ok := obj.(dbv1beta1.PostgresDatabase)
 	if !ok {
 		return errors.New("Error while converting object into PostgresDatabase")
 	}
@@ -272,7 +272,7 @@ func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceNam
 		return err
 	}
 
-	rmqv, ok := obj.(*dbv1beta1.RabbitmqVhost)
+	rmqv, ok := obj.(dbv1beta1.RabbitmqVhost)
 	if !ok {
 		return errors.New("Error while converting object into RabbitmqVhost")
 	}
@@ -296,7 +296,7 @@ func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceNa
 		return err
 	}
 
-	secret, ok := obj.(*corev1.Secret)
+	secret, ok := obj.(corev1.Secret)
 	if !ok {
 		return errors.New("Error while converting object into Secret")
 	}
@@ -314,7 +314,7 @@ func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceNa
 	return nil
 }
 
-func getObject(ctx *components.ComponentContext, env string, serviceName string, kind string) (*runtime.Object, error) {
+func getObject(ctx *components.ComponentContext, env string, serviceName string, kind string) (runtime.Object, error) {
 	var obj runtime.Object
 	objName := fmt.Sprintf("svc-%s-%s", env, serviceName)
 
@@ -345,5 +345,5 @@ func getObject(ctx *components.ComponentContext, env string, serviceName string,
 	if k8serr.IsNotFound(err) {
 		err = nil
 	}
-	return &obj, err
+	return obj, err
 }
