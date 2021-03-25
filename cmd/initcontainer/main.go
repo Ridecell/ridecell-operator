@@ -194,8 +194,9 @@ func UpdatePostgresConfig(ctx *components.ComponentContext, env string, serviceN
 				retry = retry - 1
 				continue
 			}
+			return err
 		}
-		return err
+		break
 	}
 	if err != nil && k8serr.IsNotFound(err) {
 		return nil
@@ -233,8 +234,9 @@ func UpdateIamuserConfig(ctx *components.ComponentContext, env string, serviceNa
 				retry = retry - 1
 				continue
 			}
+			return err
 		}
-		return err
+		break
 	}
 	if err != nil && k8serr.IsNotFound(err) {
 		return nil
@@ -267,8 +269,9 @@ func UpdatePostgresSecret(ctx *components.ComponentContext, env string, serviceN
 				retry = retry - 1
 				continue
 			}
+			return err
 		}
-		return err
+		break
 	}
 	if err != nil && k8serr.IsNotFound(err) {
 		return nil
@@ -310,8 +313,9 @@ func UpdateRabbitSecret(ctx *components.ComponentContext, env string, serviceNam
 				retry = retry - 1
 				continue
 			}
+			return err
 		}
-		return err
+		break
 	}
 	if err != nil && k8serr.IsNotFound(err) {
 		return nil
@@ -344,8 +348,9 @@ func UpdateIamuserSecret(ctx *components.ComponentContext, env string, serviceNa
 				retry = retry - 1
 				continue
 			}
+			return err
 		}
-		return err
+		break
 	}
 	if err != nil && k8serr.IsNotFound(err) {
 		return nil
