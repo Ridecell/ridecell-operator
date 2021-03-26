@@ -44,7 +44,7 @@ import (
 
 var fileMode string
 
-const RETRY_INTERVAL = 5 // seconds
+const RETRY_INTERVAL = 15 // seconds
 
 // Temporary flag to allow standing up a database prior to migration
 var disableDatabase bool
