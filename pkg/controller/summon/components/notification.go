@@ -146,10 +146,10 @@ func (c *realGithubActionsClient) TriggerRegressionSuite(instanceName string, ve
 }
 
 type notificationComponent struct {
-	slackClient        SlackClient
-	deployStatusClient DeployStatusClient
-	dupCache           sync.Map
-	githubactionsClient     GithubActionsClient
+	slackClient         SlackClient
+	deployStatusClient  DeployStatusClient
+	dupCache            sync.Map
+	githubactionsClient GithubActionsClient
 }
 
 func NewNotification() *notificationComponent {
@@ -160,9 +160,9 @@ func NewNotification() *notificationComponent {
 	}
 
 	return &notificationComponent{
-		slackClient:        &realSlackClient{client: slackClient},
-		deployStatusClient: &realDeployStatusClient{},
-		githubactionsClient:     &realGithubActionsClient{},
+		slackClient:         &realSlackClient{client: slackClient},
+		deployStatusClient:  &realDeployStatusClient{},
+		githubactionsClient: &realGithubActionsClient{},
 	}
 }
 

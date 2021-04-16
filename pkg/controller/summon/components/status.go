@@ -61,8 +61,9 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 	celeryd := &appsv1.Deployment{}
 	channelworker := &appsv1.Deployment{}
 	static := &appsv1.Deployment{}
-	celerybeat := &appsv1.StatefulSet{}
 	kafkaconsumer := &appsv1.Deployment{}
+	celerybeat := &appsv1.StatefulSet{}
+	celeryredbeat := &appsv1.Deployment{}
 
 	// Go's lack of generics can fuck right off.
 	err := comp.get(ctx, "web", web)
@@ -85,9 +86,19 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 	if err != nil {
 		return components.Result{}, err
 	}
-	err = comp.get(ctx, "celerybeat", celerybeat)
-	if err != nil {
-		return components.Result{}, err
+	// Since CeleryBeat statefulset is deleted (see pkg/controller/summon/component/deployment.go)
+	// when useCeleryRedbeat is specified, or celeryRedBeat deployment deleted when celerybeat is used
+	// we should only check for the expected scheduler to exist.
+	if instance.Spec.UseCeleryRedBeat {
+		err = comp.get(ctx, "celeryredbeat", celeryredbeat)
+		if err != nil {
+			return components.Result{}, err
+		}
+	} else {
+		err = comp.get(ctx, "celerybeat", celerybeat)
+		if err != nil {
+			return components.Result{}, err
+		}
 	}
 	err = comp.get(ctx, "kafkaconsumer", kafkaconsumer)
 	if err != nil {
@@ -117,10 +128,16 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 			return components.Result{}, err
 		}
 
+		var schedulerReady bool
+		if instance.Spec.UseCeleryRedBeat {
+			schedulerReady = comp.isReady(celeryredbeat)
+		} else {
+			schedulerReady = comp.isReady(celerybeat)
+		}
 		// the bigger newer check
 		if comp.isReady(web) && comp.isReady(daphne) &&
 			comp.isReady(celeryd) && comp.isReady(channelworker) &&
-			comp.isReady(static) && comp.isReady(celerybeat) &&
+			comp.isReady(static) && schedulerReady &&
 			comp.isReady(dispatch) && comp.isReady(businessPortal) &&
 			comp.isReady(tripShare) && comp.isReady(hwAux) && comp.isReady(kafkaconsumer) {
 			return components.Result{StatusModifier: func(obj runtime.Object) error {
@@ -133,6 +150,13 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 		return components.Result{}, nil
 	}
 
+	// celery scheduler needs to be handled separately
+	var schedulerReady bool
+	if instance.Spec.UseCeleryRedBeat {
+		schedulerReady = celeryredbeat.Spec.Replicas != nil && celeryredbeat.Status.ReadyReplicas == *celeryredbeat.Spec.Replicas
+	} else {
+		schedulerReady = celerybeat.Spec.Replicas != nil && celerybeat.Status.ReadyReplicas == *celerybeat.Spec.Replicas
+	}
 	// The big check!
 	if web.Spec.Replicas != nil && web.Status.AvailableReplicas == *web.Spec.Replicas &&
 		daphne.Spec.Replicas != nil && daphne.Status.AvailableReplicas == *daphne.Spec.Replicas &&
@@ -140,8 +164,7 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (compon
 		channelworker.Spec.Replicas != nil && channelworker.Status.AvailableReplicas == *channelworker.Spec.Replicas &&
 		static.Spec.Replicas != nil && static.Status.AvailableReplicas == *static.Spec.Replicas &&
 		kafkaconsumer.Spec.Replicas != nil && kafkaconsumer.Status.AvailableReplicas == *kafkaconsumer.Spec.Replicas &&
-		// Note this one is different, available vs ready.
-		celerybeat.Spec.Replicas != nil && celerybeat.Status.ReadyReplicas == *celerybeat.Spec.Replicas {
+		schedulerReady {
 		// TODO: Add an actual HTTP self check in here.
 		return components.Result{StatusModifier: func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)
