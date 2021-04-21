@@ -44,6 +44,7 @@ var _ = Describe("SummonPlatform Status Component", func() {
 	var celerybeatStatefulSet *appsv1.StatefulSet
 	var celeryRedbeatDeployment *appsv1.Deployment
 	var kafkaconsumerDeployment *appsv1.Deployment
+
 	makeClient := func() client.Client {
 		return fake.NewFakeClient(instance, webDeployment, daphneDeployment, celerydDeployment,
 			channelworkersDeployment, staticDeployment, celerybeatStatefulSet,
@@ -88,13 +89,18 @@ var _ = Describe("SummonPlatform Status Component", func() {
 				Replicas: intp(2),
 			},
 		}
+		celeryRedbeatDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celeryredbeat", Namespace: "summon-dev"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: intp(2),
+			},
+		}
 		celerybeatStatefulSet = &appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celerybeat", Namespace: "summon-dev"},
 			Spec: appsv1.StatefulSetSpec{
 				Replicas: intp(2),
 			},
 		}
-
 		ctx.Client = makeClient()
 	})
 
@@ -132,16 +138,10 @@ var _ = Describe("SummonPlatform Status Component", func() {
 		celerydDeployment.Status.AvailableReplicas = 2
 		channelworkersDeployment.Status.AvailableReplicas = 2
 		staticDeployment.Status.AvailableReplicas = 2
-		celerybeatStatefulSet = nil
-		celeryRedbeatDeployment = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celeryredbeat", Namespace: "summon-dev"},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: intp(2),
-			},
-		}
-		// RO checks readyReplica for celerybeat/celeryredbeta
-		celeryRedbeatDeployment.Status.ReadyReplicas = 2
 		kafkaconsumerDeployment.Status.AvailableReplicas = 2
+		// RO checks readyReplica for celerybeat/celeryredbeat
+		celeryRedbeatDeployment.Status.ReadyReplicas = 2
+		instance.Spec.UseCeleryRedBeat = true
 		instance.Status.Status = summonv1beta1.StatusDeploying
 		ctx.Client = makeClient()
 
@@ -257,8 +257,9 @@ var _ = Describe("SummonPlatform Status Component", func() {
 			updateDeploymentStatus(hwAuxDeployment)
 			updateDeploymentStatus(kafkaconsumerDeployment)
 			updateDeploymentStatus(celeryRedbeatDeployment)
-
+			instance.Spec.UseCeleryRedBeat = true
 			instance.Status.Status = summonv1beta1.StatusDeploying
+
 			ctx.Client = fake.NewFakeClient(instance, webDeployment, daphneDeployment, celerydDeployment,
 				channelworkersDeployment, staticDeployment, celeryRedbeatDeployment, dispatchDeployment,
 				businessPortalDeployment, tripShareDeployment, hwAuxDeployment, kafkaconsumerDeployment)
