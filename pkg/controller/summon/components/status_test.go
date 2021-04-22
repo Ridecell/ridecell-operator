@@ -42,10 +42,13 @@ var _ = Describe("SummonPlatform Status Component", func() {
 	var tripShareDeployment *appsv1.Deployment
 	var hwAuxDeployment *appsv1.Deployment
 	var celerybeatStatefulSet *appsv1.StatefulSet
+	var celeryRedbeatDeployment *appsv1.Deployment
 	var kafkaconsumerDeployment *appsv1.Deployment
+
 	makeClient := func() client.Client {
 		return fake.NewFakeClient(instance, webDeployment, daphneDeployment, celerydDeployment,
-			channelworkersDeployment, staticDeployment, celerybeatStatefulSet, kafkaconsumerDeployment)
+			channelworkersDeployment, staticDeployment, celerybeatStatefulSet,
+			celeryRedbeatDeployment, kafkaconsumerDeployment)
 	}
 
 	BeforeEach(func() {
@@ -86,13 +89,18 @@ var _ = Describe("SummonPlatform Status Component", func() {
 				Replicas: intp(2),
 			},
 		}
+		celeryRedbeatDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celeryredbeat", Namespace: "summon-dev"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: intp(2),
+			},
+		}
 		celerybeatStatefulSet = &appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-dev-celerybeat", Namespace: "summon-dev"},
 			Spec: appsv1.StatefulSetSpec{
 				Replicas: intp(2),
 			},
 		}
-
 		ctx.Client = makeClient()
 	})
 
@@ -114,6 +122,26 @@ var _ = Describe("SummonPlatform Status Component", func() {
 		staticDeployment.Status.AvailableReplicas = 2
 		celerybeatStatefulSet.Status.ReadyReplicas = 2
 		kafkaconsumerDeployment.Status.AvailableReplicas = 2
+		instance.Status.Status = summonv1beta1.StatusDeploying
+		ctx.Client = makeClient()
+
+		comp := summoncomponents.NewStatus()
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
+	})
+
+	// Since celeryBeat StatefulSet and celeryRedbeat Deployment exist exclusively,
+	// we should test status logic works properly.
+	It("sets the status to ready if celeryredbeat used", func() {
+		webDeployment.Status.AvailableReplicas = 2
+		daphneDeployment.Status.AvailableReplicas = 2
+		celerydDeployment.Status.AvailableReplicas = 2
+		channelworkersDeployment.Status.AvailableReplicas = 2
+		staticDeployment.Status.AvailableReplicas = 2
+		kafkaconsumerDeployment.Status.AvailableReplicas = 2
+		// RO checks readyReplica for celerybeat/celeryredbeat
+		celeryRedbeatDeployment.Status.ReadyReplicas = 2
+		instance.Spec.UseCeleryRedBeat = true
 		instance.Status.Status = summonv1beta1.StatusDeploying
 		ctx.Client = makeClient()
 
@@ -206,6 +234,34 @@ var _ = Describe("SummonPlatform Status Component", func() {
 			instance.Status.Status = summonv1beta1.StatusDeploying
 			ctx.Client = fake.NewFakeClient(instance, webDeployment, daphneDeployment, celerydDeployment,
 				channelworkersDeployment, staticDeployment, celerybeatStatefulSet, dispatchDeployment,
+				businessPortalDeployment, tripShareDeployment, hwAuxDeployment, kafkaconsumerDeployment)
+
+			comp := summoncomponents.NewStatus()
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
+		})
+
+		It("sets the status to ready when celeryRedBeat used", func() {
+			updateDeploymentStatus := func(deployment *appsv1.Deployment) {
+				deployment.Status.ReadyReplicas = 2
+				deployment.Status.UpdatedReplicas = 2
+			}
+			updateDeploymentStatus(webDeployment)
+			updateDeploymentStatus(daphneDeployment)
+			updateDeploymentStatus(celerydDeployment)
+			updateDeploymentStatus(channelworkersDeployment)
+			updateDeploymentStatus(staticDeployment)
+			updateDeploymentStatus(dispatchDeployment)
+			updateDeploymentStatus(businessPortalDeployment)
+			updateDeploymentStatus(tripShareDeployment)
+			updateDeploymentStatus(hwAuxDeployment)
+			updateDeploymentStatus(kafkaconsumerDeployment)
+			updateDeploymentStatus(celeryRedbeatDeployment)
+			instance.Spec.UseCeleryRedBeat = true
+			instance.Status.Status = summonv1beta1.StatusDeploying
+
+			ctx.Client = fake.NewFakeClient(instance, webDeployment, daphneDeployment, celerydDeployment,
+				channelworkersDeployment, staticDeployment, celeryRedbeatDeployment, dispatchDeployment,
 				businessPortalDeployment, tripShareDeployment, hwAuxDeployment, kafkaconsumerDeployment)
 
 			comp := summoncomponents.NewStatus()
