@@ -60,13 +60,15 @@ func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (compo
 	} else if strings.HasPrefix(comp.templatePath, "customerportal") && *instance.Spec.Replicas.CustomerPortal == 0 {
 		return components.Result{}, comp.deleteObject(ctx, instance, "customerportal")
 	} else if strings.HasPrefix(comp.templatePath, "web") && *instance.Spec.Replicas.Web == 0 {
-		for _, ingres := range []string{"web", "web-protected", "static"} {
+		for _, ingres := range []string{"web", "web-protected"} {
 			err := comp.deleteObject(ctx, instance, ingres)
 			if err != nil {
 				return components.Result{}, err
 			}
 		}
 		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "static") && *instance.Spec.Replicas.Web == 0 {
+		return components.Result{}, comp.deleteObject(ctx, instance, "static")
 	} else if strings.HasPrefix(comp.templatePath, "daphne") && *instance.Spec.Replicas.Daphne == 0 {
 		return components.Result{}, comp.deleteObject(ctx, instance, "daphne")
 	}
