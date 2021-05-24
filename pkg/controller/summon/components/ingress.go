@@ -17,11 +17,12 @@ limitations under the License.
 package components
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"strings"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -58,6 +59,16 @@ func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (compo
 		return components.Result{}, comp.deleteObject(ctx, instance, "pulse")
 	} else if strings.HasPrefix(comp.templatePath, "customerportal") && *instance.Spec.Replicas.CustomerPortal == 0 {
 		return components.Result{}, comp.deleteObject(ctx, instance, "customerportal")
+	} else if strings.HasPrefix(comp.templatePath, "web") && *instance.Spec.Replicas.Web == 0 {
+		for _, ingres := range []string{"web", "web-protected", "static"} {
+			err := comp.deleteObject(ctx, instance, ingres)
+			if err != nil {
+				return components.Result{}, err
+			}
+		}
+		return components.Result{}, nil
+	} else if strings.HasPrefix(comp.templatePath, "daphne") && *instance.Spec.Replicas.Daphne == 0 {
+		return components.Result{}, comp.deleteObject(ctx, instance, "daphne")
 	}
 
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
