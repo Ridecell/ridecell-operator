@@ -31,6 +31,7 @@ import (
 
 var _ = Describe("SummonPlatform ingress Component", func() {
 	It("creates an ingress object using web template", func() {
+		instance.Spec.Replicas.Web = intp(1)
 		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
@@ -42,6 +43,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 	})
 
 	It("creates an ingress object using static template", func() {
+		instance.Spec.Replicas.Web = intp(1)
 		comp := summoncomponents.NewIngress("static/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
@@ -50,6 +52,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 	})
 
 	It("creates an ingress object using daphne template", func() {
+		instance.Spec.Replicas.Daphne = intp(1)
 		comp := summoncomponents.NewIngress("daphne/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
@@ -59,6 +62,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 
 	It("creates an ingress object with rules for given aliases using web template", func() {
 		instance.Spec.Aliases = []string{"foo-1.ridecell.us", "foo-2.ridecell.us"}
+		instance.Spec.Replicas.Web = intp(1)
 		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
@@ -86,6 +90,7 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 	})
 
 	It("creates protected ingress object using web template", func() {
+		instance.Spec.Replicas.Web = intp(1)
 		comp := summoncomponents.NewIngress("web/ingress-protected.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &k8sv1beta1.Ingress{}
