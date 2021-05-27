@@ -37,7 +37,6 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 	BeforeEach(func() {
 		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn::123456789:test*")
 		instance.Spec.SQSQueue = "test-sqs-queue"
-		instance.Spec.UseIamRole = true
 		instance.Spec.Environment = "dev"
 	})
 
@@ -49,7 +48,6 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 	It("creates an IAMRole object with assumeRolePolicyDocument", func() {
-		instance.Spec.UseIamRole = true
 		comp := summoncomponents.NewIAMRole("aws/iamrole.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &awsv1beta1.IAMRole{}

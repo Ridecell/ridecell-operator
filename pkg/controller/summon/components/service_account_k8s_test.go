@@ -34,7 +34,6 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 
 	BeforeEach(func() {
 		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn::123456789:test*")
-		instance.Spec.UseIamRole = true
 		instance.Spec.Environment = "dev"
 	})
 
@@ -44,15 +43,6 @@ var _ = Describe("SummonPlatform iamrole Component", func() {
 		target := &corev1.ServiceAccount{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("Should not create serviceaccount object", func() {
-		instance.Spec.UseIamRole = false
-		comp := summoncomponents.NewserviceAccountK8s()
-		Expect(comp).To(ReconcileContext(ctx))
-		target := &corev1.ServiceAccount{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
-		Expect(err).To(HaveOccurred())
 	})
 
 })

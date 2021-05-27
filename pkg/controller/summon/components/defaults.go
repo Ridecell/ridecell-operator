@@ -192,11 +192,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		// }
 	}
 
-	// Force iam role for dev & qa env
-	if instance.Spec.Environment == "dev" || instance.Spec.Environment == "qa" {
-		instance.Spec.UseIamRole = true
-	}
-
 	// Fill in static default config values.
 	for key, value := range configDefaults {
 		_, ok := instance.Spec.Config[key]

@@ -116,9 +116,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	// This order must match the one in inputSecrets().
 	postgresSecret := dynamicInputSecrets[0]
 	secretKey := dynamicInputSecrets[1]
-	awsSecret := dynamicInputSecrets[2]
-	rabbitmqSecret := dynamicInputSecrets[3]
-	mockCarServerSecret := dynamicInputSecrets[4]
+	rabbitmqSecret := dynamicInputSecrets[2]
+	mockCarServerSecret := dynamicInputSecrets[3]
 
 	postgresConnection := instance.Status.PostgresConnection
 	if postgresSecret == nil || postgresSecret.Data == nil {
@@ -152,13 +151,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("pyamqp://%s:%s@%s/%s?ssl=true", rabbitmqConnection.Username, rabbitmqPassword, rabbitmqConnection.Host, rabbitmqConnection.Vhost)
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
-	if instance.Spec.UseIamRole {
-		appSecretsData["AWS_ACCESS_KEY_ID"] = nil
-		appSecretsData["AWS_SECRET_ACCESS_KEY"] = nil
-	} else {
-		appSecretsData["AWS_ACCESS_KEY_ID"] = string(awsSecret.Data["AWS_ACCESS_KEY_ID"])
-		appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(awsSecret.Data["AWS_SECRET_ACCESS_KEY"])
-	}
+	appSecretsData["AWS_ACCESS_KEY_ID"] = nil
+	appSecretsData["AWS_SECRET_ACCESS_KEY"] = nil
 
 	// Insert input secret overrides in the correct order.
 	for _, secret := range specInputSecrets {
@@ -331,13 +325,8 @@ func (c *appSecretComponent) inputSecrets(instance *summonv1beta1.SummonPlatform
 	secrets := []string{
 		instance.Status.PostgresConnection.PasswordSecretRef.Name,
 		fmt.Sprintf("%s.secret-key", instance.Name),
-		fmt.Sprintf("%s.aws-credentials", instance.Name),
 		instance.Status.RabbitMQConnection.PasswordSecretRef.Name,
 		mockCarServerSecret,
-	}
-	// Set aws creds empty when we use IAM role
-	if instance.Spec.UseIamRole {
-		secrets[2] = ""
 	}
 	return secrets
 }

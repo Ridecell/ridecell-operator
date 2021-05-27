@@ -31,9 +31,7 @@ spec:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
     spec:
-      {{ if .Instance.Spec.UseIamRole }}
       serviceAccountName: {{ .Instance.Name }}
-      {{ end }}
       imagePullSecrets:
       - name: pull-secret
       initContainers:
