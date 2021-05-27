@@ -139,8 +139,6 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(parsedYaml["SMS_WEBHOOK_URL"]).To(Equal("https://foo-dev.ridecell.us/sms/receive/"))
 		Expect(parsedYaml["CELERY_BROKER_URL"]).To(Equal("pyamqp://foo-dev-user:rabbitmqpassword@rabbitmqserver/foo-dev?ssl=true"))
 		Expect(parsedYaml["TOKEN"]).To(Equal("secrettoken"))
-		Expect(parsedYaml["AWS_ACCESS_KEY_ID"]).To(Equal("testid"))
-		Expect(parsedYaml["AWS_SECRET_ACCESS_KEY"]).To(Equal("testkey"))
 	})
 
 	It("copies data from the input secret", func() {
