@@ -49,3 +49,4 @@ spec:
     {{- range .Instance.Spec.Aliases }}
     - {{.}}
     {{- end }}
+    - {{ .Instance.Name }}.ridecell.io
