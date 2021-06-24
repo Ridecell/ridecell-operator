@@ -24,6 +24,14 @@ spec:
           servicePort: 8000
         path: /admin
         pathType: Prefix
+  - host: {{ .Instance.Name }}.ridecell.io
+    http:
+      paths:
+      - backend:
+          serviceName: {{ $.Instance.Name }}-{{ block "componentName" $ }}{{ end }}
+          servicePort: 8000
+        path: /admin
+        pathType: Prefix
   {{- range .Instance.Spec.Aliases }}
   - host: {{.}}
     http:
