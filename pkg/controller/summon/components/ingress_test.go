@@ -41,6 +41,8 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		//We are adding ridecell.io rule in ingress for the same service. Hence there will be one more rule than expected
 		Expect(target.Spec.Rules).To(HaveLen(2))
 		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf(instance.Spec.Hostname))
+		//Check for ridecell.io domain
+		Expect(target.Spec.Rules[1].Host).To(Equal(instance.Name + ".ridecell.io"))
 	})
 
 	It("creates an ingress object using static template", func() {
@@ -105,4 +107,5 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		Expect(target.Annotations["traefik.ingress.kubernetes.io/router.middlewares"]).To(Equal("traefik-traefik-forward-auth@kubernetescrd"))
 
 	})
+
 })
