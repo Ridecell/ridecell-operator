@@ -41,7 +41,16 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		//We are adding ridecell.io rule in ingress for the same service. Hence there will be one more rule than expected
 		Expect(target.Spec.Rules).To(HaveLen(2))
 		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf(instance.Spec.Hostname))
-		//Check for ridecell.io domain
+	})
+
+	It("creates an ingress object using web template for testing ridecell.io domain", func() {
+		instance.Spec.Replicas.Web = intp(1)
+		comp := summoncomponents.NewIngress("web/ingress.yml.tpl")
+		Expect(comp).To(ReconcileContext(ctx))
+		target := &k8sv1beta1.Ingress{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web-2", Namespace: "summon-dev"}, target)
+		Expect(err).ToNot(HaveOccurred())
+		//Check for ridecel.io domain
 		Expect(target.Spec.Rules[1].Host).To(Equal(instance.Name + ".ridecell.io"))
 	})
 
