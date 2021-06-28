@@ -66,6 +66,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		instance.Spec.Metrics.Web = &val
 	}
 
+	if instance.Spec.Metrics.Celeryd == nil {
+		val := true
+		instance.Spec.Metrics.Celeryd = &val
+	}
+
 	// If the persistentVolumeClaim for redis changes this integer should as well.
 	if instance.Spec.Redis.RAM > 10*1024 {
 		return components.Result{}, errors.New("redis memory limit cannot surpass available disk space")
