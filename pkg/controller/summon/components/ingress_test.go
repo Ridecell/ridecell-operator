@@ -38,8 +38,11 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 		// There should only be a single rule (for the primary hostname -- no vanity hostname rules should exist)
-		Expect(target.Spec.Rules).To(HaveLen(1))
-		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf(instance.Spec.Hostname))
+		//We are adding ridecell.io rule in ingress for the same service. Hence there will be one more rule than expected
+		Expect(target.Spec.Rules).To(HaveLen(2))
+		//Check for ridecel.io domain
+		Expect(target.Spec.Rules[1].Host).To(Equal(instance.Name + ".ridecell.io"))
+		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf(instance.Spec.Hostname, instance.Name+".ridecell.io"))
 	})
 
 	It("creates an ingress object using static template", func() {
@@ -68,8 +71,9 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		target := &k8sv1beta1.Ingress{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(target.Spec.Rules).To(HaveLen(3))
-		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf("foo.ridecell.us", "foo-1.ridecell.us", "foo-2.ridecell.us"))
+		//We are adding ridecell.io rule in ingress for the same service. Hence there will be one more rule than expected
+		Expect(target.Spec.Rules).To(HaveLen(4))
+		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf("foo.ridecell.us", "foo-1.ridecell.us", "foo-2.ridecell.us", instance.Name+".ridecell.io"))
 		// Ensure each vanity hostname has the exact same ingress rules as the primary hostname (backend serviceName, servicePort)
 		for _, vanityName := range instance.Spec.Aliases {
 			vanityRule := k8sv1beta1.IngressRule{
@@ -97,9 +101,11 @@ var _ = Describe("SummonPlatform ingress Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-dev-web-protected", Namespace: "summon-dev"}, target)
 		Expect(err).ToNot(HaveOccurred())
 		// There should only be a single rule (for the primary hostname -- no vanity hostname rules should exist)
-		Expect(target.Spec.Rules).To(HaveLen(1))
-		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf(instance.Spec.Hostname))
+		//We are adding ridecell.io rule in ingress for the same service. Hence there will be one more rule than expected
+		Expect(target.Spec.Rules).To(HaveLen(2))
+		Expect(target.Spec.TLS[0].Hosts).To(ConsistOf(instance.Spec.Hostname, instance.Name+".ridecell.io"))
 		Expect(target.Annotations["traefik.ingress.kubernetes.io/router.middlewares"]).To(Equal("traefik-traefik-forward-auth@kubernetescrd"))
 
 	})
+
 })

@@ -25,6 +25,13 @@ spec:
         backend:
           serviceName: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
           servicePort: 8000
+  - host: {{ .Instance.Name }}.ridecell.io
+    http:
+      paths:
+      - path: {{ block "ingressPath" . }}{{ end }}
+        backend:
+          serviceName: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
+          servicePort: 8000
   {{- range .Instance.Spec.Aliases }}
   - host: {{.}}
     http:
@@ -41,4 +48,5 @@ spec:
     {{- range .Instance.Spec.Aliases }}
     - {{.}}
     {{- end }}
+    - {{ .Instance.Name }}.ridecell.io
 {{ end }}
