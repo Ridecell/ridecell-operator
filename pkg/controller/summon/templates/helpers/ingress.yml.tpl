@@ -25,6 +25,7 @@ spec:
         backend:
           serviceName: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
           servicePort: 8000
+  {{ if or (eq  .Instance.Spec.Environment "dev") (eq  .Instance.Spec.Environment "qa") }}
   - host: {{ .Instance.Name }}.ridecell.io
     http:
       paths:
@@ -32,6 +33,7 @@ spec:
         backend:
           serviceName: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
           servicePort: 8000
+  {{ end }}
   {{- range .Instance.Spec.Aliases }}
   - host: {{.}}
     http:
@@ -45,8 +47,10 @@ spec:
   - secretName: {{ .Instance.Name }}-tls
     hosts:
     - {{ .Instance.Spec.Hostname }}
+    {{ if or (eq  .Instance.Spec.Environment "dev") (eq  .Instance.Spec.Environment "qa") }}
+    - {{ .Instance.Name }}.ridecell.io
+    {{ end }}
     {{- range .Instance.Spec.Aliases }}
     - {{.}}
     {{- end }}
-    - {{ .Instance.Name }}.ridecell.io
 {{ end }}
