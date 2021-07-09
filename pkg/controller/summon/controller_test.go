@@ -125,16 +125,6 @@ var _ = Describe("Summon controller", func() {
 		}
 		c.Create(dbSecret)
 
-		// Create fake aws creds from iam_user controller
-		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
-			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("test"),
-				"AWS_SECRET_ACCESS_KEY": []byte("test"),
-			},
-		}
-		c.Create(accessKey)
-
 		// Create fake rmq creds from rabbitmquser controller
 		rmqSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: helpers.Namespace},
@@ -279,17 +269,6 @@ var _ = Describe("Summon controller", func() {
 		err = c.Create(context.TODO(), dbSecret)
 		Expect(err).NotTo(HaveOccurred())
 
-		// Create fake aws creds from iam_user controller
-		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
-			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("test"),
-				"AWS_SECRET_ACCESS_KEY": []byte("test"),
-			},
-		}
-		err = c.Create(context.TODO(), accessKey)
-		Expect(err).NotTo(HaveOccurred())
-
 		// Create fake rmq creds from rabbitmquser controller
 		rmqSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.rabbitmq-user-password", Namespace: helpers.Namespace},
@@ -406,16 +385,6 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), dbSecret)
-		Expect(err).NotTo(HaveOccurred())
-		// Create fake aws creds from iam_user controller
-		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "statustester.aws-credentials", Namespace: helpers.Namespace},
-			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("test"),
-				"AWS_SECRET_ACCESS_KEY": []byte("test"),
-			},
-		}
-		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Create fake rmq creds from rabbitmquser controller
@@ -593,16 +562,6 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), dbSecret)
-		Expect(err).NotTo(HaveOccurred())
-		// Create fake aws creds from iam_user controller
-		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "statustester.aws-credentials", Namespace: helpers.Namespace},
-			Data: map[string][]byte{
-				"AWS_ACCESS_KEY_ID":     []byte("test"),
-				"AWS_SECRET_ACCESS_KEY": []byte("test"),
-			},
-		}
-		err = c.Create(context.TODO(), accessKey)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Create fake rmq creds from rabbitmquser controller

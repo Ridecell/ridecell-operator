@@ -24,7 +24,6 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -46,11 +45,7 @@ func (_ *serviceAccountK8sComponent) IsReconcilable(ctx *components.ComponentCon
 }
 
 func (comp *serviceAccountK8sComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	if !instance.Spec.UseIamRole {
-		return components.Result{}, nil
-	}
 	//TODO Add better way to get accountID
 	permissionsBoundaryArn := os.Getenv("PERMISSIONS_BOUNDARY_ARN")
 	if permissionsBoundaryArn == "" {

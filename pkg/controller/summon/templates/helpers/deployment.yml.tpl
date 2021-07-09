@@ -30,13 +30,8 @@ spec:
       annotations:
         summon.ridecell.io/appSecretsHash: {{ .Extra.appSecretsHash }}
         summon.ridecell.io/configHash: {{ .Extra.configHash }}
-        {{ if .Instance.Spec.UseIamRole }}
-        iam.amazonaws.com/role: summon-platform-{{ .Instance.Spec.Environment }}-{{ .Instance.Name }}
-        {{ end }}
     spec:
-      {{ if .Instance.Spec.UseIamRole }}
       serviceAccountName: {{ .Instance.Name }}
-      {{ end }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
