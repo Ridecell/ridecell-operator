@@ -24,6 +24,7 @@ spec:
           servicePort: 8000
         path: /admin
         pathType: Prefix
+  {{- if or (eq  .Instance.Spec.Environment "dev") (eq  .Instance.Spec.Environment "qa") }}
   - host: {{ .Instance.Name }}.ridecell.io
     http:
       paths:
@@ -32,6 +33,7 @@ spec:
           servicePort: 8000
         path: /admin
         pathType: Prefix
+  {{ end }}
   {{- range .Instance.Spec.Aliases }}
   - host: {{.}}
     http:
@@ -46,7 +48,9 @@ spec:
   - secretName: {{ .Instance.Name }}-tls
     hosts:
     - {{ .Instance.Spec.Hostname }}
+    {{- if or (eq  .Instance.Spec.Environment "dev") (eq  .Instance.Spec.Environment "qa") }}
+    - {{ .Instance.Name }}.ridecell.io
+    {{ end }}
     {{- range .Instance.Spec.Aliases }}
     - {{.}}
     {{- end }}
-    - {{ .Instance.Name }}.ridecell.io
