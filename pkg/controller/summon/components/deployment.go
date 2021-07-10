@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strings"
 
+	kedav1alpha1 "github.com/Ridecell/ridecell-operator/pkg/apis/keda/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -121,6 +122,31 @@ func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (co
 	_, ok := instance.Spec.Config["DEBUG"]
 	extra["debug"] = bool(ok)
 
+	// Autoscaling check
+	if comp.isAutoscaled != nil && comp.isAutoscaled(instance) {
+		// Create scaled object
+		templatePath := fmt.Sprintf("%s/scaledobject.yml", strings.Split(comp.templatePath, "/")[0])
+		res, _, err := ctx.CreateOrUpdate(templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+			goalDeployment, ok := goalObj.(*kedav1alpha1.ScaledObject)
+			existing := existingObj.(*kedav1alpha1.ScaledObject)
+			// check if any custom scaledobject is already present for same deployment, if true, then make no change
+			if existing.Annotations != nil && existing.Annotations["ridecell.io/custom-object"] == "true" {
+				return nil
+			}
+			existing.Spec = goalDeployment.Spec
+			return nil
+		})
+		if err != nil {
+			return res, errors.Wrapf(err, "deployment: failed to update template %s", templatePath)
+		}
+	} else {
+		// Delete scaled object if exists
+		_, err := comp.deleteObject(ctx, instance, "scaledobject")
+		if err != nil {
+			return components.Result{}, err
+		}
+	}
+
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goalDeployment, ok := goalObj.(*appsv1.Deployment)
 		if ok {
@@ -154,6 +180,8 @@ func (_ *deploymentComponent) deleteObject(ctx *components.ComponentContext, ins
 	var obj runtime.Object
 	if componentName == "celerybeat" {
 		obj = &appsv1.StatefulSet{}
+	} else if componentName == "scaledobject" {
+		obj = &kedav1alpha1.ScaledObject{}
 	} else {
 		obj = &appsv1.Deployment{}
 	}
@@ -162,10 +190,10 @@ func (_ *deploymentComponent) deleteObject(ctx *components.ComponentContext, ins
 	if err == nil {
 		err = ctx.Delete(ctx.Context, obj)
 		if err != nil {
-			return errors.Wrapf(err, "failed to delete existing "+componentName)
+			return errors.Wrapf(err, "deployment: failed to delete existing "+componentName)
 		}
 	} else if err != nil && !k8serrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get and delete existing "+componentName)
+		return errors.Wrapf(err, "deployment: failed to get and delete existing "+componentName)
 	}
 	return nil
 }

@@ -43,7 +43,7 @@ branch = "openapi-wat"
 [[constraint]]
   name="sigs.k8s.io/controller-tools"
   version="v0.1.10"
-  
+
 [[constraint]]
   name="github.com/gobuffalo/envy"
   version="v1.6.15"
