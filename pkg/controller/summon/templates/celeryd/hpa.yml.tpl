@@ -3,7 +3,10 @@
 {{ define "target"}}
     apiVersion: "apps/v1"
     kind: Deployment
-    name: {{ .Instance.Name }}-celeryd{{ end }}
+    name: {{ .Instance.Name }}-celeryd
+{{- end }}
+{{ define "minReplicas" }}{{ .Instance.Spec.Replicas.CelerydAuto.Min }}{{ end }}
+{{ define "maxReplicas" }}{{ .Instance.Spec.Replicas.CelerydAuto.Max }}{{ end }}
 {{ define "metric" }}
         name: ridecell:rabbitmq_summon_celery_queue_scaler
         selector:

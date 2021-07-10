@@ -98,9 +98,9 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewIngress("static/ingress.yml.tpl"),
 
 		// Celery components.
-		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto }),
+		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto.HpaEnabled }),
 		summoncomponents.NewPodDisruptionBudget("celeryd/podDisruptionBudget.yml.tpl"),
-		summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto }),
+		summoncomponents.NewHPA("celeryd/hpa.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto.HpaEnabled }),
 
 		// Celerybeat components.
 		summoncomponents.NewDeployment("celerybeat/statefulset.yml.tpl", nil),

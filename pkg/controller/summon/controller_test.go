@@ -230,7 +230,7 @@ var _ = Describe("Summon controller", func() {
 		instance.Spec.TripShare.Version = "5678"
 		// Enable HPA for celeryd
 		bVal := true
-		instance.Spec.Replicas.CelerydAuto = &bVal
+		instance.Spec.Replicas.CelerydAuto.HpaEnabled = &bVal
 		c.Update(instance)
 		Eventually(func() error {
 			c.Get(helpers.Name("foo-dispatch"), deploy)
@@ -246,9 +246,13 @@ var _ = Describe("Summon controller", func() {
 			}
 			return nil
 		}, timeout).Should(Succeed())
-		// celeryd-hpa should be created
+		// celeryd-hpa should be created.
 		c.EventuallyGet(helpers.Name("foo-celeryd-hpa"), hpa, c.EventuallyTimeout(timeout))
 		Expect(hpa.Spec.ScaleTargetRef.Name).To(Equal("foo-celeryd"))
+		// Spec.Environment is helpers.Namespace for this case -- treats as dev env default.
+		// HPA MinReplicas is an *int32 while MaxReplicas is int32.
+		Expect(hpa.Spec.MinReplicas).To(PointTo(BeEquivalentTo(1)))
+		Expect(hpa.Spec.MaxReplicas).To(Equal(int32(10)))
 	})
 
 	It("reconciles labels", func() {

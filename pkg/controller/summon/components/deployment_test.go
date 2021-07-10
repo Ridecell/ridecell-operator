@@ -263,8 +263,8 @@ var _ = Describe("deployment Component", func() {
 		BeforeEach(func() {
 			// default component would run first and default celerydAuto to false.
 			bVal := false
-			instance.Spec.Replicas.CelerydAuto = &bVal
-			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto })
+			instance.Spec.Replicas.CelerydAuto.HpaEnabled = &bVal
+			comp = summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", func(s *summonv1beta1.SummonPlatform) bool { return *s.Spec.Replicas.CelerydAuto.HpaEnabled })
 			configMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
 				Data:       map[string]string{"summon-platform.yml": "{}\n"},
@@ -308,7 +308,7 @@ var _ = Describe("deployment Component", func() {
 			Expect(target.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "celery", "-A", "summon_platform", "worker", "-l", "info", "--concurrency", "30", "--pool", "solo"}))
 		})
 
-		It("uses existing Spec.Replicas if celerydAuto is set", func() {
+		It("uses existing Spec.Replicas set by HPA during reconciles when celerydAuto.HpaEnabled", func() {
 			// Defaults component would set celeryd to 1 for dev instances.
 			instance.Spec.Replicas.Celeryd = intp(1)
 			ctx.Client = fake.NewFakeClient(appSecrets, configMap)
@@ -321,7 +321,7 @@ var _ = Describe("deployment Component", func() {
 
 			// Simulate HPA modifying replica count of existing deployment object
 			bValue := true
-			instance.Spec.Replicas.CelerydAuto = &bValue
+			instance.Spec.Replicas.CelerydAuto.HpaEnabled = &bValue
 			celerydReplicas := int32(2)
 			target.Spec.Replicas = &celerydReplicas
 			err = ctx.Client.Update(ctx.Context, target)

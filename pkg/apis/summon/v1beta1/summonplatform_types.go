@@ -105,6 +105,17 @@ type MigrationOverridesSpec struct {
 	RedisHostname     string `json:"redisHostname,omitempty"`
 }
 
+type AutoConfigSpec struct {
+	// Control if Horizontal Pod Autoscaling is used to manage replica counts.
+	HpaEnabled *bool `json:"hpaEnabled,omitempty"`
+	// Sets minimum number of replicas HPA can scale down to.
+	//+optional
+	Min *int32 `json:"min,omitempty"`
+	// Sets maximum number of replicas HPA can scale up to.
+	//+optional
+	Max *int32 `json:"max,omitempty"`
+}
+
 // ReplicasSpec defines the number of replicas of various types of pods to run.
 type ReplicasSpec struct {
 	// Number of web (twisted) pods to run. Defaults to 1 for dev/qa, 2 for uat, 4 for prod.
@@ -118,7 +129,7 @@ type ReplicasSpec struct {
 	Celeryd *int32 `json:"celeryd,omitempty"`
 	// Use horizontal pod autoscaling for celeryd instead of a set replica.
 	// +optional
-	CelerydAuto *bool `json:"celerydAuto,omitempty"`
+	CelerydAuto AutoConfigSpec `json:"celerydAuto,omitempty"`
 	// Number of celerybeat pods to run. Defaults to 1. Must be exactly 0 or 1.
 	// +optional
 	CeleryBeat *int32 `json:"celeryBeat,omitempty"`
