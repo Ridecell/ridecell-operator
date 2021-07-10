@@ -28,7 +28,7 @@ import (
 
 	monitoringv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/monitoring/v1beta1"
 	mcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/monitor/components"
-	pomonitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	pomonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 var _ = Describe("Monitor Promrule Component", func() {

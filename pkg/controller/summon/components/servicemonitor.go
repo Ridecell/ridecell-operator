@@ -18,13 +18,14 @@ package components
 
 import (
 	"fmt"
+
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	promv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 )
 

@@ -112,7 +112,7 @@ func (comp *alertManageConfigComponent) Reconcile(ctx *components.ComponentConte
 	finalConfigStr = strings.Replace(string(finalConfigStr), "routing_key: <secret>", fmt.Sprintf("routing_key: %s", os.Getenv("PG_ROUTING_KEY")), -1)
 	finalConfig = []byte(finalConfigStr)
 	// Create/Update secret with finalConfig which prometheus-operator can attach to alertmanager
-	// https://github.com/coreos/prometheus-operator/blob/master/Documentation/user-guides/alerting.md
+	// https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/alerting.md
 	// prometheus-operator need alertconfig as  kind  secret with format check above link for more info
 	alertConfigFinal := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
