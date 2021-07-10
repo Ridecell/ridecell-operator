@@ -58,16 +58,19 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(postgres.Items).To(BeEmpty())
 		})
 
-		It("does not reconcile on an exclusive database, nor create a periscope user", func() {
+		It("does not reconcile on an exclusive database, nor create a sharedUsers", func() {
 			// the PostgresDatabase controller should create the periscope user
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
 			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			Expect(comp).To(ReconcileContext(ctx))
 
-			pguser := &dbv1beta1.PostgresUser{}
-			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			shareduser := &dbv1beta1.PostgresUser{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, shareduser)
 			Expect(err).To(HaveOccurred())
-			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
+			Expect(shareduser).To(Equal(&dbv1beta1.PostgresUser{}))
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-reporting", Namespace: "summon-dev"}, shareduser)
+			Expect(err).To(HaveOccurred())
+			Expect(shareduser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})
 
 		It("creates a local database", func() {
@@ -82,7 +85,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(dbconfig.Status.Postgres.Connection.Host).To(Equal("summon-dev-database"))
 		})
 
-		It("creates a periscope PostgresUser for a local database", func() {
+		It("creates a periscope and reporting PostgresUser for a local database", func() {
 			dbconfig.Spec.Postgres.Mode = "Shared"
 			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			Expect(comp).To(ReconcileContext(ctx))
@@ -92,6 +95,14 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
 			Expect(err).ToNot(HaveOccurred())
 			// periscope user connection should have inherited the dbconfig connection
+			Expect(dbconfig.Status.Postgres.Connection.Host).To(Equal("summon-dev-database"))
+			Expect(pguser.Spec.Connection).To(Equal(dbconfig.Status.Postgres.Connection))
+
+			pguser = &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-reporting", Namespace: "summon-dev"}, pguser)
+			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
+			Expect(err).ToNot(HaveOccurred())
+			// reporting user connection should have inherited the dbconfig connection
 			Expect(dbconfig.Status.Postgres.Connection.Host).To(Equal("summon-dev-database"))
 			Expect(pguser.Spec.Connection).To(Equal(dbconfig.Status.Postgres.Connection))
 		})
@@ -108,7 +119,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("creates a periscope PostgresUser for an RDS database", func() {
+		It("creates a periscope and reporting PostgresUser for an RDS database", func() {
 			dbconfig.Spec.Postgres.Mode = "Shared"
 			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
 				MaintenanceWindow: "Mon:00:00-Mon:01:00",
@@ -117,6 +128,11 @@ var _ = Describe("Postgres Shared Component", func() {
 
 			pguser := &dbv1beta1.PostgresUser{}
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
+			Expect(err).ToNot(HaveOccurred())
+
+			pguser = &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-reporting", Namespace: "summon-dev"}, pguser)
 			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -133,6 +149,18 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})
 
+		It("creates a local database without reporting user if NoCreateReportingUser is true", func() {
+			dbconfig.Spec.Postgres.Mode = "Shared"
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
+			dbconfig.Spec.NoCreateReportingUser = true
+			Expect(comp).To(ReconcileContext(ctx))
+
+			pguser := &dbv1beta1.PostgresUser{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-reporting", Namespace: "summon-dev"}, pguser)
+			Expect(err).To(HaveOccurred())
+			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
+		})
+
 		It("creates a rds database without periscope user if NoCreatePeriscopeUser is true", func() {
 			dbconfig.Spec.Postgres.Mode = "Shared"
 			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
@@ -143,6 +171,20 @@ var _ = Describe("Postgres Shared Component", func() {
 
 			pguser := &dbv1beta1.PostgresUser{}
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).To(HaveOccurred())
+			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
+		})
+
+		It("creates a rds database without reporting user if NoCreateReportingUser is true", func() {
+			dbconfig.Spec.Postgres.Mode = "Shared"
+			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+				MaintenanceWindow: "Mon:00:00-Mon:01:00",
+			}
+			dbconfig.Spec.NoCreateReportingUser = true
+			Expect(comp).To(ReconcileContext(ctx))
+
+			pguser := &dbv1beta1.PostgresUser{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-reporting", Namespace: "summon-dev"}, pguser)
 			Expect(err).To(HaveOccurred())
 			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})
@@ -219,6 +261,18 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})
 
+		It("does not try to create a reporting user for shared database", func() {
+			dbconfig.Spec.Postgres.Mode = "Shared"
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
+			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
+			Expect(comp).To(ReconcileContext(ctx))
+
+			pguser := &dbv1beta1.PostgresUser{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "summon-dev-reporting", Namespace: "summon-dev"}, pguser)
+			Expect(err).To(HaveOccurred())
+			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
+		})
+
 		It("creates a local database", func() {
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
 			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
@@ -232,7 +286,7 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(pqdb.Status.AdminConnection.Host).To(Equal("foo-dev-database"))
 		})
 
-		It("creates a periscope user for a local database", func() {
+		It("creates a periscope and reporting user for a local database", func() {
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
 			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
@@ -245,9 +299,17 @@ var _ = Describe("Postgres Shared Component", func() {
 
 			// periscope user connection should have inherited the postgresdatabase connection
 			Expect(pguser.Spec.Connection).To(Equal(pqdb.Status.AdminConnection))
+
+			pguser = &dbv1beta1.PostgresUser{}
+			err = ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-reporting", Namespace: "summon-dev"}, pguser)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
+
+			// reporting user connection should have inherited the postgresdatabase connection
+			Expect(pguser.Spec.Connection).To(Equal(pqdb.Status.AdminConnection))
 		})
 
-		It("does not create a periscope user for local database if NoPeriscopeUser flag is set", func() {
+		It("does not create a periscope user for local database if NoCreatePeriscopeUser flag is set", func() {
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
 			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
 			dbconfig.Spec.NoCreatePeriscopeUser = true
@@ -256,6 +318,19 @@ var _ = Describe("Postgres Shared Component", func() {
 
 			pguser := &dbv1beta1.PostgresUser{}
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).To(HaveOccurred())
+			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
+		})
+
+		It("does not create a reporting user for local database if NoCreateReportingUser flag is set", func() {
+			dbconfig.Spec.Postgres.Mode = "Exclusive"
+			dbconfig.Spec.Postgres.Local = &dbv1beta1.LocalPostgresSpec{}
+			dbconfig.Spec.NoCreateReportingUser = true
+			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
+			Expect(comp).To(ReconcileContext(ctx))
+
+			pguser := &dbv1beta1.PostgresUser{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-reporting", Namespace: "summon-dev"}, pguser)
 			Expect(err).To(HaveOccurred())
 			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})
@@ -291,7 +366,24 @@ var _ = Describe("Postgres Shared Component", func() {
 			Expect(pguser.Spec.Connection).To(Equal(pqdb.Status.AdminConnection))
 		})
 
-		It("does not create a periscope user for a RDS database if NoPeriscopeUser flag is set", func() {
+		It("creates a reporting user for a RDS database", func() {
+			dbconfig.Spec.Postgres.Mode = "Exclusive"
+			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+				MaintenanceWindow: "Mon:00:00-Mon:01:00",
+			}
+			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
+			Expect(comp).To(ReconcileContext(ctx))
+
+			pguser := &dbv1beta1.PostgresUser{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-reporting", Namespace: "summon-dev"}, pguser)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pguser).ToNot(Equal(&dbv1beta1.PostgresUser{}))
+
+			// reporting user connection should have inherited the postgresdatabase connection
+			Expect(pguser.Spec.Connection).To(Equal(pqdb.Status.AdminConnection))
+		})
+
+		It("does not create a periscope user for a RDS database if NoCreatePeriscopeUser flag is set", func() {
 			dbconfig.Spec.Postgres.Mode = "Exclusive"
 			dbconfig.Spec.NoCreatePeriscopeUser = true
 			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
@@ -302,6 +394,21 @@ var _ = Describe("Postgres Shared Component", func() {
 
 			pguser := &dbv1beta1.PostgresUser{}
 			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-periscope", Namespace: "summon-dev"}, pguser)
+			Expect(err).To(HaveOccurred())
+			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
+		})
+
+		It("does not create a reporting user for a RDS database if NoCreateReportingUser flag is set", func() {
+			dbconfig.Spec.Postgres.Mode = "Exclusive"
+			dbconfig.Spec.NoCreateReportingUser = true
+			dbconfig.Spec.Postgres.RDS = &dbv1beta1.RDSInstanceSpec{
+				MaintenanceWindow: "Mon:00:00-Mon:01:00",
+			}
+			ctx.Client = fake.NewFakeClient(dbconfig, pqdb)
+			Expect(comp).To(ReconcileContext(ctx))
+
+			pguser := &dbv1beta1.PostgresUser{}
+			err := ctx.Get(context.Background(), types.NamespacedName{Name: "foo-dev-reporting", Namespace: "summon-dev"}, pguser)
 			Expect(err).To(HaveOccurred())
 			Expect(pguser).To(Equal(&dbv1beta1.PostgresUser{}))
 		})

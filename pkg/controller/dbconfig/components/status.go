@@ -47,6 +47,9 @@ func (comp *statusComponent) Reconcile(_ *components.ComponentContext) (componen
 			if instance.Status.Postgres.SharedUsers.Periscope != dbv1beta1.StatusReady && instance.Status.Postgres.SharedUsers.Periscope != dbv1beta1.StatusSkipped {
 				return nil
 			}
+			if instance.Status.Postgres.SharedUsers.Reporting != dbv1beta1.StatusReady && instance.Status.Postgres.SharedUsers.Reporting != dbv1beta1.StatusSkipped {
+				return nil
+			}
 		}
 		instance.Status.Status = dbv1beta1.StatusReady
 		// TODO a better message

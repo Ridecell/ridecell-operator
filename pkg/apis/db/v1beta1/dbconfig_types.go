@@ -73,6 +73,9 @@ type DbConfigSpec struct {
 	// Create a periscope user for postgres db. Defaults to true.
 	// +optional
 	NoCreatePeriscopeUser bool `json:"noCreatePeriscopeUser,omitempty"`
+	// Create a reporting user for postgres db. Defaults to true.
+	// +optional
+	NoCreateReportingUser bool `json:"noCreateReportingUser,omitempty"`
 	// Migration override settings.
 	// +optional
 	MigrationOverrides MigrationOverridesSpec `json:"migrationOverrides,omitempty"`

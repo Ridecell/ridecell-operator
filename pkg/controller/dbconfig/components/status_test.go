@@ -33,23 +33,40 @@ var _ = Describe("DbConfig Status Component", func() {
 		comp = dbccomponents.NewStatus()
 	})
 
-	It("it sets ready when the database is exclusive", func() {
+	It("sets ready when the database is exclusive", func() {
 		instance.Spec.Postgres.Mode = "Exclusive"
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
 
-	It("it sets ready when the database is shared and ready", func() {
+	It("sets ready when the database is shared and ready", func() {
 		instance.Spec.Postgres.Mode = "Shared"
 		instance.Status.Postgres.Status = dbv1beta1.StatusReady
 		instance.Status.Postgres.SharedUsers.Periscope = dbv1beta1.StatusReady
+		instance.Status.Postgres.SharedUsers.Reporting = dbv1beta1.StatusReady
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
 
-	It("it does not set ready when the database is shared and not ready", func() {
+	It("does not set ready when the database is shared and not ready", func() {
 		instance.Spec.Postgres.Mode = "Shared"
 		instance.Status.Postgres.Status = dbv1beta1.StatusError
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Status.Status).To(Equal(""))
+	})
+
+	It("does not set ready if database is shared and periscope user not ready", func() {
+		instance.Spec.Postgres.Mode = "Shared"
+		instance.Status.Postgres.Status = dbv1beta1.StatusReady
+		instance.Status.Postgres.SharedUsers.Reporting = dbv1beta1.StatusReady
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Status.Status).To(Equal(""))
+	})
+
+	It("does not set ready if database is shared and reporting user not ready", func() {
+		instance.Spec.Postgres.Mode = "Shared"
+		instance.Status.Postgres.Status = dbv1beta1.StatusReady
+		instance.Status.Postgres.SharedUsers.Periscope = dbv1beta1.StatusReady
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(""))
 	})

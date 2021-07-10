@@ -171,6 +171,10 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if err != nil {
 		return res, errors.Wrap(err, "error while reconciling periscope postgres user")
 	}
+	res, reportingStatus, err := comp.reconcileReportingUser(ctx, dbconfig, conn)
+	if err != nil {
+		return res, errors.Wrap(err, "error while reconciling reporting postgres user")
+	}
 
 	if comp.mode == "Exclusive" {
 		// Updating the status for a PostgresDatabase.
@@ -184,6 +188,9 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			if instance.Status.SharedUsers.Periscope != dbv1beta1.StatusGranted {
 				instance.Status.SharedUsers.Periscope = periscopeStatus
 			}
+			if instance.Status.SharedUsers.Reporting != dbv1beta1.StatusGranted {
+				instance.Status.SharedUsers.Reporting = reportingStatus
+			}
 			instance.Status.RDSInstanceID = rdsInstanceID
 			return nil
 		}
@@ -193,10 +200,14 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance := obj.(*dbv1beta1.DbConfig)
 			instance.Status.Postgres.Status = status
 			instance.Status.Postgres.Connection = *conn
-			// I don't think dbconfig will ever get granted status (since periscopestatus is the status of periscope postgresuser obj,
-			// not the postgres database shareduser status that gets updated by periscopeuser component).
+			// dbconfig will never get granted status (since <user>status is the status of postgresuser obj --
+			// not the postgres database shareduser status that gets updated by its corresponding user component). 
+			// SharedUser status for dbconfig just indicates if a SharedUser exists in the cluster.
 			if instance.Status.Postgres.SharedUsers.Periscope != dbv1beta1.StatusGranted {
 				instance.Status.Postgres.SharedUsers.Periscope = periscopeStatus
+			}
+			if instance.Status.Postgres.SharedUsers.Reporting != dbv1beta1.StatusGranted {
+				instance.Status.Postgres.SharedUsers.Reporting = reportingStatus
 			}
 			instance.Status.RDSInstanceID = rdsInstanceID
 			return nil
@@ -351,6 +362,36 @@ func (comp *postgresComponent) reconcilePeriscopeUser(ctx *components.ComponentC
 		err = ctx.Delete(ctx.Context, user)
 		if err != nil && !kerrors.IsNotFound(err) {
 			return components.Result{Requeue: true}, "", errors.Wrap(err, "unable to find and delete periscopeuser")
+		}
+		return components.Result{}, dbv1beta1.StatusSkipped, nil
+	}
+}
+
+func (comp *postgresComponent) reconcileReportingUser(ctx *components.ComponentContext, dbconfig *dbv1beta1.DbConfig, conn *dbv1beta1.PostgresConnection) (components.Result, string, error) {
+	var existing *dbv1beta1.PostgresUser
+	extras := map[string]interface{}{}
+	extras["Conn"] = conn
+
+	if !dbconfig.Spec.NoCreateReportingUser {
+		res, _, err := ctx.WithTemplates(Templates).CreateOrUpdate("reportinguser.yml.tpl", extras, func(goalObj, existingObj runtime.Object) error {
+			existing = existingObj.(*dbv1beta1.PostgresUser)
+			goal := goalObj.(*dbv1beta1.PostgresUser)
+			existing.Spec = goal.Spec
+			return nil
+		})
+		if err != nil {
+			return res, "", err
+		}
+		return res, existing.Status.Status, err
+	} else {
+		// Check if reporting user already exists and delete it.
+		user, err := ctx.WithTemplates(Templates).GetTemplate("reportinguser.yml.tpl", extras)
+		if err != nil {
+			return components.Result{}, "", errors.Wrap(err, "unable to load reportinguser.yml.tpl to delete existing reporting user")
+		}
+		err = ctx.Delete(ctx.Context, user)
+		if err != nil && !kerrors.IsNotFound(err) {
+			return components.Result{Requeue: true}, "", errors.Wrap(err, "unable to find and delete reportinguser")
 		}
 		return components.Result{}, dbv1beta1.StatusSkipped, nil
 	}
